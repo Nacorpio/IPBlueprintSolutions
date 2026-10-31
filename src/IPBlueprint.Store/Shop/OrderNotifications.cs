@@ -19,8 +19,8 @@ public sealed class OrderNotifications(IEmailSender email, IOptions<ShopOptions>
         await TrySendAsync(order.Email, $"Thank you for your order {order.Reference}",
             $"""
             <p>Hi {Html.Encode(order.CustomerName)},</p>
-            <p>Thank you for your order! We have received your payment and will print and pack your items as soon as we can.
-            We'll email you again when your order ships.</p>
+            <p>Thank you for your order! Your payment has come through, and we'll print and pack your items as soon as we can.
+            We'll email you again when the parcel is on its way.</p>
             {summary}
             <p>Questions? Just reply to this email.</p>
             <p>{Html.Encode(Shop.Name)}</p>
@@ -44,7 +44,7 @@ public sealed class OrderNotifications(IEmailSender email, IOptions<ShopOptions>
             <p>Hi {Html.Encode(order.CustomerName)},</p>
             <p>Your order {Html.Encode(order.Reference)} has been shipped.</p>
             {(string.IsNullOrWhiteSpace(order.TrackingNumber) ? "" : $"<p>Tracking number: <strong>{Html.Encode(order.TrackingNumber)}</strong></p>")}
-            <p>Thank you for shopping with us!</p>
+            <p>If something is wrong when it arrives, reply to this email and we'll sort it out.</p>
             <p>{Html.Encode(Shop.Name)}</p>
             """, replyTo: Shop.ContactEmail, ct);
 
@@ -53,8 +53,8 @@ public sealed class OrderNotifications(IEmailSender email, IOptions<ShopOptions>
         await TrySendAsync(request.Email, "We received your custom order request",
             $"""
             <p>Hi {Html.Encode(request.Name)},</p>
-            <p>Thanks for your request! We'll look at it and get back to you with a price and an estimated delivery time,
-            usually within a few days.</p>
+            <p>Thanks for your request. We'll read it and reply with a price and an estimated delivery time,
+            usually within a few days. This is what you sent:</p>
             <blockquote>{Html.Encode(request.Description).Replace("\n", "<br>")}</blockquote>
             <p>{Html.Encode(Shop.Name)}</p>
             """, replyTo: Shop.ContactEmail, ct);
