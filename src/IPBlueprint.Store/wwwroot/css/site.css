@@ -322,3 +322,203 @@ span.label { display: block; font-weight: 600; margin-bottom: 4px; font-size: .9
     .notify-row { flex-direction: column; }
     .product-card .stock-badge { display: block; width: fit-content; margin: 4px 0 0; }
 }
+
+/* ------------------------------------------------------------------------
+   Glass and motion layer.
+   A light touch on top of the styles above: a faint navy-tinted backdrop,
+   translucent "glass" surfaces, soft gradients on buttons, and quick
+   hover / press / focus feedback. Everything here degrades gracefully:
+   - browsers without backdrop-filter keep the solid surfaces from above;
+   - prefers-reduced-motion turns off movement (colour changes stay);
+   - forced-colors (Windows high contrast) ignores the decorative layers.
+   ------------------------------------------------------------------------ */
+:root {
+    --ease: cubic-bezier(.2, .7, .2, 1);
+    --fast: .16s;
+    --glass: color-mix(in srgb, var(--surface) 72%, transparent);
+    --glass-strong: color-mix(in srgb, var(--surface) 84%, transparent);
+    --glass-border: color-mix(in srgb, var(--border) 70%, transparent);
+    --glass-edge: rgba(255, 255, 255, .7);       /* thin highlight along the top edge */
+    --glow-a: rgba(23, 64, 106, .09);             /* navy */
+    --glow-b: rgba(74, 132, 196, .08);            /* lighter blue */
+    --sheen: linear-gradient(180deg, rgba(255, 255, 255, .55), rgba(255, 255, 255, 0) 60%);
+    --lift-shadow: 0 2px 4px rgba(16, 24, 40, .06), 0 12px 28px rgba(23, 64, 106, .14);
+    --ring: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        --glass-edge: rgba(255, 255, 255, .07);
+        --glow-a: rgba(127, 176, 230, .10);
+        --glow-b: rgba(40, 90, 150, .16);
+        --sheen: linear-gradient(180deg, rgba(255, 255, 255, .05), rgba(255, 255, 255, 0) 60%);
+        --lift-shadow: 0 2px 4px rgba(0, 0, 0, .35), 0 14px 32px rgba(0, 0, 0, .4);
+    }
+}
+:root[data-theme="dark"] {
+    --glass-edge: rgba(255, 255, 255, .07);
+    --glow-a: rgba(127, 176, 230, .10);
+    --glow-b: rgba(40, 90, 150, .16);
+    --sheen: linear-gradient(180deg, rgba(255, 255, 255, .05), rgba(255, 255, 255, 0) 60%);
+    --lift-shadow: 0 2px 4px rgba(0, 0, 0, .35), 0 14px 32px rgba(0, 0, 0, .4);
+}
+
+/* Backdrop: two soft glows behind everything, fixed so they don't scroll away.
+   A pseudo-element instead of background-attachment: fixed, which is janky on iOS. */
+body::before {
+    content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background:
+        radial-gradient(900px 520px at 8% -8%, var(--glow-a), transparent 65%),
+        radial-gradient(800px 480px at 100% 10%, var(--glow-b), transparent 65%),
+        radial-gradient(700px 500px at 50% 110%, var(--glow-b), transparent 70%);
+}
+
+/* Shared surfaces get a top-edge highlight and a faint sheen. */
+.site-header, .site-footer, .product-card, .panel, .custom-cta, .stat,
+.gallery-grid figure, .category-tabs a, .table {
+    box-shadow: inset 0 1px 0 var(--glass-edge), var(--shadow);
+}
+.site-header, .site-footer { box-shadow: inset 0 -1px 0 var(--glass-edge); }
+.custom-cta, .panel { background-image: var(--sheen); }
+.custom-cta { background-image: var(--sheen), linear-gradient(120deg, color-mix(in srgb, var(--accent) 7%, transparent), transparent 55%); }
+
+/* Glass, only where the browser can blur what's behind it. */
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .site-header, .site-footer, .panel, .custom-cta, .stat, .product-card,
+    .gallery-grid figure, .category-tabs a:not([aria-current="page"]), .lang-switch, .theme-toggle {
+        background-color: var(--glass);
+        border-color: var(--glass-border);
+        -webkit-backdrop-filter: blur(14px) saturate(150%);
+        backdrop-filter: blur(14px) saturate(150%);
+    }
+    .site-header { background-color: var(--glass-strong); }
+    /* Cards sit on a nearly flat backdrop, so a smaller blur looks the same and is cheaper on phones. */
+    .product-card, .gallery-grid figure, .category-tabs a { -webkit-backdrop-filter: blur(8px) saturate(140%); backdrop-filter: blur(8px) saturate(140%); }
+    input[type=text], input[type=email], input[type=tel], input[type=number], input[type=password], input[type=search], textarea, select {
+        background-color: var(--glass-strong);
+    }
+}
+
+/* Sticky glass header on wider screens; on phones the header wraps to two
+   rows, so it stays in the flow there to keep room for content. */
+@media (min-width: 721px) {
+    .site-header { position: sticky; top: 0; z-index: 50; }
+    html { scroll-padding-top: 88px; }
+}
+
+/* Navigation: a thin underline slides in on hover and marks the current page. */
+.main-nav a:not(.lang-switch) { position: relative; transition: color var(--fast) var(--ease); }
+.main-nav a:not(.lang-switch)::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: -4px; height: 2px; border-radius: 2px;
+    background: currentColor; transform: scaleX(0); transform-origin: left; transition: transform .22s var(--ease);
+}
+.main-nav a:not(.lang-switch):hover::after, .main-nav a[aria-current="page"]::after { transform: scaleX(1); }
+@media (max-width: 520px) { .main-nav a:not(.lang-switch)::after { bottom: 4px; } }
+.lang-switch, .theme-toggle, .social-icons a {
+    transition: border-color var(--fast) var(--ease), color var(--fast) var(--ease), background-color var(--fast) var(--ease), transform var(--fast) var(--ease);
+}
+.theme-toggle:hover svg { transform: rotate(-18deg); }
+.theme-toggle svg { transition: transform .3s var(--ease); }
+.lang-switch:active, .theme-toggle:active, .social-icons a:active { transform: scale(.94); }
+.social-icons a:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+
+/* Buttons: a gentle top-to-bottom gradient of the navy, a lift on hover and a press on click. */
+.button, button.button {
+    background-image: linear-gradient(180deg, rgba(255, 255, 255, .14), rgba(255, 255, 255, 0) 55%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .18), 0 1px 2px rgba(16, 24, 40, .12), 0 4px 12px color-mix(in srgb, var(--accent) 22%, transparent);
+    transition: background-color var(--fast) var(--ease), box-shadow var(--fast) var(--ease), transform var(--fast) var(--ease), border-color var(--fast) var(--ease);
+}
+.button:hover { transform: translateY(-1px); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .2), 0 2px 4px rgba(16, 24, 40, .12), 0 8px 20px color-mix(in srgb, var(--accent) 30%, transparent); }
+.button:active { transform: translateY(0) scale(.98); box-shadow: inset 0 2px 4px rgba(0, 0, 0, .15); transition-duration: .06s; }
+.button.secondary { background-image: none; background-color: var(--glass); box-shadow: inset 0 1px 0 var(--glass-edge); }
+.button.secondary:hover { background-color: var(--surface); }
+.button.danger { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .18), 0 4px 12px color-mix(in srgb, var(--error) 22%, transparent); }
+.button:disabled, .button:disabled:hover { transform: none; box-shadow: none; }
+.link-button { transition: color var(--fast) var(--ease); }
+.link-button:hover { color: var(--accent-hover); }
+
+/* One consistent keyboard focus ring. :focus-visible keeps it off mouse clicks. */
+a:focus-visible, button:focus-visible, .button:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px;
+}
+.button:focus-visible { border-radius: var(--radius); }
+
+/* Form fields: a soft glow on focus on top of the existing outline. */
+input[type=text], input[type=email], input[type=tel], input[type=number], input[type=password], input[type=search], textarea, select {
+    transition: border-color var(--fast) var(--ease), box-shadow var(--fast) var(--ease), background-color var(--fast) var(--ease);
+}
+input:hover:not(:focus), textarea:hover:not(:focus), select:hover:not(:focus) { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+input:focus, textarea:focus, select:focus { box-shadow: var(--ring); background-color: var(--surface); }
+
+/* Product cards: lift, a navy-tinted edge and a slow zoom on the photo. */
+.product-card { transition: transform .22s var(--ease), box-shadow .22s var(--ease), border-color .22s var(--ease); }
+.product-card .product-image, .product-card .placeholder-image { transition: transform .45s var(--ease), opacity .2s var(--ease); }
+.product-card > :first-child { overflow: hidden; }
+.product-card:hover { transform: translateY(-4px); box-shadow: inset 0 1px 0 var(--glass-edge), var(--lift-shadow); border-color: color-mix(in srgb, var(--accent) 35%, var(--border)); }
+.product-card:hover .product-image, .product-card:hover .placeholder-image { transform: scale(1.04); }
+.product-card:active { transform: translateY(-1px) scale(.99); transition-duration: .08s; }
+.product-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: var(--radius); }
+.product-card h2 { transition: color var(--fast) var(--ease); }
+.product-card:hover h2 { color: var(--link); }
+
+/* Category pills and admin stat tiles. */
+.category-tabs a { transition: background-color var(--fast) var(--ease), border-color var(--fast) var(--ease), color var(--fast) var(--ease), transform var(--fast) var(--ease); }
+.category-tabs a:hover { transform: translateY(-1px); }
+.category-tabs a:active { transform: scale(.96); }
+.category-tabs a[aria-current="page"] { background-image: linear-gradient(180deg, rgba(255, 255, 255, .14), rgba(255, 255, 255, 0) 60%); }
+a.stat { transition: transform .2s var(--ease), box-shadow .2s var(--ease), border-color .2s var(--ease); }
+a.stat:hover { transform: translateY(-2px); box-shadow: inset 0 1px 0 var(--glass-edge), var(--lift-shadow); border-color: color-mix(in srgb, var(--accent) 35%, var(--border)); }
+
+/* Gallery tiles and admin table rows. */
+.gallery-grid figure { transition: transform .22s var(--ease), box-shadow .22s var(--ease); }
+.gallery-grid li:hover figure { transform: translateY(-3px); box-shadow: inset 0 1px 0 var(--glass-edge), var(--lift-shadow); }
+.gallery-grid img { transition: transform .45s var(--ease); }
+.table tbody tr { transition: background-color var(--fast) var(--ease); }
+.table tbody tr:hover { background: color-mix(in srgb, var(--accent) 5%, transparent); }
+
+/* Cart lines and the order progress bar. */
+.cart-line { transition: background-color var(--fast) var(--ease); }
+.order-steps li.done::before { background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 70%, var(--link))); }
+.order-steps li.current .dot { box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent); }
+
+/* Messages get a bit of the same glass sheen. */
+.flash, .notice, .error-box { box-shadow: inset 0 1px 0 var(--glass-edge); background-image: var(--sheen); }
+
+/* Lightbox controls as frosted circles. */
+.lightbox button { -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, .18); transition: background-color var(--fast) var(--ease), transform var(--fast) var(--ease); }
+.lightbox button:active { transform: scale(.92); }
+.lightbox-nav:active { transform: translateY(-50%) scale(.92); }
+@media (max-width: 600px) { .lightbox-nav:active { transform: scale(.92); } }
+.lightbox[open] img { animation: pop-in .25s var(--ease); }
+
+/* A short fade-up when a page loads, so content settles rather than snaps in. */
+.page > :not(dialog) { animation: rise-in .35s var(--ease) both; }
+.page > :nth-child(2) { animation-delay: .04s; }
+.page > :nth-child(3) { animation-delay: .08s; }
+.page > :nth-child(n+4) { animation-delay: .12s; }
+@keyframes rise-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes pop-in { from { opacity: 0; transform: scale(.97); } to { opacity: 1; transform: none; } }
+
+/* Touch screens have no hover: skip the lift so a tap doesn't leave a card "stuck" up. */
+@media (hover: none) {
+    .product-card:hover, .gallery-grid li:hover figure, a.stat:hover, .button:hover, .category-tabs a:hover { transform: none; }
+    .product-card:hover .product-image, .product-card:hover .placeholder-image, .gallery-grid a:hover img { transform: none; }
+}
+
+/* Movement off for people who ask for less of it; colour feedback stays. */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; animation-delay: 0s !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+    .product-card:hover, .gallery-grid li:hover figure, a.stat:hover, .button:hover, .button:active, .category-tabs a:hover, .category-tabs a:active,
+    .product-card:active, .lang-switch:active, .theme-toggle:active, .social-icons a:active, .lightbox button:active { transform: none; }
+    .lightbox-nav:active { transform: translateY(-50%); }
+    .product-card:hover .product-image, .product-card:hover .placeholder-image, .gallery-grid a:hover img, .theme-toggle:hover svg { transform: none; }
+}
+@media (prefers-reduced-motion: reduce) and (max-width: 600px) { .lightbox-nav:active { transform: none; } }
+
+/* Windows high contrast: drop the decorative layers. */
+@media (forced-colors: active) {
+    body::before { display: none; }
+    .button, .product-card, .panel { box-shadow: none; }
+}
+
+/* The category pills scroll sideways on phones, which would clip their drop shadow. */
+@media (max-width: 520px) { .category-tabs a { box-shadow: inset 0 1px 0 var(--glass-edge); } }
