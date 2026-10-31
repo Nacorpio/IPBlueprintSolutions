@@ -36,6 +36,50 @@
                 <div class="hint">Lower numbers are shown first.</div>
             </div>
         </div>
+        <fieldset class="field stock-fields">
+            <legend>Stock</legend>
+            <input type="hidden" asp-for="Input.OriginalStock" />
+            <label class="check"><input type="radio" name="Input.MadeToOrder" value="true" checked="@Model.Input.MadeToOrder" /> <span>Made to order (we print it when someone orders, never sells out)</span></label>
+            <label class="check"><input type="radio" name="Input.MadeToOrder" value="false" checked="@(!Model.Input.MadeToOrder)" /> <span>Ready-made, limited stock:</span></label>
+            <div class="field" style="margin:8px 0 0 30px;max-width:160px">
+                <label asp-for="Input.Stock"></label>
+                <input asp-for="Input.Stock" type="number" min="0" step="1" />
+                <span asp-validation-for="Input.Stock" class="field-validation-error"></span>
+            </div>
+            <div class="hint">The count goes down by itself when a payment comes through. At 0 the product shows as sold out and visitors can ask to be emailed when it's back.@(Model.Waiting > 0 ? $" {Model.Waiting} {(Model.Waiting == 1 ? "person is" : "people are")} waiting for that email; they get it when you save with stock above 0 or switch to made to order." : "")</div>
+        </fieldset>
+        <div class="field-row">
+            <div class="field">
+                <label asp-for="Input.Material"></label>
+                <select asp-for="Input.Material" asp-items="Html.GetEnumSelectList<PrintMaterial>()">
+                    <option value="">Not shown</option>
+                </select>
+            </div>
+            <div class="field">
+                <label asp-for="Input.Colour"></label>
+                <input asp-for="Input.Colour" placeholder="e.g. Svart" />
+            </div>
+            <div class="field">
+                <label asp-for="Input.ColourEn"></label>
+                <input asp-for="Input.ColourEn" placeholder="e.g. Black" />
+            </div>
+        </div>
+        <div class="field">
+            <span class="label">Categories</span>
+            @if (Model.AllCategories.Count == 0)
+            {
+                <div class="hint">No categories yet. <a asp-page="/Admin/Categories/Index">Add some</a> to group products in the shop.</div>
+            }
+            else
+            {
+                <div class="check-list">
+                    @foreach (var c in Model.AllCategories)
+                    {
+                        <label class="check"><input type="checkbox" name="Input.CategoryIds" value="@c.Id" checked="@Model.Input.CategoryIds.Contains(c.Id)" /> <span>@c.Name</span></label>
+                    }
+                </div>
+            }
+        </div>
         <div class="field">
             <label asp-for="Input.Description"></label>
             <textarea asp-for="Input.Description"></textarea>

@@ -2,15 +2,39 @@
 @model OrderModel
 @{
     var o = Model.Order;
+    var lang = Languages.Current;
     ViewData["Title"] = L["Order {0}", o.Reference].Value;
+
+    string StepLabel(OrderStatus status) => status switch
+    {
+        OrderStatus.Paid => L["Paid"],
+        OrderStatus.InProduction => L["Being printed"],
+        OrderStatus.Shipped => L["Shipped"],
+        _ => L["Delivered"],
+    };
 }
 
 @switch (o.Status)
 {
     case OrderStatus.Paid:
-    case OrderStatus.Shipped:
         <h1>@L["Thank you for your order!"]</h1>
         <p>@L["We've received your payment and sent a confirmation to"] <strong>@o.Email</strong>. @L["We'll email you again when it ships."]</p>
+        break;
+    case OrderStatus.InProduction:
+        <h1>@L["We're printing your order"]</h1>
+        <p>@L["Some prints take a while. We'll email you when the parcel is on its way."]</p>
+        break;
+    case OrderStatus.Shipped:
+        <h1>@L["Your order is on its way"]</h1>
+        <p>@L["We've sent your parcel. If something is wrong when it arrives, just get in touch."]</p>
+        break;
+    case OrderStatus.Delivered:
+        <h1>@L["Your order has been delivered"]</h1>
+        <p>@L["We hope you like it! If something isn't right, just get in touch."]</p>
+        break;
+    case OrderStatus.Refunded:
+        <h1>@L["This order has been refunded"]</h1>
+        <p>@L["We've paid the money back. It usually takes a few working days to show up on your card."]</p>
         break;
     case OrderStatus.PaymentFailed:
         <h1>@L["The payment didn't go through"]</h1>
@@ -28,6 +52,28 @@
         break;
 }
 
+@if (Model.Steps.Count > 0)
+{
+    <ol class="order-steps" aria-label="@L["Order status"]">
+        @foreach (var step in Model.Steps)
+        {
+            <li class="@(step.Done ? "done" : "")@(step.Current ? " current" : "")" aria-current="@(step.Current ? "step" : null)">
+                <span class="dot" aria-hidden="true"></span>
+                <span class="label">@StepLabel(step.Status)</span>
+                @if (step.AtUtc is { } at)
+                {
+                    <span class="muted small">@ShopTime.FormatDate(at, lang)</span>
+                }
+            </li>
+        }
+    </ol>
+}
+
+@if (!string.IsNullOrWhiteSpace(o.TrackingNumber) && o.Status is OrderStatus.Shipped or OrderStatus.Delivered)
+{
+    <p>@L["Tracking number:"] <strong>@o.TrackingNumber</strong></p>
+}
+
 <div class="panel" style="margin-top:24px;max-width:560px">
     <p>@L["Order number:"] <strong>@o.Reference</strong></p>
     @foreach (var line in o.Lines)
@@ -38,4 +84,5 @@
     <div style="display:flex;justify-content:space-between;gap:8px;font-weight:700;margin-top:8px"><span>@L["Total"]</span><span>@Money.Format(o.Total)</span></div>
 </div>
 
+<p class="muted small" style="margin-top:16px">@L["Keep this link to check on your order. Anyone with the link can see this page, so don't share it."]</p>
 <p style="margin-top:24px"><a asp-page="/Index">@L["Back to the shop"]</a></p>

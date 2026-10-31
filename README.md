@@ -5,13 +5,15 @@ Payments are made through SumUp Hosted Checkout, so card details never reach thi
 
 ## What it does
 
-- **Shop:** a product catalogue with photos, product pages, and a cart stored in a cookie.
+- **Shop:** a product catalogue with photos, product pages, and a cart stored in a cookie. Visitors can browse by category (tabs, plus a page per category at `/categories/{slug}` that's listed in the sitemap), filter by material (PLA/PETG/ABS) and colour, and sort by price or newest.
+- **Stock:** each product is either *made to order* (never runs out; the default) or has a stock count. The count goes down when SumUp confirms a payment, exactly once even if SumUp sends the webhook twice. At 0 the product shows "Slutsåld", can't be added to the cart, and visitors can leave their email to be told when it's back; they get one email when you raise the stock (or switch to made to order), and the address is deleted. At 3 or fewer it says "Endast 2 kvar". Carts shrink to what's in stock and tell the customer. Stock is only reserved at payment, so if two people pay for the last item at the same moment, the second order still goes through and your new-order email warns you.
+- **Order statuses:** Betald → Under tillverkning → Skickad (optional tracking number) → Levererad, plus Återbetald (any paid order, can put the items back in stock) and Avbruten (unpaid orders only). Each change emails the customer in their language unless you untick it. Every order email links to the customer's private order page, `/order/{id}`, which shows where the order is. No account needed; the random id in the link is the key.
 - **Checkout:** the customer enters delivery details and is sent to SumUp's payment page. They then return to an order page that confirms the payment.
 - **Payment confirmation:** SumUp calls `POST /webhooks/sumup` when a payment changes. The webhook isn't signed, so the shop always asks the SumUp API for the real status before it marks an order paid. It also checks that the amount and currency match the order. The customer's return page does the same check, in case the webhook is slow.
 - **Gallery (`/gallery`):** photos of things you've printed before, with optional captions in Swedish and English. Clicking a photo opens it larger. Manage it under Admin → Gallery: upload up to 10 photos at a time (JPG, PNG or WebP, 20 MB each), edit captions, move photos earlier or later, and delete them. Each upload is turned the right way up, resized to 2000 px plus an 800 px thumbnail, and saved as WebP without camera data such as GPS position. The resizing uses SkiaSharp (MIT licence).
 - **Custom orders:** a request form with an optional file (images, PDF, STL/3MF/OBJ/STEP, up to 25 MB). You get an email, then quote by hand and send a SumUp payment link.
-- **Emails:** an order confirmation to the customer, a new-order email to you, a shipping email with an optional tracking number, and custom request emails. If SMTP isn't set up, emails are written to the log instead.
-- **Admin (`/Admin`):** an overview, an order list (mark orders shipped, cancel unpaid ones), a product editor with photo upload, and custom requests (status, notes, attachment download). It is protected by one shared password and rate-limited.
+- **Emails:** an order confirmation to the customer, a new-order email to you, status emails (in production, shipped with an optional tracking number, delivered, refunded), back-in-stock emails, and custom request emails. If SMTP isn't set up, emails are written to the log instead.
+- **Admin (`/Admin`):** an overview, an order list (move orders through their statuses, see their history), a product editor with photo upload, stock, material, colour and categories, a category editor (Swedish and English names), and custom requests (status, notes, attachment download). It is protected by one shared password and rate-limited.
 - **Information pages:** terms of purchase, returns and right of withdrawal, privacy policy, and about. The legal pages are **drafts** that must be completed before launch.
 
 ## Languages
@@ -48,6 +50,7 @@ All settings are in `appsettings.json`. Secrets belong in user-secrets locally a
 | `Shop:PublicBaseUrl` | The public address, e.g. `https://www.example.se`. Used for the URLs sent to SumUp, and for the canonical links, sitemap and link previews, so **set it before going live**. |
 | `Shop:ContactEmail` | Shown to customers and used as reply-to. |
 | `Shop:NotificationEmails` | Where new orders and requests are emailed (comma-separated). |
+| `Shop:LowStockThreshold` | Products with this many or fewer left say "Endast 2 kvar" (default 3, 0 = never). |
 | `Shop:ShippingFlatRate`, `Shop:FreeShippingFrom` | Shipping cost in kr, and the order value from which shipping is free (0 = never free). |
 | `Shop:InstagramUrl`, `Shop:FacebookUrl` | The shop's social media pages, shown as footer icons, a line on the gallery and About pages, and in the order confirmation email. Leave one empty to hide it. |
 | `Analytics:*` | Optional cookie-free visitor statistics. Off when empty. See [Getting found](#getting-found). |

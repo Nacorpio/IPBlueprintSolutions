@@ -6,47 +6,40 @@ using Microsoft.EntityFrameworkCore;
 
 namespace IPBlueprint.Store.Pages.Admin.Orders;
 
-public class DetailsModel(StoreDbContext db, OrderNotifications notifications, TimeProvider clock) : PageModel
+public class DetailsModel(StoreDbContext db, OrderService orders, OrderNotifications notifications) : PageModel
 {
     public Order Order { get; private set; } = null!;
 
+    /// <summary>The customer's private order page, to copy into a reply if they ask.</summary>
+    public string? StatusUrl { get; private set; }
+
+    /// <summary>True when some of the items came out of stock, so a refund can put them back.</summary>
+    public bool HasStockedItems { get; private set; }
+
     public async Task<IActionResult> OnGetAsync(Guid id, CancellationToken ct)
     {
-        var order = await Load(id, ct);
+        var order = await db.Orders.AsNoTracking()
+            .Include(o => o.Lines).Include(o => o.History.OrderBy(h => h.AtUtc))
+            .AsSplitQuery()
+            .FirstOrDefaultAsync(o => o.Id == id, ct);
         if (order is null) return NotFound();
+
         Order = order;
+        StatusUrl = notifications.StatusUrl(order);
+        var productIds = order.Lines.Where(l => l.ProductId is not null).Select(l => l.ProductId!.Value).ToList();
+        HasStockedItems = await db.Products.AnyAsync(p => productIds.Contains(p.Id) && p.Stock != null, ct);
         return Page();
     }
 
-    public async Task<IActionResult> OnPostShipAsync(Guid id, string? trackingNumber, CancellationToken ct)
+    public async Task<IActionResult> OnPostStatusAsync(Guid id, OrderStatus to, string? trackingNumber, bool emailCustomer, bool restock, CancellationToken ct)
     {
-        var order = await Load(id, ct);
-        if (order is null) return NotFound();
-        if (order.Status != OrderStatus.Paid) return RedirectToPage(new { id });
+        var result = await orders.ChangeStatusAsync(id, new StatusChangeRequest(to, trackingNumber, emailCustomer, restock), ct);
+        if (result == StatusChangeResult.NotFound) return NotFound();
 
-        order.Status = OrderStatus.Shipped;
-        order.ShippedAtUtc = clock.GetUtcNow().UtcDateTime;
-        order.TrackingNumber = string.IsNullOrWhiteSpace(trackingNumber) ? null : trackingNumber.Trim();
-        await db.SaveChangesAsync(ct);
-        await notifications.OrderShippedAsync(order, ct);
-
-        TempData["Flash"] = $"Order {order.Reference} marked as shipped. The customer has been emailed.";
+        var label = OrderStatusFlow.AdminLabel(to).ToLowerInvariant();
+        TempData["Flash"] = result == StatusChangeResult.Changed
+            ? $"Marked as {label}." + (emailCustomer && OrderStatusFlow.EmailsCustomer(to) ? " The customer has been emailed." : "")
+            : "That change isn't possible from the order's current status. Someone may have just changed it; here is how it looks now.";
         return RedirectToPage(new { id });
     }
-
-    public async Task<IActionResult> OnPostCancelAsync(Guid id, CancellationToken ct)
-    {
-        var order = await Load(id, ct);
-        if (order is null) return NotFound();
-        if (order.Status is OrderStatus.AwaitingPayment or OrderStatus.PaymentFailed)
-        {
-            order.Status = OrderStatus.Cancelled;
-            await db.SaveChangesAsync(ct);
-            TempData["Flash"] = $"Order {order.Reference} cancelled.";
-        }
-        return RedirectToPage(new { id });
-    }
-
-    private Task<Order?> Load(Guid id, CancellationToken ct) =>
-        db.Orders.Include(o => o.Lines).FirstOrDefaultAsync(o => o.Id == id, ct);
 }

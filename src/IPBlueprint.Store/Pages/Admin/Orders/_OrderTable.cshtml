@@ -13,10 +13,10 @@ else
                 {
                     <tr>
                         <td><a asp-page="/Admin/Orders/Details" asp-route-id="@o.Id">@o.Reference</a></td>
-                        <td>@o.CreatedAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
+                        <td>@ShopTime.ToSwedish(o.CreatedAtUtc).ToString("yyyy-MM-dd HH:mm")</td>
                         <td>@o.CustomerName<br /><span class="muted small">@o.Email</span></td>
                         <td>@Money.Format(o.Total)</td>
-                        <td><span class="badge @o.Status">@o.Status</span></td>
+                        <td><span class="badge @o.Status">@OrderStatusFlow.AdminLabel(o.Status)</span></td>
                     </tr>
                 }
             </tbody>

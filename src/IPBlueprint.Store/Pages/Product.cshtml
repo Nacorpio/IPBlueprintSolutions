@@ -24,13 +24,72 @@
         <span class="price">@Money.Format(Model.Product.Price)</span>
         <p class="description">@description</p>
 
-        <form method="post" class="add-to-cart">
-            <div>
-                <label for="quantity">@L["Quantity"]</label>
-                <input id="quantity" name="quantity" type="number" min="1" max="@Model.MaxQuantity" value="1" />
-            </div>
-            <button class="button" type="submit">@L["Add to cart"]</button>
-        </form>
+        @if (Model.Product.Material is not null || !string.IsNullOrWhiteSpace(Model.Product.DisplayColour) || Model.Product.Categories.Count > 0)
+        {
+            <dl class="product-facts">
+                @if (Model.Product.Material is { } material)
+                {
+                    <dt>@L["Material"]</dt><dd>@material</dd>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.Product.DisplayColour))
+                {
+                    <dt>@L["Colour"]</dt><dd>@Model.Product.DisplayColour</dd>
+                }
+                @if (Model.Product.Categories.Count > 0)
+                {
+                    <dt>@L["Category"]</dt>
+                    <dd>
+                        @for (var i = 0; i < Model.Product.Categories.Count; i++)
+                        {
+                            var c = Model.Product.Categories[i];
+                            <a asp-page="/Category" asp-route-slug="@c.Slug">@c.DisplayName</a>@(i < Model.Product.Categories.Count - 1 ? ", " : "")
+                        }
+                    </dd>
+                }
+            </dl>
+        }
+
+        @if (Model.Product.IsSoldOut)
+        {
+            <p class="stock-note"><partial name="_StockBadge" model="Model.Product" /></p>
+            @if (Model.AlertMessage is { } message)
+            {
+                <p class="flash" role="status">@message</p>
+            }
+            else
+            {
+                <form method="post" asp-page-handler="Notify" class="notify-form">
+                    <label for="notify-email">@L["Sold out for now. Leave your email and we'll tell you when it's back."]</label>
+                    <div class="notify-row">
+                        <input id="notify-email" name="email" type="email" autocomplete="email" required maxlength="200" placeholder="@L["Your email"]" />
+                        <button class="button" type="submit">@L["Email me"]</button>
+                    </div>
+                    @if (Model.AlertError is { } error)
+                    {
+                        <span class="field-validation-error">@error</span>
+                    }
+                    <p class="muted small">@L["We only use the address for this one email, then delete it."]</p>
+                </form>
+            }
+        }
+        else
+        {
+            <form method="post" class="add-to-cart">
+                <div>
+                    <label for="quantity">@L["Quantity"]</label>
+                    <input id="quantity" name="quantity" type="number" min="1" max="@Model.MaxQuantity" value="1" />
+                </div>
+                <button class="button" type="submit">@L["Add to cart"]</button>
+            </form>
+            @if (Model.Product.IsMadeToOrder)
+            {
+                <p class="stock-note muted small">@L["Made to order: we print it for you after you order."]</p>
+            }
+            else
+            {
+                <p class="stock-note"><partial name="_StockBadge" model="Model.Product" /></p>
+            }
+        }
 
         <p class="muted small">@L["We print every item ourselves, so you may see faint layer lines and small colour differences from one print to the next."]</p>
     </div>

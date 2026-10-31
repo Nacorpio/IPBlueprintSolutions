@@ -14,25 +14,7 @@
     <p>@L["We print everything in the shop ourselves, here in Sweden. If you want something that isn't listed, we take custom orders too."]</p>
 </section>
 
-@if (Model.Products.Count == 0)
-{
-    <p class="muted">@L["There's nothing in the shop yet. We're adding products soon."]</p>
-}
-else
-{
-    <div class="product-grid">
-        @foreach (var p in Model.Products)
-        {
-            <a class="product-card" asp-page="/Product" asp-route-slug="@p.Slug">
-                <partial name="_ProductImage" model="p" />
-                <div class="body">
-                    <h2>@p.DisplayName</h2>
-                    <span class="price">@Money.Format(p.Price)</span>
-                </div>
-            </a>
-        }
-    </div>
-}
+<partial name="_Catalog" model="Model.View" />
 
 <section class="custom-cta">
     <div>

@@ -7,7 +7,7 @@
 <p class="small"><a asp-page="Index">← All orders</a></p>
 <div class="toolbar">
     <h1 style="margin:0">Order @o.Reference</h1>
-    <span class="badge @o.Status">@o.Status</span>
+    <span class="badge @o.Status">@OrderStatusFlow.AdminLabel(o.Status)</span>
 </div>
 
 <div class="layout-two">
@@ -39,31 +39,80 @@
         </p>
         <p><a href="mailto:@o.Email">@o.Email</a>@if (!string.IsNullOrWhiteSpace(o.Phone)) { <br />@o.Phone }</p>
         <p class="small muted">
-            Created @o.CreatedAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm")<br />
-            @if (o.PaidAtUtc is { } paid) { <text>Paid @paid.ToLocalTime().ToString("yyyy-MM-dd HH:mm")<br /></text> }
+            Created @ShopTime.ToSwedish(o.CreatedAtUtc).ToString("yyyy-MM-dd HH:mm")<br />
+            @if (o.PaidAtUtc is { } paid) { <text>Paid @ShopTime.ToSwedish(paid).ToString("yyyy-MM-dd HH:mm")<br /></text> }
             @if (o.SumUpTransactionCode is not null) { <text>SumUp transaction @o.SumUpTransactionCode<br /></text> }
-            @if (o.ShippedAtUtc is { } shipped) { <text>Shipped @shipped.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</text> }
+            @if (o.ShippedAtUtc is { } shipped) { <text>Shipped @ShopTime.ToSwedish(shipped).ToString("yyyy-MM-dd HH:mm")<br /></text> }
+            @if (!string.IsNullOrWhiteSpace(o.TrackingNumber)) { <text>Tracking number @o.TrackingNumber</text> }
         </p>
 
-        @if (o.Status == OrderStatus.Paid)
+        @foreach (var next in OrderStatusFlow.NextSteps(o.Status))
         {
-            <form method="post" asp-page-handler="Ship">
-                <div class="field">
-                    <label for="tracking">Tracking number (optional)</label>
-                    <input id="tracking" name="trackingNumber" type="text" />
-                </div>
-                <button class="button wide" type="submit">Mark as shipped and email customer</button>
-            </form>
+            switch (next)
+            {
+                case OrderStatus.InProduction:
+                    <form method="post" asp-page-handler="Status" class="status-action">
+                        <input type="hidden" name="to" value="@next" />
+                        <label class="check small"><input type="checkbox" name="emailCustomer" value="true" checked /> <span>Email the customer</span></label>
+                        <button class="button wide" type="submit">Mark as in production</button>
+                    </form>
+                    break;
+                case OrderStatus.Shipped:
+                    <form method="post" asp-page-handler="Status" class="status-action">
+                        <input type="hidden" name="to" value="@next" />
+                        <div class="field">
+                            <label for="tracking">Tracking number (optional)</label>
+                            <input id="tracking" name="trackingNumber" type="text" maxlength="100" />
+                        </div>
+                        <label class="check small"><input type="checkbox" name="emailCustomer" value="true" checked /> <span>Email the customer</span></label>
+                        <button class="button wide" type="submit">Mark as shipped</button>
+                    </form>
+                    break;
+                case OrderStatus.Delivered:
+                    <form method="post" asp-page-handler="Status" class="status-action">
+                        <input type="hidden" name="to" value="@next" />
+                        <label class="check small"><input type="checkbox" name="emailCustomer" value="true" checked /> <span>Email the customer</span></label>
+                        <button class="button wide" type="submit">Mark as delivered</button>
+                    </form>
+                    break;
+                case OrderStatus.Refunded:
+                    <details class="status-action">
+                        <summary>Cancel and refund…</summary>
+                        <form method="post" asp-page-handler="Status" onsubmit="return confirm('Mark this order as refunded? Make the refund in the SumUp dashboard first.')">
+                            <input type="hidden" name="to" value="@next" />
+                            <p class="muted small">Make the refund in the SumUp dashboard first. This only updates the order and tells the customer.</p>
+                            @if (Model.HasStockedItems && !o.StockRestored)
+                            {
+                                <label class="check small"><input type="checkbox" name="restock" value="true" checked="@(o.Status is OrderStatus.Paid or OrderStatus.InProduction)" /> <span>Put the items back in stock</span></label>
+                            }
+                            <label class="check small"><input type="checkbox" name="emailCustomer" value="true" checked /> <span>Email the customer</span></label>
+                            <button class="button danger wide" type="submit">Mark as refunded</button>
+                        </form>
+                    </details>
+                    break;
+                case OrderStatus.Cancelled:
+                    <form method="post" asp-page-handler="Status" class="status-action" onsubmit="return confirm('Cancel this unpaid order?')">
+                        <input type="hidden" name="to" value="@next" />
+                        <button class="button secondary wide" type="submit">Cancel unpaid order</button>
+                    </form>
+                    break;
+            }
         }
-        @if (o.Status is OrderStatus.AwaitingPayment or OrderStatus.PaymentFailed)
+
+        @if (o.History.Count > 0)
         {
-            <form method="post" asp-page-handler="Cancel" onsubmit="return confirm('Cancel this unpaid order?')">
-                <button class="button secondary wide" type="submit">Cancel unpaid order</button>
-            </form>
+            <h3 style="margin-top:20px">History</h3>
+            <ul class="history small">
+                @foreach (var h in o.History)
+                {
+                    <li>@ShopTime.ToSwedish(h.AtUtc).ToString("yyyy-MM-dd HH:mm") · @OrderStatusFlow.AdminLabel(h.Status)@(h.CustomerEmailed ? " · customer emailed" : "")</li>
+                }
+            </ul>
         }
-        @if (o.Status == OrderStatus.Paid || o.Status == OrderStatus.Shipped)
+
+        @if (Model.StatusUrl is { } statusUrl && OrderStatusFlow.PaidStatuses.Contains(o.Status))
         {
-            <p class="muted small">Refunds are made in the SumUp dashboard.</p>
+            <p class="muted small" style="margin-top:16px">Customer's order page (sent in every email):<br /><a href="@statusUrl" style="word-break:break-all">@statusUrl</a></p>
         }
     </aside>
 </div>

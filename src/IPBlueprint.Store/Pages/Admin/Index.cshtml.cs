@@ -1,5 +1,6 @@
 using IPBlueprint.Store.Data;
 using IPBlueprint.Store.Payments;
+using IPBlueprint.Store.Shop;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -17,14 +18,14 @@ public class IndexModel(StoreDbContext db, IOptions<SumUpOptions> sumUp, TimePro
 
     public async Task OnGetAsync(CancellationToken ct)
     {
-        ToShip = await db.Orders.CountAsync(o => o.Status == OrderStatus.Paid, ct);
+        ToShip = await db.Orders.CountAsync(o => OrderStatusFlow.ToDo.Contains(o.Status), ct);
         NewRequests = await db.CustomOrderRequests.CountAsync(r => r.Status == CustomRequestStatus.New, ct);
         ActiveProducts = await db.Products.CountAsync(p => p.IsActive, ct);
 
         // SQLite can't sum decimals in SQL, and the numbers are small, so sum in memory.
         var since = clock.GetUtcNow().UtcDateTime.AddDays(-30);
         Sales30Days = (await db.Orders
-                .Where(o => (o.Status == OrderStatus.Paid || o.Status == OrderStatus.Shipped) && o.PaidAtUtc >= since)
+                .Where(o => OrderStatusFlow.PaidStatuses.Contains(o.Status) && o.PaidAtUtc >= since)
                 .Select(o => o.Total).ToListAsync(ct))
             .Sum();
 

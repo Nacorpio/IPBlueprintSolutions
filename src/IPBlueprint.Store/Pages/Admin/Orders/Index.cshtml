@@ -6,9 +6,10 @@
     <form method="get" style="display:flex;gap:8px">
         <select name="status" onchange="this.form.submit()">
             <option value="">All except unpaid</option>
-            @foreach (var s in Enum.GetValues<OrderStatus>())
+            <option value="todo" selected="@(Model.Filter == "todo")">To make or ship</option>
+            @foreach (var s in new[] { OrderStatus.Paid, OrderStatus.InProduction, OrderStatus.Shipped, OrderStatus.Delivered, OrderStatus.Refunded, OrderStatus.AwaitingPayment, OrderStatus.PaymentFailed, OrderStatus.Cancelled })
             {
-                <option value="@s" selected="@(Model.Status == s)">@s</option>
+                <option value="@s" selected="@(Model.Filter == s.ToString())">@OrderStatusFlow.AdminLabel(s)</option>
             }
         </select>
     </form>

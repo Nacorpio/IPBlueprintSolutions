@@ -18,6 +18,54 @@ public sealed record CustomerDetails(
     string City,
     string? Note);
 
+/// <summary>An order took more than was in stock (two people bought the last one at the same time). The owners are told.</summary>
+public sealed record StockShortage(string ProductName, int Ordered, int InStock);
+
+/// <summary>What the admin can do next with an order in each status.</summary>
+public static class OrderStatusFlow
+{
+    /// <summary>Statuses where the customer has paid and nothing has been refunded.</summary>
+    public static readonly OrderStatus[] PaidStatuses =
+        [OrderStatus.Paid, OrderStatus.InProduction, OrderStatus.Shipped, OrderStatus.Delivered];
+
+    /// <summary>Paid but not yet sent: what the shop still has to make or pack.</summary>
+    public static readonly OrderStatus[] ToDo = [OrderStatus.Paid, OrderStatus.InProduction];
+
+    public static IReadOnlyList<OrderStatus> NextSteps(OrderStatus from) => from switch
+    {
+        OrderStatus.Paid => [OrderStatus.InProduction, OrderStatus.Shipped, OrderStatus.Refunded],
+        OrderStatus.InProduction => [OrderStatus.Shipped, OrderStatus.Refunded],
+        OrderStatus.Shipped => [OrderStatus.Delivered, OrderStatus.Refunded],
+        OrderStatus.Delivered => [OrderStatus.Refunded],
+        OrderStatus.AwaitingPayment or OrderStatus.PaymentFailed => [OrderStatus.Cancelled],
+        _ => [],
+    };
+
+    public static bool CanChange(OrderStatus from, OrderStatus to) => NextSteps(from).Contains(to);
+
+    /// <summary>The status as the admin pages show it (they're in English).</summary>
+    public static string AdminLabel(OrderStatus status) => status switch
+    {
+        OrderStatus.AwaitingPayment => "Awaiting payment",
+        OrderStatus.PaymentFailed => "Payment failed",
+        OrderStatus.InProduction => "In production",
+        _ => status.ToString(),
+    };
+
+    /// <summary>Cancelling an unpaid order is nothing the customer needs to hear about; every other change is.</summary>
+    public static bool EmailsCustomer(OrderStatus to) => to != OrderStatus.Cancelled;
+}
+
+public sealed record StatusChangeRequest(OrderStatus To, string? TrackingNumber = null, bool EmailCustomer = true, bool Restock = false);
+
+public enum StatusChangeResult
+{
+    Changed,
+    NotFound,
+    /// <summary>The order isn't in a status that allows this step (or someone else just changed it).</summary>
+    NotAllowed,
+}
+
 public enum PaymentSyncResult
 {
     /// <summary>The checkout is not one of ours, or SumUp does not know it.</summary>
@@ -35,6 +83,7 @@ public sealed class OrderService(
     ISumUpClient sumUp,
     IOptions<SumUpOptions> sumUpOptions,
     OrderNotifications notifications,
+    StockAlerts stockAlerts,
     TimeProvider clock,
     ILogger<OrderService> logger)
 {
@@ -141,7 +190,10 @@ public sealed class OrderService(
             var paidAt = clock.GetUtcNow().UtcDateTime;
             var transactionCode = checkout.TransactionCode ?? checkout.Transactions?.FirstOrDefault()?.TransactionCode;
 
-            // A conditional update, so the webhook and the customer's return page can't both "win" and send two emails.
+            // A conditional update, so the webhook and the customer's return page can't both "win" and send two emails
+            // or take the items out of stock twice. The stock change is in the same transaction, so it happens exactly
+            // once together with the status change.
+            await using var tx = await db.Database.BeginTransactionAsync(ct);
             var updated = await db.Orders
                 .Where(o => o.Id == order.Id && Payable.Contains(o.Status))
                 .ExecuteUpdateAsync(s => s
@@ -150,12 +202,29 @@ public sealed class OrderService(
                     .SetProperty(o => o.SumUpCheckoutId, checkout.Id)
                     .SetProperty(o => o.SumUpTransactionCode, transactionCode), ct);
 
-            if (updated == 0) return PaymentSyncResult.AlreadyPaid;
+            if (updated == 0)
+            {
+                await tx.RollbackAsync(ct);
+                return PaymentSyncResult.AlreadyPaid;
+            }
 
+            var shortages = await TakeFromStockAsync(order, ct);
+            db.OrderStatusChanges.Add(new OrderStatusChange { OrderId = order.Id, Status = OrderStatus.Paid, AtUtc = paidAt, CustomerEmailed = true });
+            await db.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+
+            // Already saved above; stop tracking so the in-memory copy can be brought up to date without a second save.
+            db.Entry(order).State = EntityState.Detached;
             order.Status = OrderStatus.Paid;
             order.PaidAtUtc = paidAt;
+            order.SumUpCheckoutId = checkout.Id;
+            order.SumUpTransactionCode = transactionCode;
+
             logger.LogInformation("Order {Reference} paid ({Total} SEK)", order.Reference, order.Total);
-            await notifications.OrderPaidAsync(order, ct);
+            foreach (var s in shortages)
+                logger.LogWarning("Order {Reference} took {Ordered} × {Product}, but only {InStock} were in stock", order.Reference, s.Ordered, s.ProductName, s.InStock);
+
+            await notifications.OrderPaidAsync(order, shortages, ct);
             return PaymentSyncResult.MarkedPaid;
         }
 
@@ -168,6 +237,102 @@ public sealed class OrderService(
         }
 
         return order.Status == OrderStatus.Paid ? PaymentSyncResult.AlreadyPaid : PaymentSyncResult.StillPending;
+    }
+
+    /// <summary>
+    /// Moves a paid order along (in production, shipped, delivered, refunded) or cancels an unpaid one, and emails the
+    /// customer about it. Only steps from <see cref="OrderStatusFlow"/> are allowed, and the change is conditional on
+    /// the status the order had, so two admins clicking at once can't send the customer two emails.
+    /// </summary>
+    public async Task<StatusChangeResult> ChangeStatusAsync(Guid orderId, StatusChangeRequest request, CancellationToken ct = default)
+    {
+        var order = await db.Orders.Include(o => o.Lines).FirstOrDefaultAsync(o => o.Id == orderId, ct);
+        if (order is null) return StatusChangeResult.NotFound;
+
+        var from = order.Status;
+        if (!OrderStatusFlow.CanChange(from, request.To)) return StatusChangeResult.NotAllowed;
+
+        var now = clock.GetUtcNow().UtcDateTime;
+        var tracking = string.IsNullOrWhiteSpace(request.TrackingNumber) ? null : request.TrackingNumber.Trim();
+        var emailCustomer = request.EmailCustomer && OrderStatusFlow.EmailsCustomer(request.To);
+
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        var updated = request.To == OrderStatus.Shipped
+            ? await db.Orders.Where(o => o.Id == orderId && o.Status == from).ExecuteUpdateAsync(s => s
+                .SetProperty(o => o.Status, request.To)
+                .SetProperty(o => o.ShippedAtUtc, now)
+                .SetProperty(o => o.TrackingNumber, tracking), ct)
+            : await db.Orders.Where(o => o.Id == orderId && o.Status == from).ExecuteUpdateAsync(s => s
+                .SetProperty(o => o.Status, request.To), ct);
+
+        if (updated == 0)
+        {
+            await tx.RollbackAsync(ct);
+            return StatusChangeResult.NotAllowed;
+        }
+
+        var backInStock = new List<int>();
+        if (request.To == OrderStatus.Refunded && request.Restock && !order.StockRestored)
+        {
+            backInStock = await ReturnToStockAsync(order, ct);
+            await db.Orders.Where(o => o.Id == orderId).ExecuteUpdateAsync(s => s.SetProperty(o => o.StockRestored, true), ct);
+        }
+
+        db.OrderStatusChanges.Add(new OrderStatusChange { OrderId = orderId, Status = request.To, AtUtc = now, CustomerEmailed = emailCustomer });
+        await db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
+
+        db.Entry(order).State = EntityState.Detached; // saved above; just bring the copy used for the email up to date
+        order.Status = request.To;
+        if (request.To == OrderStatus.Shipped)
+        {
+            order.ShippedAtUtc = now;
+            order.TrackingNumber = tracking;
+        }
+
+        logger.LogInformation("Order {Reference}: {From} -> {To}", order.Reference, from, request.To);
+        if (emailCustomer) await notifications.StatusChangedAsync(order, ct);
+        foreach (var productId in backInStock) await stockAlerts.NotifyIfAvailableAsync(productId, ct);
+
+        return StatusChangeResult.Changed;
+    }
+
+    /// <summary>Takes a paid order's items out of stock. Made-to-order products have no stock and are skipped.
+    /// Never goes below zero; if there wasn't enough, that's returned so the owners can sort it out.</summary>
+    private async Task<List<StockShortage>> TakeFromStockAsync(Order order, CancellationToken ct)
+    {
+        var shortages = new List<StockShortage>();
+        foreach (var line in order.Lines.Where(l => l.ProductId is not null).GroupBy(l => l.ProductId!.Value))
+        {
+            var productId = line.Key;
+            var quantity = line.Sum(l => l.Quantity);
+            var stock = await db.Products.Where(p => p.Id == productId).Select(p => p.Stock).FirstOrDefaultAsync(ct);
+            if (stock is null) continue; // made to order, or the product has been deleted
+
+            if (stock < quantity) shortages.Add(new StockShortage(line.First().ProductName, quantity, Math.Max(0, stock.Value)));
+
+            await db.Products.Where(p => p.Id == productId && p.Stock != null)
+                .ExecuteUpdateAsync(s => s.SetProperty(p => p.Stock, p => p.Stock > quantity ? p.Stock - quantity : 0), ct);
+        }
+        return shortages;
+    }
+
+    /// <summary>Puts a refunded order's items back. Returns the products that were sold out and now aren't.</summary>
+    private async Task<List<int>> ReturnToStockAsync(Order order, CancellationToken ct)
+    {
+        var backInStock = new List<int>();
+        foreach (var line in order.Lines.Where(l => l.ProductId is not null).GroupBy(l => l.ProductId!.Value))
+        {
+            var productId = line.Key;
+            var quantity = line.Sum(l => l.Quantity);
+            var stock = await db.Products.Where(p => p.Id == productId).Select(p => p.Stock).FirstOrDefaultAsync(ct);
+            if (stock is null) continue;
+
+            await db.Products.Where(p => p.Id == productId && p.Stock != null)
+                .ExecuteUpdateAsync(s => s.SetProperty(p => p.Stock, p => (p.Stock > 0 ? p.Stock : 0) + quantity), ct);
+            if (stock <= 0) backInStock.Add(productId);
+        }
+        return backInStock;
     }
 
     internal static string BaseReference(string checkoutReference)

@@ -1,0 +1,54 @@
+@page "{id:int?}"
+@model EditModel
+@{ ViewData["Title"] = Model.IsNew ? "Add category" : $"Edit {Model.Input.Name}"; }
+<p class="small"><a asp-page="Index">← All categories</a></p>
+<h1>@ViewData["Title"]</h1>
+
+<div class="layout-two">
+    <form method="post" class="panel">
+        <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
+        <div class="field-row">
+            <div class="field">
+                <label asp-for="Input.Name"></label>
+                <input asp-for="Input.Name" placeholder="e.g. Figurer" />
+                <span asp-validation-for="Input.Name" class="field-validation-error"></span>
+            </div>
+            <div class="field">
+                <label asp-for="Input.NameEn"></label>
+                <input asp-for="Input.NameEn" placeholder="e.g. Figures" />
+                <span asp-validation-for="Input.NameEn" class="field-validation-error"></span>
+            </div>
+        </div>
+        <div class="field">
+            <label asp-for="Input.Slug"></label>
+            <input asp-for="Input.Slug" placeholder="Leave empty to make one from the name" />
+            <div class="hint">The category's web address: /categories/<em>this-part</em>. Changing it later breaks old links.</div>
+            <span asp-validation-for="Input.Slug" class="field-validation-error"></span>
+        </div>
+        <div class="field">
+            <label asp-for="Input.Description"></label>
+            <textarea asp-for="Input.Description" rows="3"></textarea>
+            <div class="hint">One or two sentences shown at the top of the category page. Search engines use it too.</div>
+        </div>
+        <div class="field">
+            <label asp-for="Input.DescriptionEn"></label>
+            <textarea asp-for="Input.DescriptionEn" rows="3"></textarea>
+        </div>
+        <div class="field" style="max-width:160px">
+            <label asp-for="Input.SortOrder"></label>
+            <input asp-for="Input.SortOrder" type="number" />
+            <div class="hint">Lower numbers are shown first.</div>
+        </div>
+        <button class="button" type="submit">Save</button>
+    </form>
+
+    <aside>
+        @if (!Model.IsNew)
+        {
+            <form method="post" asp-page-handler="Delete" class="panel" onsubmit="return confirm('Delete this category? The products in it stay in the shop.')">
+                <p class="small muted">Deleting a category doesn't delete its products.</p>
+                <button class="button danger" type="submit">Delete category</button>
+            </form>
+        }
+    </aside>
+</div>

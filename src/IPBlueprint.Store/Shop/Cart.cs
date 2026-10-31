@@ -9,8 +9,14 @@ public sealed record CartLine(Product Product, int Quantity)
     public decimal LineTotal => Product.Price * Quantity;
 }
 
+/// <summary>A cart line we had to shrink or drop because there isn't enough in stock.</summary>
+public sealed record CartAdjustment(Product Product, int Requested, int Available);
+
 public sealed record CartSummary(IReadOnlyList<CartLine> Lines, decimal Subtotal, decimal Shipping)
 {
+    /// <summary>Lines changed because of stock since the customer added them. The cart already reflects the change.</summary>
+    public IReadOnlyList<CartAdjustment> Adjustments { get; init; } = [];
+
     public decimal Total => Subtotal + Shipping;
     public bool IsEmpty => Lines.Count == 0;
     public int ItemCount => Lines.Sum(l => l.Quantity);
@@ -53,11 +59,16 @@ public sealed class CartService(IHttpContextAccessor http, StoreDbContext db, IO
         return result;
     }
 
-    public void Add(int productId, int quantity)
+    /// <summary>Adds the product, never going over what's in stock. Returns how many are now in the cart (0 if sold out).</summary>
+    public int Add(Product product, int quantity)
     {
+        var available = product.AvailableToBuy(options.Value.MaxQuantityPerItem);
+        if (available <= 0) return 0;
+
         var cart = ReadRaw();
-        cart[productId] = Math.Clamp(cart.GetValueOrDefault(productId) + quantity, 1, options.Value.MaxQuantityPerItem);
+        cart[product.Id] = Math.Clamp(cart.GetValueOrDefault(product.Id) + quantity, 1, available);
         Write(cart);
+        return cart[product.Id];
     }
 
     public void SetQuantity(int productId, int quantity)
@@ -82,13 +93,22 @@ public sealed class CartService(IHttpContextAccessor http, StoreDbContext db, IO
             .Where(p => ids.Contains(p.Id) && p.IsActive)
             .ToListAsync(ct);
 
-        var lines = products
-            .OrderBy(p => p.SortOrder).ThenBy(p => p.Name)
-            .Select(p => new CartLine(p, raw[p.Id]))
-            .ToList();
+        // Stock may have run out since the customer put something in the cart: shrink or drop those lines, and say so.
+        var lines = new List<CartLine>();
+        var adjustments = new List<CartAdjustment>();
+        foreach (var p in products.OrderBy(p => p.SortOrder).ThenBy(p => p.Name))
+        {
+            var requested = raw[p.Id];
+            var available = p.AvailableToBuy(options.Value.MaxQuantityPerItem);
+            if (requested > available) adjustments.Add(new CartAdjustment(p, requested, available));
+            if (available > 0) lines.Add(new CartLine(p, Math.Min(requested, available)));
+        }
+
+        if (adjustments.Count > 0 || lines.Count != raw.Count)
+            Write(lines.ToDictionary(l => l.Product.Id, l => l.Quantity));
 
         var subtotal = lines.Sum(l => l.LineTotal);
-        return new CartSummary(lines, subtotal, Pricing.ShippingFor(subtotal, options.Value));
+        return new CartSummary(lines, subtotal, Pricing.ShippingFor(subtotal, options.Value)) { Adjustments = adjustments };
     }
 
     private void Write(Dictionary<int, int> cart)

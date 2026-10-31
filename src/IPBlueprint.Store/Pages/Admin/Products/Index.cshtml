@@ -13,7 +13,7 @@ else
 {
     <div class="table-wrap">
         <table class="table">
-            <thead><tr><th></th><th>Name</th><th>Price</th><th>Order</th><th>Visible</th></tr></thead>
+            <thead><tr><th></th><th>Name</th><th>Price</th><th>Stock</th><th>Order</th><th>Visible</th></tr></thead>
             <tbody>
                 @foreach (var p in Model.Products)
                 {
@@ -21,6 +21,7 @@ else
                         <td>@if (p.ImageFileName is not null) { <img class="thumb" src="/images/products/@p.ImageFileName" alt="" /> }</td>
                         <td><a asp-page="Edit" asp-route-id="@p.Id">@p.Name</a><br /><span class="muted small">/products/@p.Slug</span></td>
                         <td>@Money.Format(p.Price)</td>
+                        <td>@if (p.IsMadeToOrder) { <span class="muted">Made to order</span> } else if (p.IsSoldOut) { <span class="badge Cancelled">Sold out</span> } else { @p.Stock }</td>
                         <td>@p.SortOrder</td>
                         <td>@(p.IsActive ? "Yes" : "Hidden")</td>
                     </tr>
