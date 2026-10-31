@@ -194,6 +194,22 @@ public partial class SeoTests : IClassFixture<StoreFactory>
     }
 
     [Fact]
+    public async Task Shipping_email_invites_the_customer_to_follow_the_shop()
+    {
+        var order = new Order
+        {
+            Reference = "IPB-SHIPPED", CustomerName = "Sam", Email = "shipped@example.se", Language = "en",
+            AddressLine1 = "Storgatan 1", PostalCode = "123 45", City = "Stockholm", Total = 100m,
+        };
+        await using var scope = _factory.Services.CreateAsyncScope();
+
+        await scope.ServiceProvider.GetRequiredService<OrderNotifications>().OrderShippedAsync(order);
+
+        var email = Assert.Single(_factory.Emails.Sent, e => e.To == "shipped@example.se");
+        Assert.Contains("Follow us on <a href=\"https://www.instagram.com/ip.blueprint.solutions/\">Instagram</a> and <a", email.Body);
+    }
+
+    [Fact]
     public async Task Analytics_are_off_unless_configured()
     {
         var html = await _factory.CreateClient().GetStringAsync("/");

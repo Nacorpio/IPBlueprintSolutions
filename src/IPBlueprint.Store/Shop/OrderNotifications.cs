@@ -72,6 +72,7 @@ public sealed class OrderNotifications(IEmailSender email, IOptions<ShopOptions>
                   <p>Your order {Html.Encode(order.Reference)} has been shipped.</p>
                   {tracking}
                   <p>If something is wrong when it arrives, reply to this email and we'll sort it out.</p>
+                  {FollowUsHtml(en)}
                   <p>{Html.Encode(Shop.Name)}</p>
                   """
                 : $"""
@@ -79,6 +80,7 @@ public sealed class OrderNotifications(IEmailSender email, IOptions<ShopOptions>
                   <p>Din beställning {Html.Encode(order.Reference)} har skickats.</p>
                   {tracking}
                   <p>Om något inte stämmer när paketet kommer fram, svara på det här mejlet så löser vi det.</p>
+                  {FollowUsHtml(en)}
                   <p>{Html.Encode(Shop.Name)}</p>
                   """,
             replyTo: Shop.ContactEmail, ct);
