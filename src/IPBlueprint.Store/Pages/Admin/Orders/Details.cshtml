@@ -1,0 +1,69 @@
+@page "{id:guid}"
+@model DetailsModel
+@{
+    var o = Model.Order;
+    ViewData["Title"] = $"Order {o.Reference}";
+}
+<p class="small"><a asp-page="Index">← All orders</a></p>
+<div class="toolbar">
+    <h1 style="margin:0">Order @o.Reference</h1>
+    <span class="badge @o.Status">@o.Status</span>
+</div>
+
+<div class="layout-two">
+    <div class="panel">
+        <h2>Items</h2>
+        <table class="table">
+            <thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>Total</th></tr></thead>
+            <tbody>
+                @foreach (var l in o.Lines)
+                {
+                    <tr><td>@l.ProductName</td><td>@l.Quantity</td><td>@Money.Format(l.UnitPrice)</td><td>@Money.Format(l.LineTotal)</td></tr>
+                }
+                <tr><td colspan="3">Shipping</td><td>@Money.Format(o.ShippingCost)</td></tr>
+                <tr><td colspan="3"><strong>Total</strong></td><td><strong>@Money.Format(o.Total)</strong></td></tr>
+            </tbody>
+        </table>
+        @if (!string.IsNullOrWhiteSpace(o.CustomerNote))
+        {
+            <h3 style="margin-top:20px">Note from customer</h3>
+            <p class="description">@o.CustomerNote</p>
+        }
+    </div>
+    <aside class="panel">
+        <h2>Ship to</h2>
+        <p>
+            @o.CustomerName<br />@o.AddressLine1<br />
+            @if (!string.IsNullOrWhiteSpace(o.AddressLine2)) { @o.AddressLine2<br /> }
+            @o.PostalCode @o.City
+        </p>
+        <p><a href="mailto:@o.Email">@o.Email</a>@if (!string.IsNullOrWhiteSpace(o.Phone)) { <br />@o.Phone }</p>
+        <p class="small muted">
+            Created @o.CreatedAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm")<br />
+            @if (o.PaidAtUtc is { } paid) { <text>Paid @paid.ToLocalTime().ToString("yyyy-MM-dd HH:mm")<br /></text> }
+            @if (o.SumUpTransactionCode is not null) { <text>SumUp transaction @o.SumUpTransactionCode<br /></text> }
+            @if (o.ShippedAtUtc is { } shipped) { <text>Shipped @shipped.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</text> }
+        </p>
+
+        @if (o.Status == OrderStatus.Paid)
+        {
+            <form method="post" asp-page-handler="Ship">
+                <div class="field">
+                    <label for="tracking">Tracking number (optional)</label>
+                    <input id="tracking" name="trackingNumber" type="text" />
+                </div>
+                <button class="button wide" type="submit">Mark as shipped and email customer</button>
+            </form>
+        }
+        @if (o.Status is OrderStatus.AwaitingPayment or OrderStatus.PaymentFailed)
+        {
+            <form method="post" asp-page-handler="Cancel" onsubmit="return confirm('Cancel this unpaid order?')">
+                <button class="button secondary wide" type="submit">Cancel unpaid order</button>
+            </form>
+        }
+        @if (o.Status == OrderStatus.Paid || o.Status == OrderStatus.Shipped)
+        {
+            <p class="muted small">Refunds are made in the SumUp dashboard.</p>
+        }
+    </aside>
+</div>

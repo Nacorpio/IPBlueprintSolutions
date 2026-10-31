@@ -1,0 +1,16 @@
+@page
+@inject IOptions<ShopOptions> Shop
+@{ ViewData["Title"] = "Returns & right of withdrawal"; var s = Shop.Value; }
+<div class="prose">
+    <partial name="_DraftNotice" />
+    <h1>Returns &amp; right of withdrawal</h1>
+    <p>Under Swedish law (lagen om distansavtal) you can cancel a purchase within 14 days of receiving your items, without giving a reason.</p>
+    <h2>How to return an item</h2>
+    <ol>
+        <li>Email <a href="mailto:@s.ContactEmail">@s.ContactEmail</a> with your order number and say that you want to return it. You can also use the EU standard withdrawal form.</li>
+        <li>Send the item back within 14 days of telling us. <em>[Decide who pays return shipping and write it here.]</em></li>
+        <li>We refund the full price, including the original standard shipping, within 14 days of receiving your notice. We may wait until the item has arrived back.</li>
+    </ol>
+    <h2>Exceptions</h2>
+    <p>The right of withdrawal does not apply to items made to your specifications (custom orders). Faulty items can always be complained about. See the <a asp-page="/Info/Terms">terms of purchase</a>.</p>
+</div>

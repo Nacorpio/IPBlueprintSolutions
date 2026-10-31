@@ -1,0 +1,31 @@
+@page
+@model IndexModel
+@{ ViewData["Title"] = "Products"; }
+<div class="toolbar">
+    <h1 style="margin:0">Products</h1>
+    <a class="button" asp-page="Edit">Add product</a>
+</div>
+@if (Model.Products.Count == 0)
+{
+    <p class="muted">No products yet. Add your first one!</p>
+}
+else
+{
+    <div class="table-wrap">
+        <table class="table">
+            <thead><tr><th></th><th>Name</th><th>Price</th><th>Order</th><th>Visible</th></tr></thead>
+            <tbody>
+                @foreach (var p in Model.Products)
+                {
+                    <tr>
+                        <td>@if (p.ImageFileName is not null) { <img class="thumb" src="/images/products/@p.ImageFileName" alt="" /> }</td>
+                        <td><a asp-page="Edit" asp-route-id="@p.Id">@p.Name</a><br /><span class="muted small">/products/@p.Slug</span></td>
+                        <td>@Money.Format(p.Price)</td>
+                        <td>@p.SortOrder</td>
+                        <td>@(p.IsActive ? "Yes" : "Hidden")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

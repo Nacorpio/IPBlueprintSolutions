@@ -1,0 +1,27 @@
+@page "/products/{slug}"
+@model ProductModel
+@{
+    ViewData["Title"] = Model.Product.Name;
+    ViewData["Description"] = Model.Product.Description.Length > 155 ? Model.Product.Description[..155] : Model.Product.Description;
+}
+
+<p class="small"><a asp-page="/Index">← Back to the shop</a></p>
+
+<div class="product-detail">
+    <partial name="_ProductImage" model="Model.Product" />
+    <div>
+        <h1>@Model.Product.Name</h1>
+        <span class="price">@Money.Format(Model.Product.Price)</span>
+        <p class="description">@Model.Product.Description</p>
+
+        <form method="post" class="add-to-cart">
+            <div>
+                <label for="quantity">Quantity</label>
+                <input id="quantity" name="quantity" type="number" min="1" max="@Model.MaxQuantity" value="1" />
+            </div>
+            <button class="button" type="submit">Add to cart</button>
+        </form>
+
+        <p class="muted small">Each item is printed by us, so small layer lines and slight colour differences are part of the charm.</p>
+    </div>
+</div>

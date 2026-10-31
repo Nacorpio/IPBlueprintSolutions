@@ -1,0 +1,27 @@
+@page
+@model IndexModel
+@{ ViewData["Title"] = "Custom requests"; }
+<h1>Custom requests</h1>
+@if (Model.Requests.Count == 0)
+{
+    <p class="muted">No custom requests yet.</p>
+}
+else
+{
+    <div class="table-wrap">
+        <table class="table">
+            <thead><tr><th>Received</th><th>From</th><th>Request</th><th>Status</th></tr></thead>
+            <tbody>
+                @foreach (var r in Model.Requests)
+                {
+                    <tr>
+                        <td>@r.CreatedAtUtc.ToLocalTime().ToString("yyyy-MM-dd")</td>
+                        <td>@r.Name<br /><span class="muted small">@r.Email</span></td>
+                        <td><a asp-page="Details" asp-route-id="@r.Id">@(r.Description.Length > 80 ? r.Description[..80] + "…" : r.Description)</a>@(r.AttachmentFileName is not null ? " 📎" : "")</td>
+                        <td><span class="badge @r.Status">@r.Status</span></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

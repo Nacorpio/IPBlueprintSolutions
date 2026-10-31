@@ -1,0 +1,86 @@
+@page
+@model CheckoutModel
+@{
+    ViewData["Title"] = "Checkout";
+}
+
+<h1>Checkout</h1>
+
+@if (Model.ErrorMessage is not null)
+{
+    <div class="error-box">@Model.ErrorMessage</div>
+}
+
+<div class="layout-two">
+    <form method="post" class="panel">
+        <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
+
+        <h2>Delivery details</h2>
+        <div class="field">
+            <label asp-for="Input.Name"></label>
+            <input asp-for="Input.Name" autocomplete="name" />
+            <span asp-validation-for="Input.Name" class="field-validation-error"></span>
+        </div>
+        <div class="field-row">
+            <div class="field">
+                <label asp-for="Input.Email"></label>
+                <input asp-for="Input.Email" autocomplete="email" />
+                <span asp-validation-for="Input.Email" class="field-validation-error"></span>
+            </div>
+            <div class="field">
+                <label asp-for="Input.Phone"></label>
+                <input asp-for="Input.Phone" autocomplete="tel" />
+                <div class="hint">Optional. Helps the courier reach you.</div>
+            </div>
+        </div>
+        <div class="field">
+            <label asp-for="Input.AddressLine1"></label>
+            <input asp-for="Input.AddressLine1" autocomplete="address-line1" />
+            <span asp-validation-for="Input.AddressLine1" class="field-validation-error"></span>
+        </div>
+        <div class="field">
+            <label asp-for="Input.AddressLine2"></label>
+            <input asp-for="Input.AddressLine2" autocomplete="address-line2" />
+        </div>
+        <div class="field-row">
+            <div class="field">
+                <label asp-for="Input.PostalCode"></label>
+                <input asp-for="Input.PostalCode" autocomplete="postal-code" inputmode="numeric" />
+                <span asp-validation-for="Input.PostalCode" class="field-validation-error"></span>
+            </div>
+            <div class="field">
+                <label asp-for="Input.City"></label>
+                <input asp-for="Input.City" autocomplete="address-level2" />
+                <span asp-validation-for="Input.City" class="field-validation-error"></span>
+            </div>
+        </div>
+        <p class="muted small">We currently ship within Sweden only.</p>
+        <div class="field">
+            <label asp-for="Input.Note"></label>
+            <textarea asp-for="Input.Note" style="min-height:80px"></textarea>
+        </div>
+        <div class="field">
+            <label class="check">
+                <input asp-for="Input.AcceptTerms" />
+                <span>I have read and accept the <a asp-page="/Info/Terms" target="_blank">terms of purchase</a> and the <a asp-page="/Info/Privacy" target="_blank">privacy policy</a>.</span>
+            </label>
+            <span asp-validation-for="Input.AcceptTerms" class="field-validation-error"></span>
+        </div>
+
+        <button class="button wide" type="submit">Continue to payment</button>
+        <p class="muted small">You'll pay on SumUp's secure payment page. We never see your card details.</p>
+    </form>
+
+    <aside class="panel">
+        <h2>Your order</h2>
+        @foreach (var line in Model.Summary.Lines)
+        {
+            <div class="small" style="display:flex;justify-content:space-between;gap:8px;margin-bottom:6px">
+                <span>@line.Quantity × @line.Product.Name</span><span>@Money.Format(line.LineTotal)</span>
+            </div>
+        }
+        <hr style="border:0;border-top:1px solid var(--border)" />
+        <partial name="_Totals" model="Model.Summary" />
+        <a asp-page="/Cart" class="small">Edit cart</a>
+    </aside>
+</div>
