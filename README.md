@@ -13,6 +13,16 @@ Payments are made through SumUp Hosted Checkout, so card details never reach thi
 - **Admin (`/Admin`):** an overview, an order list (mark orders shipped, cancel unpaid ones), a product editor with photo upload, and custom requests (status, notes, attachment download). It is protected by one shared password and rate-limited.
 - **Information pages:** terms of purchase, returns and right of withdrawal, privacy policy, and about. The legal pages are **drafts** that must be completed before launch.
 
+## Languages
+
+The site is in **Swedish by default**. A button in the header switches to English (and back); the choice is kept in a cookie for a year. The browser's own language setting is ignored on purpose, so everyone starts in Swedish.
+
+- **Short texts** (buttons, labels, form errors, flash messages) are written in English in the code, for example `@L["Add to cart"]`. The Swedish for each one is in `src/IPBlueprint.Store/Localization/SharedResource.sv.resx`. A test fails if a text on a public page has no Swedish entry, so a missing translation is caught before it ships.
+- **Longer texts** (the information and legal pages, and the emails) have both languages side by side in the same file, so they're easy to keep in step.
+- **Products** have a Swedish name and description, plus an optional English name and description in the admin product editor. English visitors see the Swedish text when the English fields are empty.
+- **Emails** to customers go out in the language they used on the site (stored on the order or request). Emails to you are always in Swedish.
+- The admin pages are in English only.
+
 ## Running locally
 
 ```bash

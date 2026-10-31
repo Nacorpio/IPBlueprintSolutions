@@ -1,8 +1,18 @@
 @page
 @inject IOptions<ShopOptions> Shop
-@{ ViewData["Title"] = "About us"; }
+@{ ViewData["Title"] = L["About us"].Value; var email = Shop.Value.ContactEmail; }
+@* Longer texts are kept here in both languages, side by side, instead of in the resource file. *@
 <div class="prose">
-    <h1>About us</h1>
-    <p>We're two friends in Sweden who 3D print. We design or choose everything in the shop and print it on our own printers.</p>
-    <p>Want us to make something? <a asp-page="/Custom">Send us a custom request</a> or email <a href="mailto:@Shop.Value.ContactEmail">@Shop.Value.ContactEmail</a>.</p>
+    @if (Languages.IsEnglish)
+    {
+        <h1>About us</h1>
+        <p>We're two friends in Sweden who 3D print. We design or choose everything in the shop and print it on our own printers.</p>
+        <p>Want us to make something? <a asp-page="/Custom">Send us a custom request</a> or email <a href="mailto:@email">@email</a>.</p>
+    }
+    else
+    {
+        <h1>Om oss</h1>
+        <p>Vi är två vänner i Sverige som 3D-printar. Allt i butiken har vi designat eller valt ut själva, och vi printar det på våra egna 3D-skrivare.</p>
+        <p>Vill du att vi gör något åt dig? <a asp-page="/Custom">Skicka en förfrågan</a> eller mejla <a href="mailto:@email">@email</a>.</p>
+    }
 </div>

@@ -99,6 +99,8 @@ h1 { font-size: clamp(1.6rem, 3vw, 2.2rem); }
 }
 :root[data-theme="dark"] .theme-toggle .icon-sun { display: block; }
 :root[data-theme="dark"] .theme-toggle .icon-moon { display: none; }
+.main-nav a.lang-switch { border: 1px solid var(--border); border-radius: 999px; padding: 6px 12px; font-size: 0.875rem; line-height: 1.2; }
+.main-nav a.lang-switch:hover { border-color: var(--text); color: var(--text); }
 .main-nav, .admin-bar nav { display: flex; gap: 20px; flex-wrap: wrap; align-items: center; }
 .main-nav a, .admin-bar a { color: var(--text); text-decoration: none; }
 .main-nav a:hover { color: var(--link); }

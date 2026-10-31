@@ -13,6 +13,12 @@
             <span asp-validation-for="Input.Name" class="field-validation-error"></span>
         </div>
         <div class="field">
+            <label asp-for="Input.NameEn"></label>
+            <input asp-for="Input.NameEn" />
+            <div class="hint">The shop is in Swedish by default. Visitors who switch to English see the English name and description, or the Swedish ones if these are empty.</div>
+            <span asp-validation-for="Input.NameEn" class="field-validation-error"></span>
+        </div>
+        <div class="field">
             <label asp-for="Input.Slug"></label>
             <input asp-for="Input.Slug" placeholder="Leave empty to make one from the name" />
             <div class="hint">The product's web address: /products/<em>this-part</em>. Lowercase letters, numbers and dashes.</div>
@@ -34,6 +40,11 @@
             <label asp-for="Input.Description"></label>
             <textarea asp-for="Input.Description"></textarea>
             <span asp-validation-for="Input.Description" class="field-validation-error"></span>
+        </div>
+        <div class="field">
+            <label asp-for="Input.DescriptionEn"></label>
+            <textarea asp-for="Input.DescriptionEn"></textarea>
+            <span asp-validation-for="Input.DescriptionEn" class="field-validation-error"></span>
         </div>
         <div class="field">
             <label asp-for="Image">Photo</label>

@@ -1,18 +1,36 @@
 @page
 @inject IOptions<ShopOptions> Shop
-@{ ViewData["Title"] = "Privacy policy"; var s = Shop.Value; }
+@{ ViewData["Title"] = L["Privacy policy"].Value; var s = Shop.Value; }
 <div class="prose">
     <partial name="_DraftNotice" />
-    <h1>Privacy policy</h1>
-    <p>@s.Name <em>[company name and organisation number]</em> is responsible for the personal data you give us. Contact: <a href="mailto:@s.ContactEmail">@s.ContactEmail</a>.</p>
-    <h2>What we collect and why</h2>
-    <ul>
-        <li><strong>Orders:</strong> name, email, phone (optional) and delivery address, so we can deliver your order and keep the records that Swedish bookkeeping law requires (7 years).</li>
-        <li><strong>Custom requests:</strong> name, email, your description and any file you send, so we can answer your request. We delete requests that don't lead to an order after <em>[12 months]</em>.</li>
-        <li><strong>Payments:</strong> handled by SumUp, which processes your card details under its own privacy policy. We only receive whether the payment succeeded.</li>
-    </ul>
-    <h2>Cookies</h2>
-    <p>We use only the cookies the shop needs to work: one that remembers your cart and one that protects forms against misuse. We don't use tracking or advertising cookies.</p>
-    <h2>Your rights</h2>
-    <p>You can ask to see, correct or delete your data, or object to how we use it. You can also complain to the Swedish Authority for Privacy Protection (IMY, imy.se).</p>
+    @if (Languages.IsEnglish)
+    {
+        <h1>Privacy policy</h1>
+        <p>@s.Name <em>[company name and organisation number]</em> is responsible for the personal data you give us. Contact: <a href="mailto:@s.ContactEmail">@s.ContactEmail</a>.</p>
+        <h2>What we collect and why</h2>
+        <ul>
+            <li><strong>Orders:</strong> name, email, phone (optional) and delivery address, so we can deliver your order and keep the records that Swedish bookkeeping law requires (7 years).</li>
+            <li><strong>Custom requests:</strong> name, email, your description and any file you send, so we can answer your request. We delete requests that don't lead to an order after <em>[12 months]</em>.</li>
+            <li><strong>Payments:</strong> handled by SumUp, which processes your card details under its own privacy policy. We only receive whether the payment succeeded.</li>
+        </ul>
+        <h2>Cookies</h2>
+        <p>We use only the cookies the shop needs to work: one that remembers your cart, one that protects forms against misuse, and one that remembers your language if you switch to English. If you switch between the light and dark theme, your browser stores that choice. We don't use tracking or advertising cookies.</p>
+        <h2>Your rights</h2>
+        <p>You can ask to see, correct or delete your data, or object to how we use it. You can also complain to the Swedish Authority for Privacy Protection (IMY, imy.se).</p>
+    }
+    else
+    {
+        <h1>Integritetspolicy</h1>
+        <p>@s.Name <em>[företagsnamn och organisationsnummer]</em> är personuppgiftsansvarig för de uppgifter du lämnar till oss. Kontakt: <a href="mailto:@s.ContactEmail">@s.ContactEmail</a>.</p>
+        <h2>Vilka uppgifter vi samlar in och varför</h2>
+        <ul>
+            <li><strong>Beställningar:</strong> namn, e-postadress, telefonnummer (frivilligt) och leveransadress, så att vi kan leverera din beställning och spara det underlag som bokföringslagen kräver (7 år).</li>
+            <li><strong>Specialbeställningar:</strong> namn, e-postadress, din beskrivning och eventuell fil du skickar, så att vi kan svara på din förfrågan. Förfrågningar som inte leder till en beställning raderar vi efter <em>[12 månader]</em>.</li>
+            <li><strong>Betalningar:</strong> hanteras av SumUp, som behandlar dina kortuppgifter enligt sin egen integritetspolicy. Vi får bara veta om betalningen gick igenom.</li>
+        </ul>
+        <h2>Cookies</h2>
+        <p>Vi använder bara de cookies som behövs för att butiken ska fungera: en som kommer ihåg din varukorg, en som skyddar formulären mot missbruk och en som kommer ihåg språket om du byter till engelska. Byter du mellan ljust och mörkt tema sparas valet i din webbläsare. Vi använder inga cookies för spårning eller annonser.</p>
+        <h2>Dina rättigheter</h2>
+        <p>Du kan begära att få se, rätta eller radera dina uppgifter, eller invända mot hur vi använder dem. Du kan också klaga hos Integritetsskyddsmyndigheten (IMY, imy.se).</p>
+    }
 </div>

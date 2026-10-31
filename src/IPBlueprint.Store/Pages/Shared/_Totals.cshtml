@@ -1,7 +1,7 @@
 @model CartSummary
 <table class="totals">
-    <tr><td>Subtotal</td><td>@Money.Format(Model.Subtotal)</td></tr>
-    <tr><td>Shipping</td><td>@(Model.Shipping == 0 ? "Free" : Money.Format(Model.Shipping))</td></tr>
-    <tr class="grand"><td>Total</td><td>@Money.Format(Model.Total)</td></tr>
+    <tr><td>@L["Subtotal"]</td><td>@Money.Format(Model.Subtotal)</td></tr>
+    <tr><td>@L["Shipping"]</td><td>@(Model.Shipping == 0 ? L["Free"].Value : Money.Format(Model.Shipping))</td></tr>
+    <tr class="grand"><td>@L["Total"]</td><td>@Money.Format(Model.Total)</td></tr>
 </table>
-<p class="muted small">Including VAT of @Money.Format(Math.Round(Model.Total * 0.2m, 2)).</p>
+<p class="muted small">@L["Including VAT of {0}.", Money.Format(Math.Round(Model.Total * 0.2m, 2))]</p>

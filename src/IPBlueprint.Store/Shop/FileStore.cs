@@ -1,7 +1,10 @@
+using IPBlueprint.Store.Localization;
+using Microsoft.Extensions.Localization;
+
 namespace IPBlueprint.Store.Shop;
 
 /// <summary>Saves uploaded files under random names, after checking type and size.</summary>
-public sealed class FileStore(StoragePaths paths)
+public sealed class FileStore(StoragePaths paths, IStringLocalizer<SharedResource> localizer)
 {
     public const long MaxProductImageBytes = 10 * 1024 * 1024;
     public const long MaxAttachmentBytes = 25 * 1024 * 1024;
@@ -27,8 +30,8 @@ public sealed class FileStore(StoragePaths paths)
     {
         var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
         if (!AttachmentExtensions.Contains(ext))
-            return (null, "Allowed file types: images (JPG, PNG, WebP), PDF and 3D models (STL, 3MF, OBJ, STEP).");
-        if (file.Length > MaxAttachmentBytes) return (null, "Files can be at most 25 MB.");
+            return (null, localizer["Allowed file types: images (JPG, PNG, WebP), PDF and 3D models (STL, 3MF, OBJ, STEP)."]);
+        if (file.Length > MaxAttachmentBytes) return (null, localizer["Files can be at most 25 MB."]);
 
         return (await SaveAsync(file, paths.RequestAttachments, ext, ct), null);
     }

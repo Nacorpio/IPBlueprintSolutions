@@ -10,4 +10,9 @@ public static class SiteUrls
         var raw = string.IsNullOrEmpty(configured) ? $"{request.Scheme}://{request.Host}{request.PathBase}" : configured;
         return new Uri(raw.EndsWith('/') ? raw : raw + "/");
     }
+
+    /// <summary>True for a path on this site ("/cart"), false for anything that could leave it ("//evil.test", "https://...").</summary>
+    public static bool IsLocal(string? url) =>
+        !string.IsNullOrEmpty(url) && url[0] == '/' &&
+        (url.Length == 1 || (url[1] != '/' && url[1] != '\\'));
 }

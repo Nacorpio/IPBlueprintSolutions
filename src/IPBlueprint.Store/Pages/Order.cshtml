@@ -1,41 +1,41 @@
 @page "/order/{id:guid}"
 @model OrderModel
 @{
-    ViewData["Title"] = $"Order {Model.Order.Reference}";
     var o = Model.Order;
+    ViewData["Title"] = L["Order {0}", o.Reference].Value;
 }
 
 @switch (o.Status)
 {
     case OrderStatus.Paid:
     case OrderStatus.Shipped:
-        <h1>Thank you for your order!</h1>
-        <p>We've received your payment and sent a confirmation to <strong>@o.Email</strong>. We'll email you again when it ships.</p>
+        <h1>@L["Thank you for your order!"]</h1>
+        <p>@L["We've received your payment and sent a confirmation to"] <strong>@o.Email</strong>. @L["We'll email you again when it ships."]</p>
         break;
     case OrderStatus.PaymentFailed:
-        <h1>The payment didn't go through</h1>
-        <p>No money has been taken. You can try again below, or contact us if the problem continues.</p>
-        <form method="post" asp-page-handler="Retry"><button class="button" type="submit">Try paying again</button></form>
+        <h1>@L["The payment didn't go through"]</h1>
+        <p>@L["No money has been taken. You can try again below, or contact us if the problem continues."]</p>
+        <form method="post" asp-page-handler="Retry"><button class="button" type="submit">@L["Try paying again"]</button></form>
         break;
     case OrderStatus.Cancelled:
-        <h1>This order was cancelled</h1>
-        <p>Please contact us if you have questions.</p>
+        <h1>@L["This order was cancelled"]</h1>
+        <p>@L["Please contact us if you have questions."]</p>
         break;
     default:
-        <h1>We're waiting for the payment to be confirmed</h1>
-        <p>This usually takes a few seconds. <a href="">Refresh this page</a> to check again.</p>
-        <form method="post" asp-page-handler="Retry"><button class="link-button" type="submit">Didn't finish paying? Pay now</button></form>
+        <h1>@L["We're waiting for the payment to be confirmed"]</h1>
+        <p>@L["This usually takes a few seconds."] <a href="">@L["Refresh this page"]</a> @L["to check again."]</p>
+        <form method="post" asp-page-handler="Retry"><button class="link-button" type="submit">@L["Didn't finish paying? Pay now"]</button></form>
         break;
 }
 
 <div class="panel" style="margin-top:24px;max-width:560px">
-    <p>Order number: <strong>@o.Reference</strong></p>
+    <p>@L["Order number:"] <strong>@o.Reference</strong></p>
     @foreach (var line in o.Lines)
     {
         <div style="display:flex;justify-content:space-between;gap:8px"><span>@line.Quantity × @line.ProductName</span><span>@Money.Format(line.LineTotal)</span></div>
     }
-    <div style="display:flex;justify-content:space-between;gap:8px"><span>Shipping</span><span>@(o.ShippingCost == 0 ? "Free" : Money.Format(o.ShippingCost))</span></div>
-    <div style="display:flex;justify-content:space-between;gap:8px;font-weight:700;margin-top:8px"><span>Total</span><span>@Money.Format(o.Total)</span></div>
+    <div style="display:flex;justify-content:space-between;gap:8px"><span>@L["Shipping"]</span><span>@(o.ShippingCost == 0 ? L["Free"].Value : Money.Format(o.ShippingCost))</span></div>
+    <div style="display:flex;justify-content:space-between;gap:8px;font-weight:700;margin-top:8px"><span>@L["Total"]</span><span>@Money.Format(o.Total)</span></div>
 </div>
 
-<p style="margin-top:24px"><a asp-page="/Index">Back to the shop</a></p>
+<p style="margin-top:24px"><a asp-page="/Index">@L["Back to the shop"]</a></p>

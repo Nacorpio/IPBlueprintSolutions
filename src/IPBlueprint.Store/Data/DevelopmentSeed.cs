@@ -12,18 +12,24 @@ public static class DevelopmentSeed
         db.Products.AddRange(
             new Product
             {
-                Slug = "geometric-planter", Name = "Geometric planter", Price = 249m, SortOrder = 1,
-                Description = "A faceted planter for small succulents. Printed in matte PLA with a drainage hole and a matching tray.",
+                Slug = "geometrisk-kruka", Name = "Geometrisk kruka", Price = 249m, SortOrder = 1,
+                Description = "En kantig kruka för små suckulenter. Printad i matt PLA, med dräneringshål och ett matchande fat.",
+                NameEn = "Geometric planter",
+                DescriptionEn = "A faceted planter for small succulents. Printed in matte PLA with a drainage hole and a matching tray.",
             },
             new Product
             {
-                Slug = "articulated-dragon", Name = "Articulated dragon", Price = 349m, SortOrder = 2,
-                Description = "A poseable dragon printed in one piece, with joints that move. About 30 cm long.",
+                Slug = "ledad-drake", Name = "Ledad drake", Price = 349m, SortOrder = 2,
+                Description = "En drake med rörliga leder som printas i ett enda stycke, så att den går att posera. Cirka 30 cm lång.",
+                NameEn = "Articulated dragon",
+                DescriptionEn = "A poseable dragon printed in one piece, with joints that move. About 30 cm long.",
             },
             new Product
             {
-                Slug = "cable-organiser-set", Name = "Cable organiser set", Price = 129m, SortOrder = 3,
-                Description = "Six desk clips that hold charging cables in place. They stick on with adhesive tape, which is included.",
+                Slug = "kabelhallare-6-pack", Name = "Kabelhållare, 6-pack", Price = 129m, SortOrder = 3,
+                Description = "Sex klämmor till skrivbordet som håller laddsladdarna på plats. De fästs med tejp, som ingår.",
+                NameEn = "Cable organiser set",
+                DescriptionEn = "Six desk clips that hold charging cables in place. They stick on with adhesive tape, which is included.",
             });
 
         await db.SaveChangesAsync();

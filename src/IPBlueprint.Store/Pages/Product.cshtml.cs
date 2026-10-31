@@ -1,13 +1,15 @@
 using IPBlueprint.Store.Data;
+using IPBlueprint.Store.Localization;
 using IPBlueprint.Store.Shop;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
 
 namespace IPBlueprint.Store.Pages;
 
-public class ProductModel(StoreDbContext db, CartService cart, IOptions<ShopOptions> options) : PageModel
+public class ProductModel(StoreDbContext db, CartService cart, IOptions<ShopOptions> options, IStringLocalizer<SharedResource> localizer) : PageModel
 {
     public Product Product { get; private set; } = null!;
     public int MaxQuantity => options.Value.MaxQuantityPerItem;
@@ -26,7 +28,7 @@ public class ProductModel(StoreDbContext db, CartService cart, IOptions<ShopOpti
         if (product is null) return NotFound();
 
         cart.Add(product.Id, Math.Max(1, quantity));
-        TempData["Flash"] = $"{product.Name} was added to your cart.";
+        TempData["Flash"] = localizer["{0} was added to your cart.", product.DisplayName].Value;
         return RedirectToPage("/Cart");
     }
 

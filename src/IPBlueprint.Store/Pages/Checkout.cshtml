@@ -1,10 +1,10 @@
 @page
 @model CheckoutModel
 @{
-    ViewData["Title"] = "Checkout";
+    ViewData["Title"] = L["Checkout"].Value;
 }
 
-<h1>Checkout</h1>
+<h1>@L["Checkout"]</h1>
 
 @if (Model.ErrorMessage is not null)
 {
@@ -15,7 +15,7 @@
     <form method="post" class="panel">
         <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
 
-        <h2>Delivery details</h2>
+        <h2>@L["Delivery details"]</h2>
         <div class="field">
             <label asp-for="Input.Name"></label>
             <input asp-for="Input.Name" autocomplete="name" />
@@ -30,7 +30,7 @@
             <div class="field">
                 <label asp-for="Input.Phone"></label>
                 <input asp-for="Input.Phone" autocomplete="tel" />
-                <div class="hint">Optional. Helps the courier reach you.</div>
+                <div class="hint">@L["Optional. Helps the courier reach you."]</div>
             </div>
         </div>
         <div class="field">
@@ -54,7 +54,7 @@
                 <span asp-validation-for="Input.City" class="field-validation-error"></span>
             </div>
         </div>
-        <p class="muted small">We currently ship within Sweden only.</p>
+        <p class="muted small">@L["We currently ship within Sweden only."]</p>
         <div class="field">
             <label asp-for="Input.Note"></label>
             <textarea asp-for="Input.Note" style="min-height:80px"></textarea>
@@ -62,25 +62,25 @@
         <div class="field">
             <label class="check">
                 <input asp-for="Input.AcceptTerms" />
-                <span>I have read and accept the <a asp-page="/Info/Terms" target="_blank">terms of purchase</a> and the <a asp-page="/Info/Privacy" target="_blank">privacy policy</a>.</span>
+                <span>@L["I have read and accept"] <a asp-page="/Info/Terms" target="_blank">@L["the terms of purchase"]</a> @L["and"] <a asp-page="/Info/Privacy" target="_blank">@L["the privacy policy"]</a>.</span>
             </label>
             <span asp-validation-for="Input.AcceptTerms" class="field-validation-error"></span>
         </div>
 
-        <button class="button wide" type="submit">Continue to payment</button>
-        <p class="muted small">You'll pay on SumUp's secure payment page. We never see your card details.</p>
+        <button class="button wide" type="submit">@L["Continue to payment"]</button>
+        <p class="muted small">@L["You'll pay on SumUp's secure payment page. We never see your card details."]</p>
     </form>
 
     <aside class="panel">
-        <h2>Your order</h2>
+        <h2>@L["Your order"]</h2>
         @foreach (var line in Model.Summary.Lines)
         {
             <div class="small" style="display:flex;justify-content:space-between;gap:8px;margin-bottom:6px">
-                <span>@line.Quantity × @line.Product.Name</span><span>@Money.Format(line.LineTotal)</span>
+                <span>@line.Quantity × @line.Product.DisplayName</span><span>@Money.Format(line.LineTotal)</span>
             </div>
         }
         <hr style="border:0;border-top:1px solid var(--border)" />
         <partial name="_Totals" model="Model.Summary" />
-        <a asp-page="/Cart" class="small">Edit cart</a>
+        <a asp-page="/Cart" class="small">@L["Edit cart"]</a>
     </aside>
 </div>

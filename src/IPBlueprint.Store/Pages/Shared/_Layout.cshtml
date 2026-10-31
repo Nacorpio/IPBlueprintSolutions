@@ -4,9 +4,10 @@
     var shop = ShopOptions.Value;
     var cartCount = Cart.CountItems();
     var isAdmin = Context.Request.Path.StartsWithSegments("/Admin") && User.Identity?.IsAuthenticated == true;
+    var here = $"{Context.Request.PathBase}{Context.Request.Path}{Context.Request.QueryString}";
 }
 <!DOCTYPE html>
-<html lang="en">
+<html lang="@Languages.Current">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -32,12 +33,20 @@
                 <img class="logo-dark" src="~/img/logo.png" asp-append-version="true" alt="@shop.Name" width="697" height="274" />
                 <img class="logo-light" src="~/img/logo-light.png" asp-append-version="true" alt="@shop.Name" width="697" height="274" />
             </a>
-            <nav class="main-nav" aria-label="Main">
-                <a asp-page="/Index">Shop</a>
-                <a asp-page="/Custom">Custom orders</a>
-                <a asp-page="/Info/About">About</a>
-                <a asp-page="/Cart" class="cart-link">Cart@(cartCount > 0 ? $" ({cartCount})" : "")</a>
-                <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Switch between light and dark theme" title="Light / dark theme">
+            <nav class="main-nav" aria-label="@L["Main"]">
+                <a asp-page="/Index">@L["Shop"]</a>
+                <a asp-page="/Custom">@L["Custom orders"]</a>
+                <a asp-page="/Info/About">@L["About"]</a>
+                <a asp-page="/Cart" class="cart-link">@L["Cart"]@(cartCount > 0 ? $" ({cartCount})" : "")</a>
+                @if (Languages.IsEnglish)
+                {
+                    <a class="lang-switch" href="/language/sv?returnUrl=@Uri.EscapeDataString(here)" lang="sv" hreflang="sv" title="Visa sidan på svenska">Svenska</a>
+                }
+                else
+                {
+                    <a class="lang-switch" href="/language/en?returnUrl=@Uri.EscapeDataString(here)" lang="en" hreflang="en" title="Show this page in English">English</a>
+                }
+                <button type="button" class="theme-toggle" id="theme-toggle" aria-label="@L["Switch between light and dark theme"]" title="@L["Light / dark theme"]">
                     <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" /></svg>
                     <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></svg>
                 </button>
@@ -72,16 +81,16 @@
         <div class="container footer-row">
             <div>
                 <strong>@shop.Name</strong><br />
-                3D printed in Sweden.<br />
+                @L["3D printed in Sweden."]<br />
                 <a href="mailto:@shop.ContactEmail">@shop.ContactEmail</a>
             </div>
-            <nav aria-label="Information">
-                <a asp-page="/Info/Terms">Terms of purchase</a>
-                <a asp-page="/Info/Returns">Returns &amp; right of withdrawal</a>
-                <a asp-page="/Info/Privacy">Privacy policy</a>
-                <a asp-page="/Info/About">About us</a>
+            <nav aria-label="@L["Information"]">
+                <a asp-page="/Info/Terms">@L["Terms of purchase"]</a>
+                <a asp-page="/Info/Returns">@L["Returns & right of withdrawal"]</a>
+                <a asp-page="/Info/Privacy">@L["Privacy policy"]</a>
+                <a asp-page="/Info/About">@L["About us"]</a>
             </nav>
-            <div class="muted small">Prices include 25% VAT. Card payments are handled by SumUp.</div>
+            <div class="muted small">@L["Prices include 25% VAT. Card payments are handled by SumUp."]</div>
         </div>
     </footer>
 

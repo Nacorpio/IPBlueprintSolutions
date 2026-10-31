@@ -47,6 +47,11 @@ namespace IPBlueprint.Store.Data.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Language")
+                        .IsRequired()
+                        .HasMaxLength(5)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -97,6 +102,11 @@ namespace IPBlueprint.Store.Data.Migrations
 
                     b.Property<string>("Email")
                         .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Language")
+                        .IsRequired()
+                        .HasMaxLength(5)
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("PaidAtUtc")
@@ -196,6 +206,10 @@ namespace IPBlueprint.Store.Data.Migrations
                         .HasMaxLength(4000)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("DescriptionEn")
+                        .HasMaxLength(4000)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("ImageFileName")
                         .HasColumnType("TEXT");
 
@@ -204,6 +218,10 @@ namespace IPBlueprint.Store.Data.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NameEn")
                         .HasMaxLength(120)
                         .HasColumnType("TEXT");
 
