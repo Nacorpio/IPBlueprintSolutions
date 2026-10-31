@@ -15,12 +15,15 @@
     {
         <meta name="description" content="@description" />
     }
+    <link rel="icon" href="~/favicon.ico" sizes="48x48" />
+    <link rel="icon" type="image/png" href="~/img/logo-mark.png" />
+    <link rel="apple-touch-icon" href="~/apple-touch-icon.png" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
 <body>
     <header class="site-header">
         <div class="container header-row">
-            <a class="brand" asp-page="/Index">@shop.Name</a>
+            <a class="brand" asp-page="/Index"><img src="~/img/logo.png" asp-append-version="true" alt="@shop.Name" width="697" height="274" /></a>
             <nav class="main-nav" aria-label="Main">
                 <a asp-page="/Index">Shop</a>
                 <a asp-page="/Custom">Custom orders</a>
