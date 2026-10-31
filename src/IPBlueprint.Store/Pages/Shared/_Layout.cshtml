@@ -4,7 +4,17 @@
     var shop = ShopOptions.Value;
     var cartCount = Cart.CountItems();
     var isAdmin = Context.Request.Path.StartsWithSegments("/Admin") && User.Identity?.IsAuthenticated == true;
-    var here = $"{Context.Request.PathBase}{Context.Request.Path}{Context.Request.QueryString}";
+
+    // Search engines and link previews. Pages fill in Title, Description, and optionally FullTitle, Image (a site path),
+    // OgType, JsonLd and NoIndex. See Shop/Seo.cs.
+    var baseUrl = SiteUrls.BaseUrl(Context.Request, shop);
+    var path = Seo.CanonicalPath(Context.Request);
+    var canonical = Seo.PageUrl(baseUrl, path, Languages.Current);
+    var isPrivatePage = path.StartsWith("/admin") || path.StartsWith("/order");
+    var noIndex = ViewData["NoIndex"] is true || isPrivatePage;
+    var title = ViewData["FullTitle"] as string ?? (ViewData["Title"] is string t ? $"{t} · {shop.Name}" : shop.Name);
+    var description = ViewData["Description"] as string;
+    var shareImage = new Uri(baseUrl, (ViewData["Image"] as string ?? Seo.DefaultShareImage).TrimStart('/')).AbsoluteUri;
 }
 <!DOCTYPE html>
 <html lang="@Languages.Current">
@@ -16,10 +26,54 @@
         // Apply a saved theme choice before the page paints, to avoid a flash.
         try { var t = localStorage.getItem("theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (e) { }
     </script>
-    <title>@(ViewData["Title"] is string t ? $"{t} · {shop.Name}" : shop.Name)</title>
-    @if (ViewData["Description"] is string description)
+    <title>@title</title>
+    @if (description is not null)
     {
         <meta name="description" content="@description" />
+    }
+    @if (noIndex)
+    {
+        <meta name="robots" content="noindex" />
+    }
+    else
+    {
+        <link rel="canonical" href="@canonical" />
+        @foreach (var (hreflang, url) in Seo.Alternates(baseUrl, path))
+        {
+            <link rel="alternate" hreflang="@hreflang" href="@url" />
+        }
+    }
+    <meta property="og:site_name" content="@shop.Name" />
+    <meta property="og:type" content="@(ViewData["OgType"] as string ?? "website")" />
+    <meta property="og:title" content="@(ViewData["FullTitle"] as string ?? ViewData["Title"] as string ?? shop.Name)" />
+    @if (description is not null)
+    {
+        <meta property="og:description" content="@description" />
+    }
+    <meta property="og:url" content="@canonical" />
+    <meta property="og:image" content="@shareImage" />
+    @if (ViewData["Image"] is null)
+    {
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:alt" content="@shop.Name" />
+    }
+    <meta property="og:locale" content="@(Languages.IsEnglish ? "en_GB" : "sv_SE")" />
+    <meta property="og:locale:alternate" content="@(Languages.IsEnglish ? "sv_SE" : "en_GB")" />
+    @if (ViewData["PriceSek"] is decimal price)
+    {
+        <meta property="product:price:amount" content="@price.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)" />
+        <meta property="product:price:currency" content="SEK" />
+    }
+    <meta name="twitter:card" content="summary_large_image" />
+    @if (ViewData["JsonLd"] is string jsonLd)
+    {
+        @* "!" keeps the script tag helper from re-encoding the type as "ld&#x2B;json". *@
+        <!script type="application/ld+json">@Html.Raw(jsonLd)</!script>
+    }
+    @if (!isPrivatePage)
+    {
+        <partial name="_Analytics" />
     }
     <link rel="icon" href="~/favicon.ico" sizes="48x48" />
     <link rel="icon" type="image/png" href="~/img/logo-mark.png" />
@@ -41,11 +95,11 @@
                 <a asp-page="/Cart" class="cart-link">@L["Cart"]@(cartCount > 0 ? $" ({cartCount})" : "")</a>
                 @if (Languages.IsEnglish)
                 {
-                    <a class="lang-switch" href="/language/sv?returnUrl=@Uri.EscapeDataString(here)" lang="sv" hreflang="sv" title="Visa sidan på svenska">Svenska</a>
+                    <a class="lang-switch" href="@Seo.WithLanguage(Context.Request, Languages.Swedish)" lang="sv" hreflang="sv" title="Visa sidan på svenska">Svenska</a>
                 }
                 else
                 {
-                    <a class="lang-switch" href="/language/en?returnUrl=@Uri.EscapeDataString(here)" lang="en" hreflang="en" title="Show this page in English">English</a>
+                    <a class="lang-switch" href="@Seo.WithLanguage(Context.Request, Languages.English)" lang="en" hreflang="en" title="Show this page in English">English</a>
                 }
                 <button type="button" class="theme-toggle" id="theme-toggle" aria-label="@L["Switch between light and dark theme"]" title="@L["Light / dark theme"]">
                     <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" /></svg>
@@ -85,6 +139,7 @@
                 <strong>@shop.Name</strong><br />
                 @L["3D printed in Sweden."]<br />
                 <a href="mailto:@shop.ContactEmail">@shop.ContactEmail</a>
+                <partial name="_SocialIcons" />
             </div>
             <nav aria-label="@L["Information"]">
                 <a asp-page="/Info/Terms">@L["Terms of purchase"]</a>

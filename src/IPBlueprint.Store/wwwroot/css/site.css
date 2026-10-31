@@ -113,6 +113,11 @@ h1 { font-size: clamp(1.6rem, 3vw, 2.2rem); }
 .footer-row { display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
 .footer-row nav { display: flex; flex-direction: column; gap: 4px; }
 .footer-row nav a { color: var(--text); }
+.social-icons { list-style: none; display: flex; gap: 6px; margin: 10px 0 0; padding: 0; }
+.social-icons a { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; color: var(--text); border: 1px solid var(--border); }
+.social-icons a:hover, .social-icons a:focus-visible { color: var(--accent); border-color: var(--accent); }
+.social-icons svg { width: 20px; height: 20px; }
+.follow-us { margin-top: 1em; }
 
 /* Buttons and forms */
 .button, button.button { display: inline-block; background: var(--accent); color: var(--on-accent); border: 0; border-radius: var(--radius); padding: 11px 20px; font: inherit; font-weight: 600; cursor: pointer; text-decoration: none; text-align: center; }

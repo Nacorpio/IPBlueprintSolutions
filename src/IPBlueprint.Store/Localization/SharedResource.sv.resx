@@ -141,4 +141,12 @@
   <data name="Previous photo" xml:space="preserve"><value>Föregående bild</value></data>
   <data name="Next photo" xml:space="preserve"><value>Nästa bild</value></data>
   <data name="Want something like this?" xml:space="preserve"><value>Vill du ha något liknande?</value></data>
+  <data name="3D prints made in Sweden" xml:space="preserve"><value>3D-utskrifter från Sverige</value></data>
+  <data name="{0}, 3D printed by us in Sweden." xml:space="preserve"><value>{0}, 3D-printad av oss i Sverige.</value></data>
+  <data name="Who we are: two friends in Sweden who 3D print everything in the shop ourselves, in PLA, PETG and ABS." xml:space="preserve"><value>Vilka vi är: två vänner i Sverige som själva 3D-printar allt i butiken, i PLA, PETG och ABS.</value></data>
+  <data name="The terms that apply when you buy from us: prices, payment, delivery and complaints." xml:space="preserve"><value>Villkoren som gäller när du handlar hos oss: priser, betalning, leverans och reklamationer.</value></data>
+  <data name="How to return an item and use your 14-day right of withdrawal." xml:space="preserve"><value>Så returnerar du en vara och använder din ångerrätt på 14 dagar.</value></data>
+  <data name="What personal data we collect, why, and the rights you have." xml:space="preserve"><value>Vilka personuppgifter vi samlar in, varför, och vilka rättigheter du har.</value></data>
+  <data name="{0} (opens in a new tab)" xml:space="preserve"><value>{0} (öppnas i en ny flik)</value></data>
+  <data name="See more of what we print on" xml:space="preserve"><value>Se mer av det vi printar på</value></data>
 </root>

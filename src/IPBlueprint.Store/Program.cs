@@ -19,6 +19,10 @@ services.Configure<ShopOptions>(config.GetSection(ShopOptions.Section));
 services.Configure<SumUpOptions>(config.GetSection(SumUpOptions.Section));
 services.Configure<SmtpOptions>(config.GetSection(SmtpOptions.Section));
 services.Configure<AdminOptions>(config.GetSection(AdminOptions.Section));
+services.Configure<AnalyticsOptions>(config.GetSection(AnalyticsOptions.Section));
+
+// One spelling per page ("/info/about", not "/Info/About"), so search engines don't see the same page twice.
+services.Configure<RouteOptions>(o => o.LowercaseUrls = true);
 
 // Storage: database, product photos and customer uploads all live under one data folder.
 var dataPath = config.GetSection(StorageOptions.Section).Get<StorageOptions>()?.DataPath ?? "App_Data";
@@ -134,6 +138,14 @@ app.UseStaticFiles(new StaticFileOptions
 });
 
 app.UseRequestLocalization();
+
+// Someone who arrives on "?lang=en" (from a search result or the language switch) keeps that language as they click around.
+app.Use((http, next) =>
+{
+    if (Languages.FromQuery(http.Request) is { } language && !Languages.IsRemembered(http.Request, language))
+        Languages.Remember(http, language);
+    return next(http);
+});
 app.UseRouting();
 app.UseRateLimiter();
 app.UseAuthentication();
@@ -145,15 +157,19 @@ app.MapRazorPages().WithStaticAssets();
 // The language switch in the header. A plain link (no JavaScript), remembered for a year.
 app.MapGet("/language/{language}", (string language, string? returnUrl, HttpContext http) =>
 {
-    http.Response.Cookies.Append(Languages.CookieName, Languages.CookieValue(language), new CookieOptions
-    {
-        MaxAge = TimeSpan.FromDays(365),
-        IsEssential = true, // the visitor asked for it, so it needs no consent banner
-        HttpOnly = true,
-        SameSite = SameSiteMode.Lax,
-        Secure = http.Request.IsHttps,
-    });
+    Languages.Remember(http, language);
     return Results.LocalRedirect(SiteUrls.IsLocal(returnUrl) ? returnUrl! : "/");
+});
+
+// Search engine basics: robots.txt and sitemap.xml. See Shop/Seo.cs.
+app.MapGet("/robots.txt", (HttpRequest request, IOptions<ShopOptions> shop) =>
+    Results.Text(Seo.RobotsTxt(SiteUrls.BaseUrl(request, shop.Value)), "text/plain; charset=utf-8"));
+
+app.MapGet("/sitemap.xml", async (HttpRequest request, IOptions<ShopOptions> shop, StoreDbContext db, CancellationToken ct) =>
+{
+    var slugs = await db.Products.AsNoTracking().Where(p => p.IsActive)
+        .OrderBy(p => p.SortOrder).ThenBy(p => p.Name).Select(p => p.Slug).ToListAsync(ct);
+    return Results.Text(Seo.SitemapXml(SiteUrls.BaseUrl(request, shop.Value), slugs), "application/xml; charset=utf-8");
 });
 
 // SumUp calls this when a checkout's status changes. The body is just {"event_type": "...", "id": "<checkout id>"};

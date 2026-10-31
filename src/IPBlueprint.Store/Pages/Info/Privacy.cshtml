@@ -1,6 +1,7 @@
 @page
 @inject IOptions<ShopOptions> Shop
-@{ ViewData["Title"] = L["Privacy policy"].Value; var s = Shop.Value; }
+@inject IOptions<AnalyticsOptions> Analytics
+@{ ViewData["Title"] = L["Privacy policy"].Value; ViewData["Description"] = L["What personal data we collect, why, and the rights you have."].Value; var s = Shop.Value; }
 <div class="prose">
     <partial name="_DraftNotice" />
     @if (Languages.IsEnglish)
@@ -15,6 +16,11 @@
         </ul>
         <h2>Cookies</h2>
         <p>We use only the cookies the shop needs to work: one that remembers your cart, one that protects forms against misuse, and one that remembers your language if you switch to English. If you switch between the light and dark theme, your browser stores that choice. We don't use tracking or advertising cookies.</p>
+        @if (Analytics.Value.Enabled)
+        {
+            <h2>Visitor statistics</h2>
+            <p>We count visits with @Analytics.Value.DisplayName, a statistics service that uses no cookies and stores nothing on your device. It doesn't collect personal data or follow you to other websites. We only see totals, such as how many people looked at a page and which website sent them here.</p>
+        }
         <h2>Your rights</h2>
         <p>You can ask to see, correct or delete your data, or object to how we use it. You can also complain to the Swedish Authority for Privacy Protection (IMY, imy.se).</p>
     }
@@ -30,6 +36,11 @@
         </ul>
         <h2>Cookies</h2>
         <p>Vi använder bara de cookies som behövs för att butiken ska fungera: en som kommer ihåg din varukorg, en som skyddar formulären mot missbruk och en som kommer ihåg språket om du byter till engelska. Byter du mellan ljust och mörkt tema sparas valet i din webbläsare. Vi använder inga cookies för spårning eller annonser.</p>
+        @if (Analytics.Value.Enabled)
+        {
+            <h2>Besöksstatistik</h2>
+            <p>Vi räknar besök med @Analytics.Value.DisplayName, en statistiktjänst som inte använder cookies och inte sparar något på din enhet. Den samlar inte in personuppgifter och följer dig inte till andra webbplatser. Vi ser bara sammanlagda siffror, till exempel hur många som tittat på en sida och vilken webbplats de kom från.</p>
+        }
         <h2>Dina rättigheter</h2>
         <p>Du kan begära att få se, rätta eller radera dina uppgifter, eller invända mot hur vi använder dem. Du kan också klaga hos Integritetsskyddsmyndigheten (IMY, imy.se).</p>
     }

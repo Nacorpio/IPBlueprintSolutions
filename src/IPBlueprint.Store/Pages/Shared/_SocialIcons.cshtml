@@ -1,0 +1,24 @@
+@inject IOptions<ShopOptions> ShopOptions
+@* Small icons for the shop's social media accounts. Only accounts with an address in settings are shown. Plain links:
+   no embedded feeds or like buttons, so nothing loads from those sites and no cookies are set. *@
+@{ var links = ShopOptions.Value.SocialLinks; }
+@if (links.Count > 0)
+{
+    <ul class="social-icons">
+        @foreach (var link in links)
+        {
+            <li>
+                <a href="@link.Url" rel="me noopener" target="_blank" aria-label="@L["{0} (opens in a new tab)", link.Name]" title="@link.Name">
+                    @if (link.Name == "Instagram")
+                    {
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" /></svg>
+                    }
+                    else
+                    {
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h-2a4 4 0 0 0-4 4v3H7v4h2v7h4v-7h3l1-4h-4V7a1 1 0 0 1 1-1h2z" /></svg>
+                    }
+                </a>
+            </li>
+        }
+    </ul>
+}

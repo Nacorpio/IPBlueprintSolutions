@@ -27,9 +27,24 @@ public class ShopOptions
     /// <summary>Most of each item a customer can put in the cart.</summary>
     public int MaxQuantityPerItem { get; set; } = 10;
 
+    /// <summary>The shop's Instagram page. Leave empty to hide the Instagram link.</summary>
+    public string? InstagramUrl { get; set; }
+
+    /// <summary>The shop's Facebook page. Leave empty to hide the Facebook link.</summary>
+    public string? FacebookUrl { get; set; }
+
+    /// <summary>The social media accounts that have an address set, in the order they're shown.</summary>
+    public IReadOnlyList<SocialLink> SocialLinks =>
+        new[] { (Name: "Instagram", Url: InstagramUrl), (Name: "Facebook", Url: FacebookUrl) }
+            .Where(s => Uri.TryCreate(s.Url?.Trim(), UriKind.Absolute, out var u) && u.Scheme == Uri.UriSchemeHttps)
+            .Select(s => new SocialLink(s.Name, s.Url!.Trim()))
+            .ToList();
+
     public IEnumerable<string> NotificationRecipients =>
         NotificationEmails.Split([',', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 }
+
+public sealed record SocialLink(string Name, string Url);
 
 /// <summary>Bound from the "Storage" section. Everything the shop writes (database, photos, uploads) lives under one folder,
 /// so backing up the shop means copying that one folder.</summary>

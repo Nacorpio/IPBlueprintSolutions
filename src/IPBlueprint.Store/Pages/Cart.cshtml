@@ -2,6 +2,7 @@
 @model CartModel
 @{
     ViewData["Title"] = L["Your cart"].Value;
+    ViewData["NoIndex"] = true;
     var shop = Model.Shop;
 }
 
