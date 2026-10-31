@@ -9,7 +9,7 @@ public sealed class FileStore(StoragePaths paths, IStringLocalizer<SharedResourc
     public const long MaxProductImageBytes = 10 * 1024 * 1024;
     public const long MaxAttachmentBytes = 25 * 1024 * 1024;
 
-    private static readonly HashSet<string> ImageExtensions = [".jpg", ".jpeg", ".png", ".webp"];
+    internal static readonly HashSet<string> ImageExtensions = [".jpg", ".jpeg", ".png", ".webp"];
 
     public static readonly IReadOnlySet<string> AttachmentExtensions =
         new HashSet<string>([".jpg", ".jpeg", ".png", ".webp", ".pdf", ".stl", ".3mf", ".obj", ".step", ".stp"]);
@@ -59,7 +59,7 @@ public sealed class FileStore(StoragePaths paths, IStringLocalizer<SharedResourc
         return Path.Combine(folder, fileName);
     }
 
-    private static async Task<bool> LooksLikeImageAsync(IFormFile file, CancellationToken ct)
+    internal static async Task<bool> LooksLikeImageAsync(IFormFile file, CancellationToken ct)
     {
         var header = new byte[12];
         await using var s = file.OpenReadStream();

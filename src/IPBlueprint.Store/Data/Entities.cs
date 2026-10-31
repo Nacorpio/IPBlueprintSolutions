@@ -136,3 +136,36 @@ public class CustomOrderRequest
     public string? AdminNotes { get; set; }
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 }
+
+/// <summary>A photo of something we've printed, shown on the public gallery page.</summary>
+public class GalleryImage
+{
+    public int Id { get; set; }
+
+    /// <summary>The resized photo (WebP) inside the gallery folder. Random name, never the uploader's.</summary>
+    public required string FileName { get; set; }
+
+    /// <summary>A smaller copy (WebP) for the grid.</summary>
+    public required string ThumbnailFileName { get; set; }
+
+    /// <summary>Size of the resized photo, so the page can reserve space before it loads.</summary>
+    public int Width { get; set; }
+    public int Height { get; set; }
+
+    public int ThumbnailWidth { get; set; }
+    public int ThumbnailHeight { get; set; }
+
+    /// <summary>Optional Swedish caption.</summary>
+    public string? Caption { get; set; }
+
+    /// <summary>Optional English caption. When empty, English visitors see the Swedish one.</summary>
+    public string? CaptionEn { get; set; }
+
+    /// <summary>The caption in the language the visitor is browsing in, or null if there is none.</summary>
+    public string? DisplayCaption => Languages.IsEnglish && !string.IsNullOrWhiteSpace(CaptionEn) ? CaptionEn : Caption;
+
+    /// <summary>Lower numbers are shown first.</summary>
+    public int SortOrder { get; set; }
+
+    public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+}

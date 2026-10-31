@@ -25,6 +25,7 @@ var dataPath = config.GetSection(StorageOptions.Section).Get<StorageOptions>()?.
 var storage = new StoragePaths(Path.GetFullPath(dataPath, builder.Environment.ContentRootPath));
 services.AddSingleton(storage);
 services.AddSingleton<FileStore>();
+services.AddSingleton<GalleryPhotos>();
 
 services.AddDbContext<StoreDbContext>(o => o.UseSqlite($"Data Source={storage.DatabaseFile}"));
 
@@ -122,6 +123,14 @@ app.UseStaticFiles(new StaticFileOptions
     FileProvider = new PhysicalFileProvider(storage.ProductImages),
     RequestPath = "/images/products",
     OnPrepareResponse = ctx => ctx.Context.Response.Headers.CacheControl = "public,max-age=604800",
+});
+
+// Gallery photos get a fresh random name on every upload, so browsers may keep them for good.
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(storage.GalleryImages),
+    RequestPath = "/images/gallery",
+    OnPrepareResponse = ctx => ctx.Context.Response.Headers.CacheControl = "public,max-age=31536000,immutable",
 });
 
 app.UseRequestLocalization();

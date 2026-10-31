@@ -8,6 +8,7 @@ public class StoreDbContext(DbContextOptions<StoreDbContext> options) : DbContex
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<OrderLine> OrderLines => Set<OrderLine>();
     public DbSet<CustomOrderRequest> CustomOrderRequests => Set<CustomOrderRequest>();
+    public DbSet<GalleryImage> GalleryImages => Set<GalleryImage>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -38,6 +39,15 @@ public class StoreDbContext(DbContextOptions<StoreDbContext> options) : DbContex
             e.Property(r => r.Status).HasConversion<string>().HasMaxLength(20);
             e.Property(r => r.Description).HasMaxLength(4000);
             e.Property(r => r.Language).HasMaxLength(5);
+        });
+
+        b.Entity<GalleryImage>(e =>
+        {
+            e.HasIndex(g => g.SortOrder);
+            e.Property(g => g.FileName).HasMaxLength(64);
+            e.Property(g => g.ThumbnailFileName).HasMaxLength(64);
+            e.Property(g => g.Caption).HasMaxLength(300);
+            e.Property(g => g.CaptionEn).HasMaxLength(300);
         });
     }
 }
