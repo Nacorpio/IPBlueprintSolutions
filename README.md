@@ -46,7 +46,7 @@ All settings are in `appsettings.json`. Secrets belong in user-secrets locally a
 
 ## Before going live
 
-1. Create the SumUp API key and test a checkout with a small real amount. SumUp's docs disagree on the exact name of the hosted checkout flag. This code sends `hosted_checkout: { enabled: true }` as in the API reference. If no `hosted_checkout_url` comes back, try `hosted_checkout_settings` instead, in `Payments/SumUpClient.cs`.
+1. Create the SumUp API key and merchant code. The hosted checkout flag was verified against the live API on 2026-10-31: `hosted_checkout: { enabled: true }` (what `Payments/SumUpClient.cs` sends) returns a `hosted_checkout_url`. `hosted_checkout_settings` is also accepted, and leaving the flag out returns no URL, so the flag is required.
 2. Make sure the server is reachable over HTTPS so SumUp can call the webhook.
 3. Finish the legal pages in `Pages/Info/`: company details, delivery times, and who pays return postage.
 4. Set up SMTP and send yourself a test order.
