@@ -1,0 +1,73 @@
+@page
+@model IPBlueprint.Store.Pages.Admin.Gallery.IndexModel
+@{ ViewData["Title"] = "Gallery"; }
+<div class="toolbar">
+    <h1 style="margin:0">Gallery</h1>
+    <a asp-page="/Gallery" target="_blank">View the public page ↗</a>
+</div>
+
+<form method="post" asp-page-handler="Upload" enctype="multipart/form-data" class="panel gallery-upload">
+    <h2 style="font-size:1.1rem">Add photos</h2>
+    <div asp-validation-summary="All" class="validation-summary-errors"></div>
+    <div class="field">
+        <label asp-for="Photos">Photos</label>
+        <input asp-for="Photos" type="file" multiple accept=".jpg,.jpeg,.png,.webp" />
+        <div class="hint">
+            JPG, PNG or WebP, up to 20 MB each and @IndexModel.MaxFilesPerUpload at a time. Photos are resized for the web,
+            turned the right way up, and saved without their camera data (such as where the photo was taken).
+            New photos are shown first.
+        </div>
+    </div>
+    <div class="field-row">
+        <div class="field">
+            <label asp-for="Upload.Caption"></label>
+            <input asp-for="Upload.Caption" />
+        </div>
+        <div class="field">
+            <label asp-for="Upload.CaptionEn"></label>
+            <input asp-for="Upload.CaptionEn" />
+        </div>
+    </div>
+    <div class="hint" style="margin:-6px 0 14px">The caption is used for every photo in this upload. You can change each one below afterwards.</div>
+    <button class="button" type="submit">Upload</button>
+</form>
+
+@if (Model.Images.Count == 0)
+{
+    <p class="muted" style="margin-top:24px">No photos yet. Add a few of your best prints!</p>
+}
+else
+{
+    <p class="muted small" style="margin-top:24px">@Model.Images.Count @(Model.Images.Count == 1 ? "photo" : "photos"), in the order visitors see them.</p>
+    <ol class="gallery-admin">
+        @for (var i = 0; i < Model.Images.Count; i++)
+        {
+            var g = Model.Images[i];
+            <li class="panel" id="photo-@g.Id">
+                <a href="/images/gallery/@g.FileName" target="_blank"><img src="/images/gallery/@g.ThumbnailFileName" alt="" width="@g.ThumbnailWidth" height="@g.ThumbnailHeight" loading="lazy" /></a>
+                <form method="post" asp-page-handler="Save" asp-route-id="@g.Id">
+                    <div class="field">
+                        <label for="caption-@g.Id">Caption (Swedish)</label>
+                        <input id="caption-@g.Id" type="text" name="Edit.Caption" value="@g.Caption" maxlength="300" />
+                    </div>
+                    <div class="field">
+                        <label for="caption-en-@g.Id">Caption (English)</label>
+                        <input id="caption-en-@g.Id" type="text" name="Edit.CaptionEn" value="@g.CaptionEn" maxlength="300" />
+                    </div>
+                    <button class="button secondary small-button" type="submit">Save caption</button>
+                </form>
+                <div class="gallery-admin-actions">
+                    <form method="post" asp-page-handler="Move" asp-route-id="@g.Id" asp-route-direction="-1" class="inline">
+                        <button class="button secondary small-button" type="submit" disabled="@(i == 0)" title="Show earlier">↑ Earlier</button>
+                    </form>
+                    <form method="post" asp-page-handler="Move" asp-route-id="@g.Id" asp-route-direction="1" class="inline">
+                        <button class="button secondary small-button" type="submit" disabled="@(i == Model.Images.Count - 1)" title="Show later">↓ Later</button>
+                    </form>
+                    <form method="post" asp-page-handler="Delete" asp-route-id="@g.Id" class="inline" onsubmit="return confirm('Delete this photo from the gallery?')">
+                        <button class="button danger small-button" type="submit">Delete</button>
+                    </form>
+                </div>
+            </li>
+        }
+    </ol>
+}

@@ -1,0 +1,106 @@
+@page "/gallery"
+@model GalleryModel
+@{
+    ViewData["Title"] = L["Gallery"].Value;
+    ViewData["Description"] = L["Photos of things we have 3D printed."].Value;
+    var photoOf = L["Photo of a 3D print"].Value;
+}
+
+<section class="hero">
+    <h1>@L["Gallery"]</h1>
+    <p>@L["A few of the things we've printed so far. Click a photo to see it larger."]</p>
+</section>
+
+@if (Model.Images.Count == 0)
+{
+    <p class="muted">@L["No photos here yet. We're adding some soon."]</p>
+}
+else
+{
+    <ul class="gallery-grid" id="gallery">
+        @foreach (var g in Model.Images)
+        {
+            var caption = g.DisplayCaption;
+            <li>
+                <figure>
+                    <a href="/images/gallery/@g.FileName" data-width="@g.Width" data-height="@g.Height">
+                        <img src="/images/gallery/@g.ThumbnailFileName" width="@g.ThumbnailWidth" height="@g.ThumbnailHeight"
+                             alt="@(caption ?? photoOf)" loading="lazy" decoding="async" />
+                    </a>
+                    @if (caption is not null)
+                    {
+                        <figcaption>@caption</figcaption>
+                    }
+                </figure>
+            </li>
+        }
+    </ul>
+
+    <dialog class="lightbox" id="lightbox" aria-label="@L["Gallery"]">
+        <figure>
+            <img alt="" />
+            <figcaption></figcaption>
+        </figure>
+        <button type="button" class="lightbox-close" data-action="close" aria-label="@L["Close"]">×</button>
+        <button type="button" class="lightbox-nav prev" data-action="prev" aria-label="@L["Previous photo"]">‹</button>
+        <button type="button" class="lightbox-nav next" data-action="next" aria-label="@L["Next photo"]">›</button>
+    </dialog>
+}
+
+<section class="custom-cta">
+    <div>
+        <h2>@L["Want something like this?"]</h2>
+        <p>@L["Send us an idea, a sketch or a 3D model and we'll give you a price."]</p>
+    </div>
+    <a class="button" asp-page="/Custom">@L["Request a custom print"]</a>
+</section>
+
+@section Scripts {
+    <script>
+        // Opens photos in a full-screen view. Without JavaScript the links simply open the photo.
+        (function () {
+            var dialog = document.getElementById("lightbox");
+            if (!dialog || !dialog.showModal) return;
+            var links = Array.prototype.slice.call(document.querySelectorAll("#gallery a"));
+            var img = dialog.querySelector("img"), caption = dialog.querySelector("figcaption"), current = 0;
+
+            function show(i) {
+                current = (i + links.length) % links.length;
+                var link = links[current], thumb = link.querySelector("img"), text = link.parentNode.querySelector("figcaption");
+                img.src = link.href;
+                img.width = +link.dataset.width;
+                img.height = +link.dataset.height;
+                img.alt = thumb.alt;
+                caption.textContent = text ? text.textContent : "";
+                caption.hidden = !text;
+                dialog.classList.toggle("single", links.length < 2);
+            }
+
+            links.forEach(function (link, i) {
+                link.addEventListener("click", function (e) {
+                    if (e.ctrlKey || e.metaKey || e.shiftKey) return; // let people open it in a new tab
+                    e.preventDefault();
+                    show(i);
+                    dialog.showModal();
+                });
+            });
+
+            dialog.addEventListener("click", function (e) {
+                var action = e.target.closest("[data-action]");
+                if (action) {
+                    var a = action.dataset.action;
+                    if (a === "close") dialog.close(); else show(current + (a === "next" ? 1 : -1));
+                } else if (e.target === dialog) {
+                    dialog.close(); // a click on the dark backdrop
+                }
+            });
+
+            dialog.addEventListener("keydown", function (e) {
+                if (e.key === "ArrowRight") show(current + 1);
+                else if (e.key === "ArrowLeft") show(current - 1);
+            });
+
+            dialog.addEventListener("close", function () { img.removeAttribute("src"); links[current].focus(); });
+        })();
+    </script>
+}

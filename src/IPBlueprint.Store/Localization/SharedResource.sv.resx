@@ -132,4 +132,13 @@
   <data name="It may have moved or no longer exist." xml:space="preserve"><value>Den kan ha flyttats eller finns inte längre.</value></data>
   <data name="Sorry about that. Please try again, or contact us if the problem continues." xml:space="preserve"><value>Ledsen för det. Försök igen, eller kontakta oss om problemet kvarstår.</value></data>
   <data name="Reference:" xml:space="preserve"><value>Referens:</value></data>
+  <data name="Gallery" xml:space="preserve"><value>Galleri</value></data>
+  <data name="Photos of things we have 3D printed." xml:space="preserve"><value>Bilder på saker vi har 3D-printat.</value></data>
+  <data name="A few of the things we've printed so far. Click a photo to see it larger." xml:space="preserve"><value>Några av sakerna vi har printat hittills. Klicka på en bild för att se den större.</value></data>
+  <data name="Photo of a 3D print" xml:space="preserve"><value>Bild på en 3D-print</value></data>
+  <data name="No photos here yet. We're adding some soon." xml:space="preserve"><value>Här finns inga bilder än. Vi lägger upp några snart.</value></data>
+  <data name="Close" xml:space="preserve"><value>Stäng</value></data>
+  <data name="Previous photo" xml:space="preserve"><value>Föregående bild</value></data>
+  <data name="Next photo" xml:space="preserve"><value>Nästa bild</value></data>
+  <data name="Want something like this?" xml:space="preserve"><value>Vill du ha något liknande?</value></data>
 </root>

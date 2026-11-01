@@ -47,15 +47,18 @@ public sealed class StoragePaths
     {
         Root = root;
         ProductImages = Path.Combine(root, "images", "products");
+        GalleryImages = Path.Combine(root, "images", "gallery");
         RequestAttachments = Path.Combine(root, "requests");
         DatabaseFile = Path.Combine(root, "store.db");
 
         Directory.CreateDirectory(ProductImages);
+        Directory.CreateDirectory(GalleryImages);
         Directory.CreateDirectory(RequestAttachments);
     }
 
     public string Root { get; }
     public string ProductImages { get; }
+    public string GalleryImages { get; }
     public string RequestAttachments { get; }
     public string DatabaseFile { get; }
 }

@@ -8,6 +8,7 @@ Payments are made through SumUp Hosted Checkout, so card details never reach thi
 - **Shop:** a product catalogue with photos, product pages, and a cart stored in a cookie.
 - **Checkout:** the customer enters delivery details and is sent to SumUp's payment page. They then return to an order page that confirms the payment.
 - **Payment confirmation:** SumUp calls `POST /webhooks/sumup` when a payment changes. The webhook isn't signed, so the shop always asks the SumUp API for the real status before it marks an order paid. It also checks that the amount and currency match the order. The customer's return page does the same check, in case the webhook is slow.
+- **Gallery (`/gallery`):** photos of things you've printed before, with optional captions in Swedish and English. Clicking a photo opens it larger. Manage it under Admin → Gallery: upload up to 10 photos at a time (JPG, PNG or WebP, 20 MB each), edit captions, move photos earlier or later, and delete them. Each upload is turned the right way up, resized to 2000 px plus an 800 px thumbnail, and saved as WebP without camera data such as GPS position. The resizing uses SkiaSharp (MIT licence).
 - **Custom orders:** a request form with an optional file (images, PDF, STL/3MF/OBJ/STEP, up to 25 MB). You get an email, then quote by hand and send a SumUp payment link.
 - **Emails:** an order confirmation to the customer, a new-order email to you, a shipping email with an optional tracking number, and custom request emails. If SMTP isn't set up, emails are written to the log instead.
 - **Admin (`/Admin`):** an overview, an order list (mark orders shipped, cancel unpaid ones), a product editor with photo upload, and custom requests (status, notes, attachment download). It is protected by one shared password and rate-limited.
@@ -51,7 +52,7 @@ All settings are in `appsettings.json`. Secrets belong in user-secrets locally a
 | `SumUp:ApiKey`, `SumUp:MerchantCode` | From the SumUp dashboard (Developers → API keys). **Secret.** |
 | `Smtp:*` | Outgoing mail server. Your web host usually provides one. |
 | `Admin:Password` | Admin password, at least 12 characters. **Secret.** |
-| `Storage:DataPath` | Folder for the database, product photos and uploads (default `App_Data`). **Back this folder up.** |
+| `Storage:DataPath` | Folder for the database, product and gallery photos, and uploads (default `App_Data`). **Back this folder up.** |
 | `Hosting:BehindReverseProxy` | Set to `true` when running behind nginx/Caddy, so the real client IP and HTTPS are seen. |
 
 ## Before going live

@@ -23,6 +23,7 @@ public class SiteTests : IClassFixture<StoreFactory>
     [Theory]
     [InlineData("/Cart")]
     [InlineData("/Custom")]
+    [InlineData("/gallery")]
     [InlineData("/Info/Terms")]
     [InlineData("/Info/Returns")]
     [InlineData("/Info/Privacy")]
@@ -39,6 +40,7 @@ public class SiteTests : IClassFixture<StoreFactory>
     [InlineData("/Admin/Orders")]
     [InlineData("/Admin/Products/Edit")]
     [InlineData("/Admin/Requests")]
+    [InlineData("/Admin/Gallery")]
     public async Task Admin_pages_require_login(string url)
     {
         var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
