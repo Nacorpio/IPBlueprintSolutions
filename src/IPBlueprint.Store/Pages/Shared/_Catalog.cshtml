@@ -1,0 +1,105 @@
+@model CatalogView
+@{
+    var path = Model.Category is { } current ? $"/categories/{current.Slug}" : "/";
+}
+
+@if (Model.Categories.Count > 0)
+{
+    <nav class="category-tabs" aria-label="@L["Categories"]">
+        <a href="/" aria-current="@(Model.Category is null ? "page" : null)">@L["All"]</a>
+        @foreach (var c in Model.Categories)
+        {
+            <a asp-page="/Category" asp-route-slug="@c.Slug" aria-current="@(c.Id == Model.Category?.Id ? "page" : null)">@c.DisplayName</a>
+        }
+    </nav>
+}
+
+@if (Model.InScope > 0)
+{
+    <form method="get" action="@path" class="shop-filters" id="shop-filters">
+        @if (Model.Materials.Count > 0)
+        {
+            <div class="field">
+                <label for="f-material">@L["Material"]</label>
+                <select id="f-material" name="material">
+                    <option value="">@L["All materials"]</option>
+                    @foreach (var m in Model.Materials)
+                    {
+                        <option value="@m.ToString().ToLowerInvariant()" selected="@(Model.Material == m)">@m</option>
+                    }
+                </select>
+            </div>
+        }
+        @if (Model.Colours.Count > 0)
+        {
+            <div class="field">
+                <label for="f-colour">@L["Colour"]</label>
+                <select id="f-colour" name="colour">
+                    <option value="">@L["All colours"]</option>
+                    @foreach (var c in Model.Colours)
+                    {
+                        <option value="@c.Key" selected="@(Model.Colour == c.Key)">@c.Label</option>
+                    }
+                </select>
+            </div>
+        }
+        <div class="field">
+            <label for="f-sort">@L["Sort by"]</label>
+            <select id="f-sort" name="sort">
+                <option value="" selected="@(Model.Sort == Catalog.SortFeatured)">@L["Recommended"]</option>
+                <option value="@Catalog.SortNewest" selected="@(Model.Sort == Catalog.SortNewest)">@L["Newest"]</option>
+                <option value="@Catalog.SortPriceLow" selected="@(Model.Sort == Catalog.SortPriceLow)">@L["Price, low to high"]</option>
+                <option value="@Catalog.SortPriceHigh" selected="@(Model.Sort == Catalog.SortPriceHigh)">@L["Price, high to low"]</option>
+            </select>
+        </div>
+        <button class="button secondary filter-submit" type="submit">@L["Show"]</button>
+        @if (Model.IsFiltered)
+        {
+            <a class="small" href="@path">@L["Clear filters"]</a>
+        }
+    </form>
+    <script>
+        // Filters apply as soon as they change; the button is there for browsers without JavaScript.
+        (function () {
+            var form = document.getElementById("shop-filters");
+            form.classList.add("auto");
+            form.addEventListener("change", function () {
+                // Leave empty choices out of the address, so "/?sort=newest" rather than "/?material=&colour=&sort=newest".
+                Array.prototype.forEach.call(form.elements, function (el) { if (el.name && !el.value) el.disabled = true; });
+                form.submit();
+            });
+        })();
+    </script>
+}
+
+@if (Model.Products.Count == 0)
+{
+    @if (Model.IsFiltered)
+    {
+        <p class="muted">@L["Nothing matches those filters."] <a href="@path">@L["Show everything"]</a></p>
+    }
+    else if (Model.Category is not null)
+    {
+        <p class="muted">@L["There's nothing in this category right now."] <a href="/">@L["Browse the whole shop"]</a></p>
+    }
+    else
+    {
+        <p class="muted">@L["There's nothing in the shop yet. We're adding products soon."]</p>
+    }
+}
+else
+{
+    <div class="product-grid">
+        @foreach (var p in Model.Products)
+        {
+            <a class="product-card@(p.IsSoldOut ? " sold-out" : "")" asp-page="/Product" asp-route-slug="@p.Slug">
+                <partial name="_ProductImage" model="p" />
+                <div class="body">
+                    <h2>@p.DisplayName</h2>
+                    <span class="price">@Money.Format(p.Price)</span>
+                    <partial name="_StockBadge" model="p" />
+                </div>
+            </a>
+        }
+    </div>
+}

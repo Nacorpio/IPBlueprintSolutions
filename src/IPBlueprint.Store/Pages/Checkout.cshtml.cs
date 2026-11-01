@@ -34,6 +34,9 @@ public class CheckoutModel(
         if (Summary.IsEmpty) return RedirectToPage("/Cart");
         if (!ModelState.IsValid) return Page();
 
+        // Something sold out while they were filling in the form: show the new cart and total before taking payment.
+        if (Summary.Adjustments.Count > 0) return Page();
+
         var order = await orders.CreateOrderAsync(Summary, new CustomerDetails(
             Input.Name, Input.Email, Input.Phone, Input.AddressLine1, Input.AddressLine2,
             Input.PostalCode, Input.City, Input.Note), ct);

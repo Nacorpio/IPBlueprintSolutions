@@ -27,6 +27,9 @@ public class ShopOptions
     /// <summary>Most of each item a customer can put in the cart.</summary>
     public int MaxQuantityPerItem { get; set; } = 10;
 
+    /// <summary>Products with this many or fewer left say "Only 2 left". Set to 0 to never show it.</summary>
+    public int LowStockThreshold { get; set; } = 3;
+
     /// <summary>The shop's Instagram page. Leave empty to hide the Instagram link.</summary>
     public string? InstagramUrl { get; set; }
 
@@ -87,4 +90,23 @@ public static class Money
         amount == decimal.Truncate(amount)
             ? amount.ToString("#,0", Swedish) + " kr"
             : amount.ToString("#,0.00", Swedish) + " kr";
+}
+
+/// <summary>Dates shown to people are in Swedish time, whatever time zone the server runs in.</summary>
+public static class ShopTime
+{
+    private static readonly TimeZoneInfo Stockholm = FindStockholm();
+
+    public static DateTime ToSwedish(DateTime utc) =>
+        TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), Stockholm);
+
+    /// <summary>"31 oktober 2026" or "31 October 2026".</summary>
+    public static string FormatDate(DateTime utc, string language) =>
+        ToSwedish(utc).ToString("d MMMM yyyy", IPBlueprint.Store.Localization.Languages.CultureFor(language));
+
+    private static TimeZoneInfo FindStockholm()
+    {
+        try { return TimeZoneInfo.FindSystemTimeZoneById("Europe/Stockholm"); }
+        catch (TimeZoneNotFoundException) { return TimeZoneInfo.Utc; }
+    }
 }

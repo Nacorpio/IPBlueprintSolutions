@@ -7,6 +7,8 @@
 
 <h1>@L["Checkout"]</h1>
 
+<partial name="_CartAdjustments" model="Model.Summary.Adjustments" />
+
 @if (Model.ErrorMessage is not null)
 {
     <div class="error-box">@Model.ErrorMessage</div>

@@ -1,0 +1,28 @@
+@page "/categories/{slug}"
+@model CategoryModel
+@inject IOptions<ShopOptions> Shop
+@{
+    var category = Model.View.Category!;
+    ViewData["Title"] = category.DisplayName;
+    ViewData["Description"] = string.IsNullOrWhiteSpace(category.DisplayDescription)
+        ? L["{0}, 3D printed by us in Sweden.", category.DisplayName].Value
+        : Seo.Describe(category.DisplayDescription);
+}
+
+<section class="hero">
+    <h1>@category.DisplayName</h1>
+    @if (!string.IsNullOrWhiteSpace(category.DisplayDescription))
+    {
+        <p>@category.DisplayDescription</p>
+    }
+</section>
+
+<partial name="_Catalog" model="Model.View" />
+
+<section class="custom-cta">
+    <div>
+        <h2>@L["Looking for something else?"]</h2>
+        <p>@L["Send us an idea, a sketch or a 3D model and we'll give you a price."]</p>
+    </div>
+    <a class="button" asp-page="/Custom">@L["Request a custom print"]</a>
+</section>

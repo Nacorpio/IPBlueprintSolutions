@@ -28,7 +28,7 @@ public static class Seo
     /// <summary>Longest description search engines usually show.</summary>
     public const int DescriptionLength = 155;
 
-    /// <summary>Public pages that are always there (products are added from the database).</summary>
+    /// <summary>Public pages that are always there (categories and products are added from the database).</summary>
     public static readonly IReadOnlyList<string> StaticPages =
         ["/", "/gallery", "/custom", "/info/about", "/info/terms", "/info/returns", "/info/privacy"];
 
@@ -80,11 +80,13 @@ public static class Seo
     }
 
     /// <summary>Lists every public page in both languages, each with links to its other language.</summary>
-    public static string SitemapXml(Uri baseUrl, IEnumerable<string> productSlugs)
+    public static string SitemapXml(Uri baseUrl, IEnumerable<string> productSlugs, IEnumerable<string>? categorySlugs = null)
     {
         const string ns = "http://www.sitemaps.org/schemas/sitemap/0.9";
         const string xhtml = "http://www.w3.org/1999/xhtml";
-        var paths = StaticPages.Concat(productSlugs.Select(s => "/products/" + Uri.EscapeDataString(s)));
+        var paths = StaticPages
+            .Concat((categorySlugs ?? []).Select(s => "/categories/" + Uri.EscapeDataString(s)))
+            .Concat(productSlugs.Select(s => "/products/" + Uri.EscapeDataString(s)));
 
         var sb = new StringBuilder();
         using (var xml = XmlWriter.Create(sb, new XmlWriterSettings { Indent = true, Encoding = Encoding.UTF8 }))
@@ -133,7 +135,9 @@ public static class Seo
             ["url"] = pageUrl,
             ["price"] = Amount(product.Price),
             ["priceCurrency"] = "SEK",
-            ["availability"] = "https://schema.org/InStock",
+            ["availability"] = product.IsSoldOut ? "https://schema.org/OutOfStock"
+                : product.IsMadeToOrder ? "https://schema.org/MadeToOrder"
+                : "https://schema.org/InStock",
             ["itemCondition"] = "https://schema.org/NewCondition",
             ["seller"] = new JsonObject { ["@type"] = "Organization", ["name"] = shop.Name },
             ["shippingDetails"] = new JsonObject

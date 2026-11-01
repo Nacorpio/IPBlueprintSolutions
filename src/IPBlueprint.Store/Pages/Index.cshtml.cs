@@ -1,18 +1,12 @@
-using IPBlueprint.Store.Data;
+using IPBlueprint.Store.Shop;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.EntityFrameworkCore;
 
 namespace IPBlueprint.Store.Pages;
 
-public class IndexModel(StoreDbContext db) : PageModel
+public class IndexModel(Catalog catalog) : PageModel
 {
-    public List<Product> Products { get; private set; } = [];
+    public CatalogView View { get; private set; } = null!;
 
-    public async Task OnGetAsync(CancellationToken ct)
-    {
-        Products = await db.Products.AsNoTracking()
-            .Where(p => p.IsActive)
-            .OrderBy(p => p.SortOrder).ThenBy(p => p.Name)
-            .ToListAsync(ct);
-    }
+    public async Task OnGetAsync(string? material, string? colour, string? sort, CancellationToken ct) =>
+        View = (await catalog.BrowseAsync(null, material, colour, sort, ct))!;
 }

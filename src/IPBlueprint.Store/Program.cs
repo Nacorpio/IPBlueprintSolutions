@@ -38,6 +38,8 @@ services.AddHttpContextAccessor();
 services.AddScoped<CartService>();
 services.AddScoped<OrderService>();
 services.AddScoped<OrderNotifications>();
+services.AddScoped<StockAlerts>();
+services.AddScoped<Catalog>();
 
 services.AddHttpClient<ISumUpClient, SumUpClient>((sp, http) =>
 {
@@ -169,7 +171,10 @@ app.MapGet("/sitemap.xml", async (HttpRequest request, IOptions<ShopOptions> sho
 {
     var slugs = await db.Products.AsNoTracking().Where(p => p.IsActive)
         .OrderBy(p => p.SortOrder).ThenBy(p => p.Name).Select(p => p.Slug).ToListAsync(ct);
-    return Results.Text(Seo.SitemapXml(SiteUrls.BaseUrl(request, shop.Value), slugs), "application/xml; charset=utf-8");
+    // Only categories with something visible in them, so search engines aren't sent to empty pages.
+    var categories = await db.Categories.AsNoTracking().Where(c => c.Products.Any(p => p.IsActive))
+        .OrderBy(c => c.SortOrder).ThenBy(c => c.Name).Select(c => c.Slug).ToListAsync(ct);
+    return Results.Text(Seo.SitemapXml(SiteUrls.BaseUrl(request, shop.Value), slugs, categories), "application/xml; charset=utf-8");
 });
 
 // SumUp calls this when a checkout's status changes. The body is just {"event_type": "...", "id": "<checkout id>"};

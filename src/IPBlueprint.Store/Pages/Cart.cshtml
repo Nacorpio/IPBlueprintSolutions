@@ -8,6 +8,8 @@
 
 <h1>@L["Your cart"]</h1>
 
+<partial name="_CartAdjustments" model="Model.Summary.Adjustments" />
+
 @if (Model.Summary.IsEmpty)
 {
     <p>@L["Your cart is empty."]</p>
@@ -24,10 +26,11 @@ else
                     <div>
                         <a asp-page="/Product" asp-route-slug="@line.Product.Slug"><strong>@line.Product.DisplayName</strong></a>
                         <div class="muted small">@L["{0} each", Money.Format(line.Product.Price)]</div>
+                        <partial name="_StockBadge" model="line.Product" />
                         <form method="post" asp-page-handler="Update" class="qty">
                             <input type="hidden" name="productId" value="@line.Product.Id" />
                             <label class="small" for="q-@line.Product.Id" style="margin:0">@L["Qty"]</label>
-                            <input id="q-@line.Product.Id" name="quantity" type="number" min="0" max="@shop.MaxQuantityPerItem" value="@line.Quantity" />
+                            <input id="q-@line.Product.Id" name="quantity" type="number" min="0" max="@line.Product.AvailableToBuy(shop.MaxQuantityPerItem)" value="@line.Quantity" />
                             <button class="link-button small" type="submit">@L["Update"]</button>
                             <button class="link-button small" type="submit" name="quantity" value="0">@L["Remove"]</button>
                         </form>

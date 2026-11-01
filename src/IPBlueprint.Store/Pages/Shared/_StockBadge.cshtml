@@ -1,0 +1,11 @@
+@model Product
+@inject IOptions<ShopOptions> Shop
+@{ var threshold = Shop.Value.LowStockThreshold; }
+@if (Model.IsSoldOut)
+{
+    <span class="stock-badge sold-out">@L["Sold out"]</span>
+}
+else if (Model.Stock is { } left && left <= threshold)
+{
+    <span class="stock-badge low">@L["Only {0} left", left]</span>
+}

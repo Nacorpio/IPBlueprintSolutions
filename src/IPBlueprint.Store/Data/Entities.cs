@@ -37,8 +37,83 @@ public class Product
     public int SortOrder { get; set; }
 
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+
+    /// <summary>How many are ready to ship, or null for "made to order" (printed when someone orders, never runs out).
+    /// Goes down when a payment is confirmed.</summary>
+    public int? Stock { get; set; }
+
+    public bool IsMadeToOrder => Stock is null;
+
+    public bool IsSoldOut => Stock is <= 0;
+
+    /// <summary>How many a customer can buy right now: the stock, or the per-item cart limit for made-to-order items.</summary>
+    public int AvailableToBuy(int maxPerItem) => Stock is { } s ? Math.Clamp(s, 0, maxPerItem) : maxPerItem;
+
+    public PrintMaterial? Material { get; set; }
+
+    /// <summary>Optional Swedish colour name, e.g. "Svart". Used for the colour filter in the shop.</summary>
+    public string? Colour { get; set; }
+
+    /// <summary>Optional English colour name. When empty, English visitors see the Swedish one.</summary>
+    public string? ColourEn { get; set; }
+
+    public string? DisplayColour => Languages.IsEnglish && !string.IsNullOrWhiteSpace(ColourEn) ? ColourEn : Colour;
+
+    public List<Category> Categories { get; set; } = [];
 }
 
+public enum PrintMaterial
+{
+    PLA = 0,
+    PETG = 1,
+    ABS = 2,
+}
+
+/// <summary>A group of products in the shop, e.g. "Figurer". Each one has its own page at /categories/{slug}.</summary>
+public class Category
+{
+    public int Id { get; set; }
+
+    public required string Slug { get; set; }
+
+    /// <summary>The Swedish name, always filled in.</summary>
+    public required string Name { get; set; }
+
+    /// <summary>Optional English name. When empty, English visitors see the Swedish one.</summary>
+    public string? NameEn { get; set; }
+
+    /// <summary>Optional short Swedish text shown at the top of the category page (and to search engines).</summary>
+    public string? Description { get; set; }
+
+    public string? DescriptionEn { get; set; }
+
+    public string DisplayName => Languages.IsEnglish && !string.IsNullOrWhiteSpace(NameEn) ? NameEn : Name;
+
+    public string? DisplayDescription => Languages.IsEnglish && !string.IsNullOrWhiteSpace(DescriptionEn) ? DescriptionEn : Description;
+
+    /// <summary>Lower numbers are shown first in the shop's category tabs.</summary>
+    public int SortOrder { get; set; }
+
+    public List<Product> Products { get; set; } = [];
+}
+
+/// <summary>Someone who asked to be emailed when a sold-out product is back. Deleted once the email has gone out.</summary>
+public class StockAlert
+{
+    public int Id { get; set; }
+    public int ProductId { get; set; }
+    public required string Email { get; set; }
+
+    /// <summary>"sv" or "en", so the email is in the language they asked in.</summary>
+    public string Language { get; set; } = Languages.Swedish;
+
+    public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+}
+
+/// <summary>
+/// Where an order is. Paid, InProduction, Shipped and Delivered is the normal path; Refunded can follow any of them.
+/// Cancelled is only for orders that were never paid. Stored as text, so the numbers don't matter.
+/// </summary>
 public enum OrderStatus
 {
     AwaitingPayment = 0,
@@ -46,6 +121,19 @@ public enum OrderStatus
     PaymentFailed = 2,
     Shipped = 3,
     Cancelled = 4,
+    InProduction = 5,
+    Delivered = 6,
+    Refunded = 7,
+}
+
+/// <summary>One step in an order's history, shown on the customer's order page and in the admin.</summary>
+public class OrderStatusChange
+{
+    public int Id { get; set; }
+    public Guid OrderId { get; set; }
+    public OrderStatus Status { get; set; }
+    public DateTime AtUtc { get; set; } = DateTime.UtcNow;
+    public bool CustomerEmailed { get; set; }
 }
 
 public class Order
@@ -85,9 +173,16 @@ public class Order
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
     public DateTime? PaidAtUtc { get; set; }
     public DateTime? ShippedAtUtc { get; set; }
+
+    /// <summary>Optional, set when the order is marked as shipped. Shown to the customer in the email and on the order page.</summary>
     public string? TrackingNumber { get; set; }
 
+    /// <summary>True once a refund put the items back in stock, so it can't happen twice.</summary>
+    public bool StockRestored { get; set; }
+
     public List<OrderLine> Lines { get; set; } = [];
+
+    public List<OrderStatusChange> History { get; set; } = [];
 }
 
 public class OrderLine

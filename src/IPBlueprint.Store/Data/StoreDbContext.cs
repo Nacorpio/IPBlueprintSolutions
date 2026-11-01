@@ -9,6 +9,9 @@ public class StoreDbContext(DbContextOptions<StoreDbContext> options) : DbContex
     public DbSet<OrderLine> OrderLines => Set<OrderLine>();
     public DbSet<CustomOrderRequest> CustomOrderRequests => Set<CustomOrderRequest>();
     public DbSet<GalleryImage> GalleryImages => Set<GalleryImage>();
+    public DbSet<Category> Categories => Set<Category>();
+    public DbSet<StockAlert> StockAlerts => Set<StockAlert>();
+    public DbSet<OrderStatusChange> OrderStatusChanges => Set<OrderStatusChange>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -20,6 +23,33 @@ public class StoreDbContext(DbContextOptions<StoreDbContext> options) : DbContex
             e.Property(p => p.Description).HasMaxLength(4000);
             e.Property(p => p.NameEn).HasMaxLength(120);
             e.Property(p => p.DescriptionEn).HasMaxLength(4000);
+            e.Property(p => p.Material).HasConversion<string>().HasMaxLength(10);
+            e.Property(p => p.Colour).HasMaxLength(40);
+            e.Property(p => p.ColourEn).HasMaxLength(40);
+            e.HasMany(p => p.Categories).WithMany(c => c.Products).UsingEntity("ProductCategory");
+        });
+
+        b.Entity<Category>(e =>
+        {
+            e.HasIndex(c => c.Slug).IsUnique();
+            e.Property(c => c.Slug).HasMaxLength(80);
+            e.Property(c => c.Name).HasMaxLength(80);
+            e.Property(c => c.NameEn).HasMaxLength(80);
+            e.Property(c => c.Description).HasMaxLength(1000);
+            e.Property(c => c.DescriptionEn).HasMaxLength(1000);
+        });
+
+        b.Entity<StockAlert>(e =>
+        {
+            e.HasIndex(a => new { a.ProductId, a.Email }).IsUnique();
+            e.Property(a => a.Email).HasMaxLength(200);
+            e.Property(a => a.Language).HasMaxLength(5);
+            e.HasOne<Product>().WithMany().HasForeignKey(a => a.ProductId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<OrderStatusChange>(e =>
+        {
+            e.Property(h => h.Status).HasConversion<string>().HasMaxLength(20);
         });
 
         b.Entity<Order>(e =>
@@ -30,6 +60,7 @@ public class StoreDbContext(DbContextOptions<StoreDbContext> options) : DbContex
             e.Property(o => o.Status).HasConversion<string>().HasMaxLength(20);
             e.Property(o => o.Language).HasMaxLength(5);
             e.HasMany(o => o.Lines).WithOne().HasForeignKey(l => l.OrderId).OnDelete(DeleteBehavior.Cascade);
+            e.HasMany(o => o.History).WithOne().HasForeignKey(h => h.OrderId).OnDelete(DeleteBehavior.Cascade);
         });
 
         b.Entity<OrderLine>().Ignore(l => l.LineTotal);

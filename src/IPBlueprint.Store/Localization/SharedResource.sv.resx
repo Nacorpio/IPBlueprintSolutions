@@ -149,4 +149,48 @@
   <data name="What personal data we collect, why, and the rights you have." xml:space="preserve"><value>Vilka personuppgifter vi samlar in, varför, och vilka rättigheter du har.</value></data>
   <data name="{0} (opens in a new tab)" xml:space="preserve"><value>{0} (öppnas i en ny flik)</value></data>
   <data name="See more of what we print on" xml:space="preserve"><value>Se mer av det vi printar på</value></data>
+  <data name="{0} has sold out, so we took it out of your cart." xml:space="preserve"><value>{0} har tagit slut, så vi tog bort den ur din varukorg.</value></data>
+  <data name="All" xml:space="preserve"><value>Alla</value></data>
+  <data name="All colours" xml:space="preserve"><value>Alla färger</value></data>
+  <data name="All materials" xml:space="preserve"><value>Alla material</value></data>
+  <data name="Being printed" xml:space="preserve"><value>Under tillverkning</value></data>
+  <data name="Browse the whole shop" xml:space="preserve"><value>Se hela butiken</value></data>
+  <data name="Categories" xml:space="preserve"><value>Kategorier</value></data>
+  <data name="Category" xml:space="preserve"><value>Kategori</value></data>
+  <data name="Clear filters" xml:space="preserve"><value>Rensa filter</value></data>
+  <data name="Colour" xml:space="preserve"><value>Färg</value></data>
+  <data name="Delivered" xml:space="preserve"><value>Levererad</value></data>
+  <data name="Email me" xml:space="preserve"><value>Mejla mig</value></data>
+  <data name="Keep this link to check on your order. Anyone with the link can see this page, so don't share it." xml:space="preserve"><value>Spara länken för att följa din beställning. Alla som har länken kan se sidan, så dela den inte.</value></data>
+  <data name="Made to order: we print it for you after you order." xml:space="preserve"><value>Tillverkas på beställning: vi printar den åt dig när du har beställt.</value></data>
+  <data name="Material" xml:space="preserve"><value>Material</value></data>
+  <data name="Newest" xml:space="preserve"><value>Nyast</value></data>
+  <data name="Nothing matches those filters." xml:space="preserve"><value>Inget matchar de filtren.</value></data>
+  <data name="Only {0} left" xml:space="preserve"><value>Endast {0} kvar</value></data>
+  <data name="Order status" xml:space="preserve"><value>Orderstatus</value></data>
+  <data name="Paid" xml:space="preserve"><value>Betald</value></data>
+  <data name="Price, high to low" xml:space="preserve"><value>Pris, högst först</value></data>
+  <data name="Price, low to high" xml:space="preserve"><value>Pris, lägst först</value></data>
+  <data name="Recommended" xml:space="preserve"><value>Rekommenderade</value></data>
+  <data name="Shipped" xml:space="preserve"><value>Skickad</value></data>
+  <data name="Show" xml:space="preserve"><value>Visa</value></data>
+  <data name="Show everything" xml:space="preserve"><value>Visa allt</value></data>
+  <data name="Sold out" xml:space="preserve"><value>Slutsåld</value></data>
+  <data name="Sold out for now. Leave your email and we'll tell you when it's back." xml:space="preserve"><value>Slutsåld just nu. Lämna din e-postadress så säger vi till när den finns igen.</value></data>
+  <data name="Some prints take a while. We'll email you when the parcel is on its way." xml:space="preserve"><value>En del utskrifter tar ett tag. Vi mejlar dig när paketet är på väg.</value></data>
+  <data name="Sorry, {0} has just sold out." xml:space="preserve"><value>Tyvärr, {0} tog precis slut.</value></data>
+  <data name="Sort by" xml:space="preserve"><value>Sortera</value></data>
+  <data name="Thanks! We'll email {0} when it's back." xml:space="preserve"><value>Tack! Vi mejlar {0} när den finns igen.</value></data>
+  <data name="There's nothing in this category right now." xml:space="preserve"><value>Det finns inget i den här kategorin just nu.</value></data>
+  <data name="This order has been refunded" xml:space="preserve"><value>Beställningen har återbetalats</value></data>
+  <data name="Tracking number:" xml:space="preserve"><value>Spårningsnummer:</value></data>
+  <data name="We hope you like it! If something isn't right, just get in touch." xml:space="preserve"><value>Vi hoppas att du gillar den! Hör av dig om något inte stämmer.</value></data>
+  <data name="We only have {0} × {1} left, so we changed the quantity in your cart." xml:space="preserve"><value>Vi har bara {0} × {1} kvar, så vi ändrade antalet i din varukorg.</value></data>
+  <data name="We only use the address for this one email, then delete it." xml:space="preserve"><value>Vi använder adressen bara till det här enda mejlet och raderar den sedan.</value></data>
+  <data name="We're printing your order" xml:space="preserve"><value>Nu printar vi din beställning</value></data>
+  <data name="We've paid the money back. It usually takes a few working days to show up on your card." xml:space="preserve"><value>Vi har betalat tillbaka pengarna. Det brukar ta några bankdagar innan de syns på ditt kort.</value></data>
+  <data name="We've sent your parcel. If something is wrong when it arrives, just get in touch." xml:space="preserve"><value>Vi har skickat ditt paket. Hör av dig om något inte stämmer när det kommer fram.</value></data>
+  <data name="Your email" xml:space="preserve"><value>Din e-postadress</value></data>
+  <data name="Your order has been delivered" xml:space="preserve"><value>Din beställning har levererats</value></data>
+  <data name="Your order is on its way" xml:space="preserve"><value>Din beställning är på väg</value></data>
 </root>

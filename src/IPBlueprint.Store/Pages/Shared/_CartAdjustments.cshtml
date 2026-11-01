@@ -1,0 +1,19 @@
+@model IReadOnlyList<CartAdjustment>
+@if (Model.Count > 0)
+{
+    <div class="notice" role="status">
+        @foreach (var a in Model)
+        {
+            <p>
+                @if (a.Available == 0)
+                {
+                    @L["{0} has sold out, so we took it out of your cart.", a.Product.DisplayName]
+                }
+                else
+                {
+                    @L["We only have {0} × {1} left, so we changed the quantity in your cart.", a.Available, a.Product.DisplayName]
+                }
+            </p>
+        }
+    </div>
+}
