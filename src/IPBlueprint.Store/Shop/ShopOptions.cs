@@ -14,7 +14,7 @@ public class ShopOptions
     public string? PublicBaseUrl { get; set; }
 
     /// <summary>Address shown to customers for questions.</summary>
-    public string ContactEmail { get; set; } = "hello@example.se";
+    public string ContactEmail { get; set; } = "ip.blueprints@gmail.com";
 
     /// <summary>Where notifications about new orders and custom requests are sent. Comma-separated.</summary>
     public string NotificationEmails { get; set; } = "";
