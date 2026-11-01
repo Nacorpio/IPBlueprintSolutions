@@ -1,14 +1,16 @@
 using System.ComponentModel.DataAnnotations;
 using IPBlueprint.Store.Data;
+using IPBlueprint.Store.Localization;
 using IPBlueprint.Store.Shop;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Extensions.Localization;
 
 namespace IPBlueprint.Store.Pages;
 
 [RequestSizeLimit(FileStore.MaxAttachmentBytes + 1024 * 1024)]
 [RequestFormLimits(MultipartBodyLengthLimit = FileStore.MaxAttachmentBytes + 1024 * 1024)]
-public class CustomModel(StoreDbContext db, FileStore files, OrderNotifications notifications) : PageModel
+public class CustomModel(StoreDbContext db, FileStore files, OrderNotifications notifications, IStringLocalizer<SharedResource> localizer) : PageModel
 {
     [BindProperty]
     public CustomInput Input { get; set; } = new();
@@ -23,7 +25,7 @@ public class CustomModel(StoreDbContext db, FileStore files, OrderNotifications 
         if (!string.IsNullOrEmpty(honeypot))
         {
             // Pretend it worked so the bot moves on.
-            TempData["Flash"] = "Thanks! We've received your request and will get back to you soon.";
+            TempData["Flash"] = localizer["Thanks! We've received your request and will get back to you soon."].Value;
             return RedirectToPage("/Index");
         }
 
@@ -50,31 +52,41 @@ public class CustomModel(StoreDbContext db, FileStore files, OrderNotifications 
             Budget = Input.Budget?.Trim(),
             AttachmentFileName = storedName,
             AttachmentOriginalName = storedName is null ? null : Path.GetFileName(Attachment!.FileName),
+            Language = Languages.Current,
         };
         db.CustomOrderRequests.Add(request);
         await db.SaveChangesAsync(ct);
 
         await notifications.CustomRequestReceivedAsync(request, ct);
 
-        TempData["Flash"] = "Thanks! We've received your request and sent you a confirmation by email. We'll get back to you soon.";
+        TempData["Flash"] = localizer["Thanks! We've received your request and sent you a confirmation by email. We'll get back to you soon."].Value;
         return RedirectToPage("/Index");
     }
 }
 
 public class CustomInput
 {
-    [Required, StringLength(100), Display(Name = "Your name")]
+    [Required(ErrorMessage = "Please enter your name.")]
+    [StringLength(100, ErrorMessage = "The name can be at most {1} characters.")]
+    [Display(Name = "Your name")]
     public string Name { get; set; } = "";
 
-    [Required, EmailAddress, StringLength(200), Display(Name = "Email")]
+    [Required(ErrorMessage = "Please enter your email address.")]
+    [EmailAddress(ErrorMessage = "That doesn't look like an email address.")]
+    [StringLength(200, ErrorMessage = "The email address can be at most {1} characters.")]
+    [Display(Name = "Email")]
     public string Email { get; set; } = "";
 
-    [Required, StringLength(4000, MinimumLength = 10), Display(Name = "What would you like?")]
+    [Required(ErrorMessage = "Please tell us what you'd like us to print.")]
+    [StringLength(4000, MinimumLength = 10, ErrorMessage = "Please write between {2} and {1} characters.")]
+    [Display(Name = "What would you like?")]
     public string Description { get; set; } = "";
 
-    [StringLength(100), Display(Name = "Preferred colour (optional)")]
+    [StringLength(100, ErrorMessage = "This can be at most {1} characters.")]
+    [Display(Name = "Preferred colour (optional)")]
     public string? PreferredColour { get; set; }
 
-    [StringLength(100), Display(Name = "Budget (optional)")]
+    [StringLength(100, ErrorMessage = "This can be at most {1} characters.")]
+    [Display(Name = "Budget (optional)")]
     public string? Budget { get; set; }
 }

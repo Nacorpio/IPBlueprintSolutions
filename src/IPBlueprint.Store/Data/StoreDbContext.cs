@@ -17,6 +17,8 @@ public class StoreDbContext(DbContextOptions<StoreDbContext> options) : DbContex
             e.Property(p => p.Slug).HasMaxLength(80);
             e.Property(p => p.Name).HasMaxLength(120);
             e.Property(p => p.Description).HasMaxLength(4000);
+            e.Property(p => p.NameEn).HasMaxLength(120);
+            e.Property(p => p.DescriptionEn).HasMaxLength(4000);
         });
 
         b.Entity<Order>(e =>
@@ -25,6 +27,7 @@ public class StoreDbContext(DbContextOptions<StoreDbContext> options) : DbContex
             e.HasIndex(o => o.SumUpCheckoutId);
             e.Property(o => o.Reference).HasMaxLength(32);
             e.Property(o => o.Status).HasConversion<string>().HasMaxLength(20);
+            e.Property(o => o.Language).HasMaxLength(5);
             e.HasMany(o => o.Lines).WithOne().HasForeignKey(l => l.OrderId).OnDelete(DeleteBehavior.Cascade);
         });
 
@@ -34,6 +37,7 @@ public class StoreDbContext(DbContextOptions<StoreDbContext> options) : DbContex
         {
             e.Property(r => r.Status).HasConversion<string>().HasMaxLength(20);
             e.Property(r => r.Description).HasMaxLength(4000);
+            e.Property(r => r.Language).HasMaxLength(5);
         });
     }
 }

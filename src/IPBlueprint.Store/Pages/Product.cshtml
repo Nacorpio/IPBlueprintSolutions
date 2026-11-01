@@ -1,27 +1,28 @@
 @page "/products/{slug}"
 @model ProductModel
 @{
-    ViewData["Title"] = Model.Product.Name;
-    ViewData["Description"] = Model.Product.Description.Length > 155 ? Model.Product.Description[..155] : Model.Product.Description;
+    var description = Model.Product.DisplayDescription;
+    ViewData["Title"] = Model.Product.DisplayName;
+    ViewData["Description"] = description.Length > 155 ? description[..155] : description;
 }
 
-<p class="small"><a asp-page="/Index">← Back to the shop</a></p>
+<p class="small"><a asp-page="/Index">@L["← Back to the shop"]</a></p>
 
 <div class="product-detail">
     <partial name="_ProductImage" model="Model.Product" />
     <div>
-        <h1>@Model.Product.Name</h1>
+        <h1>@Model.Product.DisplayName</h1>
         <span class="price">@Money.Format(Model.Product.Price)</span>
-        <p class="description">@Model.Product.Description</p>
+        <p class="description">@description</p>
 
         <form method="post" class="add-to-cart">
             <div>
-                <label for="quantity">Quantity</label>
+                <label for="quantity">@L["Quantity"]</label>
                 <input id="quantity" name="quantity" type="number" min="1" max="@Model.MaxQuantity" value="1" />
             </div>
-            <button class="button" type="submit">Add to cart</button>
+            <button class="button" type="submit">@L["Add to cart"]</button>
         </form>
 
-        <p class="muted small">We print every item ourselves, so you may see faint layer lines and small colour differences from one print to the next.</p>
+        <p class="muted small">@L["We print every item ourselves, so you may see faint layer lines and small colour differences from one print to the next."]</p>
     </div>
 </div>

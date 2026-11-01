@@ -1,22 +1,22 @@
 @page
 @model ErrorModel
 @{
-    ViewData["Title"] = Model.IsNotFound ? "Page not found" : "Something went wrong";
+    ViewData["Title"] = Model.IsNotFound ? L["Page not found"].Value : L["Something went wrong"].Value;
 }
 <div class="prose">
     @if (Model.IsNotFound)
     {
-        <h1>We couldn't find that page</h1>
-        <p>It may have moved or no longer exist.</p>
+        <h1>@L["We couldn't find that page"]</h1>
+        <p>@L["It may have moved or no longer exist."]</p>
     }
     else
     {
-        <h1>Something went wrong</h1>
-        <p>Sorry about that. Please try again, or contact us if the problem continues.</p>
+        <h1>@L["Something went wrong"]</h1>
+        <p>@L["Sorry about that. Please try again, or contact us if the problem continues."]</p>
         @if (Model.RequestId is not null)
         {
-            <p class="muted small">Reference: <code>@Model.RequestId</code></p>
+            <p class="muted small">@L["Reference:"] <code>@Model.RequestId</code></p>
         }
     }
-    <a class="button" asp-page="/Index">Back to the shop</a>
+    <a class="button" asp-page="/Index">@L["Back to the shop"]</a>
 </div>

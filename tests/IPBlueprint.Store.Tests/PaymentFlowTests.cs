@@ -128,7 +128,7 @@ public class PaymentFlowTests : IClassFixture<StoreFactory>
 
         var html = await _factory.CreateClient().GetStringAsync($"/order/{order.Id}");
 
-        Assert.Contains("Thank you for your order", html);
+        Assert.Contains("Tack för din beställning", html);
         Assert.Equal(OrderStatus.Paid, (await ReloadAsync(order.Id)).Status);
     }
 }

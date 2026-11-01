@@ -1,18 +1,18 @@
 @page
 @model IndexModel
 @{
-    ViewData["Title"] = "Shop";
-    ViewData["Description"] = "3D printed items made by two friends in Sweden. We also print custom orders.";
+    ViewData["Title"] = L["Shop"].Value;
+    ViewData["Description"] = L["3D printed items made by two friends in Sweden. We also print custom orders."].Value;
 }
 
 <section class="hero">
-    <h1>3D prints from our own printers</h1>
-    <p>We print everything in the shop ourselves, here in Sweden. If you want something that isn't listed, we take custom orders too.</p>
+    <h1>@L["3D prints from our own printers"]</h1>
+    <p>@L["We print everything in the shop ourselves, here in Sweden. If you want something that isn't listed, we take custom orders too."]</p>
 </section>
 
 @if (Model.Products.Count == 0)
 {
-    <p class="muted">There's nothing in the shop yet. We're adding products soon.</p>
+    <p class="muted">@L["There's nothing in the shop yet. We're adding products soon."]</p>
 }
 else
 {
@@ -22,7 +22,7 @@ else
             <a class="product-card" asp-page="/Product" asp-route-slug="@p.Slug">
                 <partial name="_ProductImage" model="p" />
                 <div class="body">
-                    <h2>@p.Name</h2>
+                    <h2>@p.DisplayName</h2>
                     <span class="price">@Money.Format(p.Price)</span>
                 </div>
             </a>
@@ -32,8 +32,8 @@ else
 
 <section class="custom-cta">
     <div>
-        <h2>Looking for something else?</h2>
-        <p>Send us an idea, a sketch or a 3D model and we'll give you a price.</p>
+        <h2>@L["Looking for something else?"]</h2>
+        <p>@L["Send us an idea, a sketch or a 3D model and we'll give you a price."]</p>
     </div>
-    <a class="button" asp-page="/Custom">Request a custom print</a>
+    <a class="button" asp-page="/Custom">@L["Request a custom print"]</a>
 </section>

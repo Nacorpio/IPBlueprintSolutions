@@ -1,18 +1,36 @@
 @page
 @inject IOptions<ShopOptions> Shop
-@{ ViewData["Title"] = "Terms of purchase"; var s = Shop.Value; }
+@{ ViewData["Title"] = L["Terms of purchase"].Value; var s = Shop.Value; }
 <div class="prose">
     <partial name="_DraftNotice" />
-    <h1>Terms of purchase</h1>
-    <p>These terms apply when you buy from @s.Name. <em>[Company name, organisation number and address go here.]</em></p>
-    <h2>Prices and payment</h2>
-    <p>All prices are in Swedish kronor (SEK) and include 25% VAT. Shipping costs are shown in the cart before you pay. Card payments are handled by SumUp, and we never see or store your card details.</p>
-    <h2>Delivery</h2>
-    <p>We ship within Sweden. Items in stock are usually sent within <em>[X]</em> working days. Items printed to order may take longer, and we'll tell you if so.</p>
-    <h2>Right of withdrawal</h2>
-    <p>You have 14 days to change your mind about shop items. See <a asp-page="/Info/Returns">Returns &amp; right of withdrawal</a>. Custom-made items are exempt.</p>
-    <h2>Complaints</h2>
-    <p>If an item arrives faulty or damaged, contact us at <a href="mailto:@s.ContactEmail">@s.ContactEmail</a> and we'll sort it out. You have the right to complain about faults for three years under the Swedish Consumer Sales Act (konsumentköplagen).</p>
-    <h2>Disputes</h2>
-    <p>If we can't agree, you can turn to the National Board for Consumer Disputes (Allmänna reklamationsnämnden, arn.se) or the EU's online dispute resolution platform.</p>
+    @if (Languages.IsEnglish)
+    {
+        <h1>Terms of purchase</h1>
+        <p>These terms apply when you buy from @s.Name. <em>[Company name, organisation number and address go here.]</em></p>
+        <h2>Prices and payment</h2>
+        <p>All prices are in Swedish kronor (SEK) and include 25% VAT. Shipping costs are shown in the cart before you pay. Card payments are handled by SumUp, and we never see or store your card details.</p>
+        <h2>Delivery</h2>
+        <p>We ship within Sweden. Items in stock are usually sent within <em>[X]</em> working days. Items printed to order may take longer, and we'll tell you if so.</p>
+        <h2>Right of withdrawal</h2>
+        <p>You have 14 days to change your mind about shop items. See <a asp-page="/Info/Returns">Returns &amp; right of withdrawal</a>. Custom-made items are exempt.</p>
+        <h2>Complaints</h2>
+        <p>If an item arrives faulty or damaged, contact us at <a href="mailto:@s.ContactEmail">@s.ContactEmail</a> and we'll sort it out. You have the right to complain about faults for three years under the Swedish Consumer Sales Act (konsumentköplagen).</p>
+        <h2>Disputes</h2>
+        <p>If we can't agree, you can turn to the National Board for Consumer Disputes (Allmänna reklamationsnämnden, arn.se) or the EU's online dispute resolution platform.</p>
+    }
+    else
+    {
+        <h1>Köpvillkor</h1>
+        <p>Dessa villkor gäller när du handlar hos @s.Name. <em>[Företagsnamn, organisationsnummer och adress skrivs här.]</em></p>
+        <h2>Priser och betalning</h2>
+        <p>Alla priser anges i svenska kronor (SEK) och inkluderar 25 % moms. Fraktkostnaden visas i varukorgen innan du betalar. Kortbetalningar hanteras av SumUp, och vi varken ser eller sparar dina kortuppgifter.</p>
+        <h2>Leverans</h2>
+        <p>Vi skickar inom Sverige. Varor som finns i lager skickas normalt inom <em>[X]</em> arbetsdagar. Varor som printas på beställning kan ta längre tid, och då hör vi av oss och berättar det.</p>
+        <h2>Ångerrätt</h2>
+        <p>Du har 14 dagars ångerrätt på varor från butiken. Läs mer under <a asp-page="/Info/Returns">Retur och ångerrätt</a>. Specialbeställda varor omfattas inte.</p>
+        <h2>Reklamation</h2>
+        <p>Om en vara är felaktig eller skadad när den kommer fram, kontakta oss på <a href="mailto:@s.ContactEmail">@s.ContactEmail</a> så löser vi det. Enligt konsumentköplagen har du rätt att reklamera fel i tre år.</p>
+        <h2>Tvister</h2>
+        <p>Om vi inte kommer överens kan du vända dig till Allmänna reklamationsnämnden (ARN, arn.se) eller till EU:s plattform för tvistlösning online.</p>
+    }
 </div>

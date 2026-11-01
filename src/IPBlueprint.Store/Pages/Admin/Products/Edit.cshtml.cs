@@ -35,7 +35,7 @@ public partial class EditModel(StoreDbContext db, FileStore files) : PageModel
         CurrentImage = p.ImageFileName;
         Input = new ProductInput
         {
-            Name = p.Name, Slug = p.Slug, Description = p.Description,
+            Name = p.Name, NameEn = p.NameEn, Slug = p.Slug, Description = p.Description, DescriptionEn = p.DescriptionEn,
             Price = p.Price, SortOrder = p.SortOrder, IsActive = p.IsActive,
         };
         return Page();
@@ -81,6 +81,8 @@ public partial class EditModel(StoreDbContext db, FileStore files) : PageModel
         product.Name = Input.Name.Trim();
         product.Slug = slug;
         product.Description = Input.Description?.Trim() ?? "";
+        product.NameEn = NullIfEmpty(Input.NameEn);
+        product.DescriptionEn = NullIfEmpty(Input.DescriptionEn);
         product.Price = decimal.Round(Input.Price, 2);
         product.SortOrder = Input.SortOrder;
         product.IsActive = Input.IsActive;
@@ -108,6 +110,8 @@ public partial class EditModel(StoreDbContext db, FileStore files) : PageModel
         return RedirectToPage("Index");
     }
 
+    private static string? NullIfEmpty(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
+
     /// <summary>"Drakfigur – Stor!" becomes "drakfigur-stor". Swedish å/ä/ö become a/a/o.</summary>
     public static string Slugify(string text)
     {
@@ -127,14 +131,20 @@ public partial class EditModel(StoreDbContext db, FileStore files) : PageModel
 
 public class ProductInput
 {
-    [Required, StringLength(120), Display(Name = "Name")]
+    [Required, StringLength(120), Display(Name = "Name (Swedish)")]
     public string Name { get; set; } = "";
+
+    [StringLength(120), Display(Name = "Name in English (optional)")]
+    public string? NameEn { get; set; }
 
     [StringLength(80), Display(Name = "Web address")]
     public string? Slug { get; set; }
 
-    [StringLength(4000), Display(Name = "Description")]
+    [StringLength(4000), Display(Name = "Description (Swedish)")]
     public string? Description { get; set; }
+
+    [StringLength(4000), Display(Name = "Description in English (optional)")]
+    public string? DescriptionEn { get; set; }
 
     [Range(1, 100000), Display(Name = "Price (kr, incl. VAT)")]
     public decimal Price { get; set; }

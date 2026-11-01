@@ -1,3 +1,5 @@
+using IPBlueprint.Store.Localization;
+
 namespace IPBlueprint.Store.Data;
 
 public class Product
@@ -7,9 +9,22 @@ public class Product
     /// <summary>URL-friendly identifier, e.g. "dragon-planter".</summary>
     public required string Slug { get; set; }
 
+    /// <summary>The Swedish name. The shop is Swedish first, so this is the one that is always filled in.</summary>
     public required string Name { get; set; }
 
     public string Description { get; set; } = "";
+
+    /// <summary>Optional English name. When empty, English visitors see the Swedish one.</summary>
+    public string? NameEn { get; set; }
+
+    /// <summary>Optional English description. When empty, English visitors see the Swedish one.</summary>
+    public string? DescriptionEn { get; set; }
+
+    /// <summary>The name in the language the visitor is browsing in.</summary>
+    public string DisplayName => Languages.IsEnglish && !string.IsNullOrWhiteSpace(NameEn) ? NameEn : Name;
+
+    /// <summary>The description in the language the visitor is browsing in.</summary>
+    public string DisplayDescription => Languages.IsEnglish && !string.IsNullOrWhiteSpace(DescriptionEn) ? DescriptionEn : Description;
 
     /// <summary>Price in SEK, including VAT (Swedish consumer prices must include moms).</summary>
     public decimal Price { get; set; }
@@ -51,6 +66,9 @@ public class Order
     public required string City { get; set; }
     public string Country { get; set; } = "SE";
     public string? CustomerNote { get; set; }
+
+    /// <summary>"sv" or "en": the language the customer ordered in, so their emails are written in it too.</summary>
+    public string Language { get; set; } = Languages.Swedish;
 
     public decimal Subtotal { get; set; }
     public decimal ShippingCost { get; set; }
@@ -104,6 +122,9 @@ public class CustomOrderRequest
     public required string Description { get; set; }
     public string? PreferredColour { get; set; }
     public string? Budget { get; set; }
+
+    /// <summary>"sv" or "en": the language the customer wrote in, so the confirmation email matches.</summary>
+    public string Language { get; set; } = Languages.Swedish;
 
     /// <summary>Random file name on disk (never the user's own name, to avoid path tricks).</summary>
     public string? AttachmentFileName { get; set; }

@@ -1,8 +1,10 @@
 using System.ComponentModel.DataAnnotations;
+using IPBlueprint.Store.Localization;
 using IPBlueprint.Store.Payments;
 using IPBlueprint.Store.Shop;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
 
 namespace IPBlueprint.Store.Pages;
@@ -11,6 +13,7 @@ public class CheckoutModel(
     CartService cart,
     OrderService orders,
     IOptions<ShopOptions> shopOptions,
+    IStringLocalizer<SharedResource> localizer,
     ILogger<CheckoutModel> logger) : PageModel
 {
     [BindProperty]
@@ -44,36 +47,52 @@ public class CheckoutModel(
         catch (Exception ex) when (ex is SumUpException or HttpRequestException or TaskCanceledException)
         {
             logger.LogError(ex, "Could not start payment for order {Reference}", order.Reference);
-            ErrorMessage = "We couldn't reach the payment provider just now. Nothing has been charged. Please try again in a moment.";
+            ErrorMessage = localizer["We couldn't reach the payment provider just now. Nothing has been charged. Please try again in a moment."];
             return Page();
         }
     }
 }
 
+/// <summary>Messages and labels are English keys; Swedish comes from Localization/SharedResource.sv.resx.</summary>
 public class CheckoutInput
 {
-    [Required, StringLength(100), Display(Name = "Full name")]
+    [Required(ErrorMessage = "Please enter your name.")]
+    [StringLength(100, ErrorMessage = "The name can be at most {1} characters.")]
+    [Display(Name = "Full name")]
     public string Name { get; set; } = "";
 
-    [Required, EmailAddress, StringLength(200), Display(Name = "Email")]
+    [Required(ErrorMessage = "Please enter your email address.")]
+    [EmailAddress(ErrorMessage = "That doesn't look like an email address.")]
+    [StringLength(200, ErrorMessage = "The email address can be at most {1} characters.")]
+    [Display(Name = "Email")]
     public string Email { get; set; } = "";
 
-    [Phone, StringLength(40), Display(Name = "Phone")]
+    [Phone(ErrorMessage = "That doesn't look like a phone number.")]
+    [StringLength(40, ErrorMessage = "The phone number can be at most {1} characters.")]
+    [Display(Name = "Phone")]
     public string? Phone { get; set; }
 
-    [Required, StringLength(150), Display(Name = "Street address")]
+    [Required(ErrorMessage = "Please enter your street address.")]
+    [StringLength(150, ErrorMessage = "The address can be at most {1} characters.")]
+    [Display(Name = "Street address")]
     public string AddressLine1 { get; set; } = "";
 
-    [StringLength(150), Display(Name = "Apartment, c/o etc. (optional)")]
+    [StringLength(150, ErrorMessage = "The address can be at most {1} characters.")]
+    [Display(Name = "Apartment, c/o etc. (optional)")]
     public string? AddressLine2 { get; set; }
 
-    [Required, RegularExpression(@"^\s*\d{3}\s?\d{2}\s*$", ErrorMessage = "Enter a Swedish postcode, e.g. 123 45."), Display(Name = "Postcode")]
+    [Required(ErrorMessage = "Please enter your postcode.")]
+    [RegularExpression(@"^\s*\d{3}\s?\d{2}\s*$", ErrorMessage = "Enter a Swedish postcode, e.g. 123 45.")]
+    [Display(Name = "Postcode")]
     public string PostalCode { get; set; } = "";
 
-    [Required, StringLength(80), Display(Name = "City")]
+    [Required(ErrorMessage = "Please enter your city.")]
+    [StringLength(80, ErrorMessage = "The city can be at most {1} characters.")]
+    [Display(Name = "City")]
     public string City { get; set; } = "";
 
-    [StringLength(1000), Display(Name = "Anything we should know? (optional)")]
+    [StringLength(1000, ErrorMessage = "The note can be at most {1} characters.")]
+    [Display(Name = "Anything we should know? (optional)")]
     public string? Note { get; set; }
 
     [Range(typeof(bool), "true", "true", ErrorMessage = "Please accept the terms to continue.")]

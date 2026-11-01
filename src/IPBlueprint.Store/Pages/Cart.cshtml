@@ -1,16 +1,16 @@
 @page
 @model CartModel
 @{
-    ViewData["Title"] = "Your cart";
+    ViewData["Title"] = L["Your cart"].Value;
     var shop = Model.Shop;
 }
 
-<h1>Your cart</h1>
+<h1>@L["Your cart"]</h1>
 
 @if (Model.Summary.IsEmpty)
 {
-    <p>Your cart is empty.</p>
-    <a class="button" asp-page="/Index">Browse the shop</a>
+    <p>@L["Your cart is empty."]</p>
+    <a class="button" asp-page="/Index">@L["Browse the shop"]</a>
 }
 else
 {
@@ -21,14 +21,14 @@ else
                 <div class="cart-line">
                     <partial name="_ProductImage" model="line.Product" />
                     <div>
-                        <a asp-page="/Product" asp-route-slug="@line.Product.Slug"><strong>@line.Product.Name</strong></a>
-                        <div class="muted small">@Money.Format(line.Product.Price) each</div>
+                        <a asp-page="/Product" asp-route-slug="@line.Product.Slug"><strong>@line.Product.DisplayName</strong></a>
+                        <div class="muted small">@L["{0} each", Money.Format(line.Product.Price)]</div>
                         <form method="post" asp-page-handler="Update" class="qty">
                             <input type="hidden" name="productId" value="@line.Product.Id" />
-                            <label class="small" for="q-@line.Product.Id" style="margin:0">Qty</label>
+                            <label class="small" for="q-@line.Product.Id" style="margin:0">@L["Qty"]</label>
                             <input id="q-@line.Product.Id" name="quantity" type="number" min="0" max="@shop.MaxQuantityPerItem" value="@line.Quantity" />
-                            <button class="link-button small" type="submit">Update</button>
-                            <button class="link-button small" type="submit" name="quantity" value="0">Remove</button>
+                            <button class="link-button small" type="submit">@L["Update"]</button>
+                            <button class="link-button small" type="submit" name="quantity" value="0">@L["Remove"]</button>
                         </form>
                     </div>
                     <div class="price">@Money.Format(line.LineTotal)</div>
@@ -40,9 +40,9 @@ else
             <partial name="_Totals" model="Model.Summary" />
             @if (Model.Summary.Shipping > 0 && shop.FreeShippingFrom > 0)
             {
-                <p class="muted small">Free shipping on orders from @Money.Format(shop.FreeShippingFrom).</p>
+                <p class="muted small">@L["Free shipping on orders from {0}.", Money.Format(shop.FreeShippingFrom)]</p>
             }
-            <a class="button wide" asp-page="/Checkout">Go to checkout</a>
+            <a class="button wide" asp-page="/Checkout">@L["Go to checkout"]</a>
         </aside>
     </div>
 }

@@ -1,16 +1,32 @@
 @page
 @inject IOptions<ShopOptions> Shop
-@{ ViewData["Title"] = "Returns & right of withdrawal"; var s = Shop.Value; }
+@{ ViewData["Title"] = L["Returns & right of withdrawal"].Value; var s = Shop.Value; }
 <div class="prose">
     <partial name="_DraftNotice" />
-    <h1>Returns &amp; right of withdrawal</h1>
-    <p>Under Swedish law (lagen om distansavtal) you can cancel a purchase within 14 days of receiving your items, without giving a reason.</p>
-    <h2>How to return an item</h2>
-    <ol>
-        <li>Email <a href="mailto:@s.ContactEmail">@s.ContactEmail</a> with your order number and say that you want to return it. You can also use the EU standard withdrawal form.</li>
-        <li>Send the item back within 14 days of telling us. <em>[Decide who pays return shipping and write it here.]</em></li>
-        <li>We refund the full price, including the original standard shipping, within 14 days of receiving your notice. We may wait until the item has arrived back.</li>
-    </ol>
-    <h2>Exceptions</h2>
-    <p>The right of withdrawal does not apply to items made to your specifications (custom orders). You can still make a complaint about a faulty item. See the <a asp-page="/Info/Terms">terms of purchase</a>.</p>
+    @if (Languages.IsEnglish)
+    {
+        <h1>Returns &amp; right of withdrawal</h1>
+        <p>Under Swedish law (lagen om distansavtal) you can cancel a purchase within 14 days of receiving your items, without giving a reason.</p>
+        <h2>How to return an item</h2>
+        <ol>
+            <li>Email <a href="mailto:@s.ContactEmail">@s.ContactEmail</a> with your order number and say that you want to return it. You can also use the EU standard withdrawal form.</li>
+            <li>Send the item back within 14 days of telling us. <em>[Decide who pays return shipping and write it here.]</em></li>
+            <li>We refund the full price, including the original standard shipping, within 14 days of receiving your notice. We may wait until the item has arrived back.</li>
+        </ol>
+        <h2>Exceptions</h2>
+        <p>The right of withdrawal does not apply to items made to your specifications (custom orders). You can still make a complaint about a faulty item. See the <a asp-page="/Info/Terms">terms of purchase</a>.</p>
+    }
+    else
+    {
+        <h1>Retur och ångerrätt</h1>
+        <p>Enligt lagen om distansavtal och avtal utanför affärslokaler har du rätt att ångra ditt köp inom 14 dagar från att du tagit emot varorna, utan att ange något skäl.</p>
+        <h2>Så returnerar du en vara</h2>
+        <ol>
+            <li>Mejla <a href="mailto:@s.ContactEmail">@s.ContactEmail</a>, ange ditt ordernummer och skriv att du vill ångra köpet. Du kan också använda EU:s standardformulär för att utöva ångerrätten.</li>
+            <li>Skicka tillbaka varan inom 14 dagar från att du meddelade oss. <em>[Bestäm vem som betalar returfrakten och skriv det här.]</em></li>
+            <li>Vi betalar tillbaka hela beloppet, inklusive den ursprungliga standardfrakten, inom 14 dagar från att vi fått ditt meddelande. Vi kan vänta med återbetalningen tills varan har kommit tillbaka till oss.</li>
+        </ol>
+        <h2>Undantag</h2>
+        <p>Ångerrätten gäller inte varor som tillverkats enligt dina önskemål (specialbeställningar). Du kan ändå reklamera en vara som är felaktig. Läs mer i <a asp-page="/Info/Terms">köpvillkoren</a>.</p>
+    }
 </div>

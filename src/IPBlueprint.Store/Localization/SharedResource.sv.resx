@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Swedish text for the site. Each name is the English text used in the code; the value is what Swedish visitors see.
+     Keep {0}, {1}, {2} placeholders. SiteTests checks that every text used on the public pages has an entry here. -->
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Main" xml:space="preserve"><value>Huvudmeny</value></data>
+  <data name="Shop" xml:space="preserve"><value>Butik</value></data>
+  <data name="Custom orders" xml:space="preserve"><value>Specialbeställningar</value></data>
+  <data name="About" xml:space="preserve"><value>Om oss</value></data>
+  <data name="Cart" xml:space="preserve"><value>Varukorg</value></data>
+  <data name="Switch between light and dark theme" xml:space="preserve"><value>Växla mellan ljust och mörkt tema</value></data>
+  <data name="Light / dark theme" xml:space="preserve"><value>Ljust/mörkt tema</value></data>
+  <data name="3D printed in Sweden." xml:space="preserve"><value>3D-printat i Sverige.</value></data>
+  <data name="Information" xml:space="preserve"><value>Information</value></data>
+  <data name="Terms of purchase" xml:space="preserve"><value>Köpvillkor</value></data>
+  <data name="Returns &amp; right of withdrawal" xml:space="preserve"><value>Retur och ångerrätt</value></data>
+  <data name="Privacy policy" xml:space="preserve"><value>Integritetspolicy</value></data>
+  <data name="About us" xml:space="preserve"><value>Om oss</value></data>
+  <data name="Prices include 25% VAT. Card payments are handled by SumUp." xml:space="preserve"><value>Alla priser är inklusive 25 % moms. Kortbetalningar hanteras av SumUp.</value></data>
+  <data name="Draft." xml:space="preserve"><value>Utkast.</value></data>
+  <data name="This page is a starting point and must be checked and completed before the shop goes live." xml:space="preserve"><value>Den här sidan är en utgångspunkt och måste ses över och kompletteras innan butiken öppnar.</value></data>
+  <data name="3D printed items made by two friends in Sweden. We also print custom orders." xml:space="preserve"><value>3D-printade saker från två vänner i Sverige. Vi tar även emot specialbeställningar.</value></data>
+  <data name="3D prints from our own printers" xml:space="preserve"><value>3D-utskrifter från våra egna skrivare</value></data>
+  <data name="We print everything in the shop ourselves, here in Sweden. If you want something that isn't listed, we take custom orders too." xml:space="preserve"><value>Allt i butiken printar vi själva, här i Sverige. Hittar du inte det du söker tar vi även emot specialbeställningar.</value></data>
+  <data name="There's nothing in the shop yet. We're adding products soon." xml:space="preserve"><value>Butiken är tom än så länge. Vi lägger snart upp produkter.</value></data>
+  <data name="Looking for something else?" xml:space="preserve"><value>Letar du efter något annat?</value></data>
+  <data name="Send us an idea, a sketch or a 3D model and we'll give you a price." xml:space="preserve"><value>Skicka en idé, en skiss eller en 3D-modell så ger vi dig ett pris.</value></data>
+  <data name="Request a custom print" xml:space="preserve"><value>Skicka en förfrågan</value></data>
+  <data name="No photo yet" xml:space="preserve"><value>Bild saknas</value></data>
+  <data name="← Back to the shop" xml:space="preserve"><value>← Tillbaka till butiken</value></data>
+  <data name="Quantity" xml:space="preserve"><value>Antal</value></data>
+  <data name="Add to cart" xml:space="preserve"><value>Lägg i varukorgen</value></data>
+  <data name="We print every item ourselves, so you may see faint layer lines and small colour differences from one print to the next." xml:space="preserve"><value>Vi printar varje vara själva, så du kan se svaga lagerlinjer och små färgskillnader mellan olika utskrifter.</value></data>
+  <data name="{0} was added to your cart." xml:space="preserve"><value>{0} har lagts i varukorgen.</value></data>
+  <data name="Your cart" xml:space="preserve"><value>Din varukorg</value></data>
+  <data name="Your cart is empty." xml:space="preserve"><value>Din varukorg är tom.</value></data>
+  <data name="Browse the shop" xml:space="preserve"><value>Till butiken</value></data>
+  <data name="{0} each" xml:space="preserve"><value>{0}/st</value></data>
+  <data name="Qty" xml:space="preserve"><value>Antal</value></data>
+  <data name="Update" xml:space="preserve"><value>Uppdatera</value></data>
+  <data name="Remove" xml:space="preserve"><value>Ta bort</value></data>
+  <data name="Free shipping on orders from {0}." xml:space="preserve"><value>Fri frakt när du handlar för minst {0}.</value></data>
+  <data name="Go to checkout" xml:space="preserve"><value>Till kassan</value></data>
+  <data name="Subtotal" xml:space="preserve"><value>Delsumma</value></data>
+  <data name="Shipping" xml:space="preserve"><value>Frakt</value></data>
+  <data name="Free" xml:space="preserve"><value>Gratis</value></data>
+  <data name="Total" xml:space="preserve"><value>Totalt</value></data>
+  <data name="Including VAT of {0}." xml:space="preserve"><value>Varav moms {0}.</value></data>
+  <data name="Checkout" xml:space="preserve"><value>Kassa</value></data>
+  <data name="Delivery details" xml:space="preserve"><value>Leveransuppgifter</value></data>
+  <data name="Optional. Helps the courier reach you." xml:space="preserve"><value>Frivilligt. Gör det lättare för budet att nå dig.</value></data>
+  <data name="We currently ship within Sweden only." xml:space="preserve"><value>Just nu skickar vi bara inom Sverige.</value></data>
+  <data name="I have read and accept" xml:space="preserve"><value>Jag har läst och godkänner</value></data>
+  <data name="the terms of purchase" xml:space="preserve"><value>köpvillkoren</value></data>
+  <data name="and" xml:space="preserve"><value>och</value></data>
+  <data name="the privacy policy" xml:space="preserve"><value>integritetspolicyn</value></data>
+  <data name="Continue to payment" xml:space="preserve"><value>Gå vidare till betalning</value></data>
+  <data name="You'll pay on SumUp's secure payment page. We never see your card details." xml:space="preserve"><value>Du betalar på SumUps säkra betalsida. Vi ser aldrig dina kortuppgifter.</value></data>
+  <data name="Your order" xml:space="preserve"><value>Din beställning</value></data>
+  <data name="Edit cart" xml:space="preserve"><value>Ändra varukorgen</value></data>
+  <data name="We couldn't reach the payment provider just now. Nothing has been charged. Please try again in a moment." xml:space="preserve"><value>Vi fick inte kontakt med betaltjänsten just nu. Inga pengar har dragits. Försök igen om en liten stund.</value></data>
+  <data name="Full name" xml:space="preserve"><value>För- och efternamn</value></data>
+  <data name="Email" xml:space="preserve"><value>E-post</value></data>
+  <data name="Phone" xml:space="preserve"><value>Telefon</value></data>
+  <data name="Street address" xml:space="preserve"><value>Gatuadress</value></data>
+  <data name="Apartment, c/o etc. (optional)" xml:space="preserve"><value>Lägenhetsnummer, c/o m.m. (frivilligt)</value></data>
+  <data name="Postcode" xml:space="preserve"><value>Postnummer</value></data>
+  <data name="City" xml:space="preserve"><value>Ort</value></data>
+  <data name="Anything we should know? (optional)" xml:space="preserve"><value>Något vi bör veta? (frivilligt)</value></data>
+  <data name="Please enter your name." xml:space="preserve"><value>Fyll i ditt namn.</value></data>
+  <data name="Please enter your email address." xml:space="preserve"><value>Fyll i din e-postadress.</value></data>
+  <data name="Please enter your street address." xml:space="preserve"><value>Fyll i din gatuadress.</value></data>
+  <data name="Please enter your postcode." xml:space="preserve"><value>Fyll i ditt postnummer.</value></data>
+  <data name="Please enter your city." xml:space="preserve"><value>Fyll i din ort.</value></data>
+  <data name="That doesn't look like an email address." xml:space="preserve"><value>Det ser inte ut som en e-postadress.</value></data>
+  <data name="That doesn't look like a phone number." xml:space="preserve"><value>Det ser inte ut som ett telefonnummer.</value></data>
+  <data name="The name can be at most {1} characters." xml:space="preserve"><value>Namnet får vara högst {1} tecken.</value></data>
+  <data name="The email address can be at most {1} characters." xml:space="preserve"><value>E-postadressen får vara högst {1} tecken.</value></data>
+  <data name="The phone number can be at most {1} characters." xml:space="preserve"><value>Telefonnumret får vara högst {1} tecken.</value></data>
+  <data name="The address can be at most {1} characters." xml:space="preserve"><value>Adressen får vara högst {1} tecken.</value></data>
+  <data name="The city can be at most {1} characters." xml:space="preserve"><value>Orten får vara högst {1} tecken.</value></data>
+  <data name="The note can be at most {1} characters." xml:space="preserve"><value>Meddelandet får vara högst {1} tecken.</value></data>
+  <data name="This can be at most {1} characters." xml:space="preserve"><value>Det här fältet får vara högst {1} tecken.</value></data>
+  <data name="Enter a Swedish postcode, e.g. 123 45." xml:space="preserve"><value>Ange ett svenskt postnummer, t.ex. 123 45.</value></data>
+  <data name="Please accept the terms to continue." xml:space="preserve"><value>Du behöver godkänna villkoren för att gå vidare.</value></data>
+  <data name="Please tell us what you'd like us to print." xml:space="preserve"><value>Berätta vad du vill att vi ska printa.</value></data>
+  <data name="Please write between {2} and {1} characters." xml:space="preserve"><value>Skriv mellan {2} och {1} tecken.</value></data>
+  <data name="Get something 3D printed just for you. Send us an idea, a sketch or a model file." xml:space="preserve"><value>Få något 3D-printat bara för dig. Skicka en idé, en skiss eller en modellfil.</value></data>
+  <data name="Want something that isn't in the shop? Describe what you have in mind. A few sentences are enough. A sketch, a photo or a 3D model file (STL, 3MF, OBJ, STEP) makes it easier for us to quote." xml:space="preserve"><value>Vill du ha något som inte finns i butiken? Beskriv vad du har i tankarna, några meningar räcker. En skiss, ett foto eller en 3D-modell (STL, 3MF, OBJ, STEP) gör det lättare för oss att sätta ett pris.</value></data>
+  <data name="We'll reply by email with a price and an estimated delivery time, usually within a few days. If you want to go ahead, we'll send you a payment link from SumUp." xml:space="preserve"><value>Vi svarar via e-post med ett pris och en ungefärlig leveranstid, oftast inom några dagar. Vill du gå vidare skickar vi en betallänk från SumUp.</value></data>
+  <data name="Your name" xml:space="preserve"><value>Ditt namn</value></data>
+  <data name="What would you like?" xml:space="preserve"><value>Vad vill du ha?</value></data>
+  <data name="What should we print? Roughly how big, how many, and what is it for?" xml:space="preserve"><value>Vad ska vi printa? Ungefär hur stort, hur många och vad ska det användas till?</value></data>
+  <data name="Preferred colour (optional)" xml:space="preserve"><value>Önskad färg (frivilligt)</value></data>
+  <data name="Budget (optional)" xml:space="preserve"><value>Budget (frivilligt)</value></data>
+  <data name="File (optional)" xml:space="preserve"><value>Fil (frivilligt)</value></data>
+  <data name="Images, PDF or 3D models, up to 25 MB." xml:space="preserve"><value>Bilder, PDF eller 3D-modeller, högst 25 MB.</value></data>
+  <data name="We use your details only to answer this request. See our" xml:space="preserve"><value>Vi använder bara dina uppgifter för att svara på förfrågan. Läs mer i vår</value></data>
+  <data name="privacy policy" xml:space="preserve"><value>integritetspolicy</value></data>
+  <data name="Send request" xml:space="preserve"><value>Skicka förfrågan</value></data>
+  <data name="Good to know" xml:space="preserve"><value>Bra att veta</value></data>
+  <data name="We print in PLA and PETG in many colours." xml:space="preserve"><value>Vi printar i PLA och PETG i många färger.</value></data>
+  <data name="Maximum single-piece size is about 25 × 25 × 25 cm. We can print bigger things in parts." xml:space="preserve"><value>Största storlek i ett stycke är ungefär 25 × 25 × 25 cm. Större saker kan vi printa i delar.</value></data>
+  <data name="Custom items are made to order, so they can't be returned unless they are faulty." xml:space="preserve"><value>Specialbeställningar tillverkas efter dina önskemål och kan därför inte returneras, om de inte är felaktiga.</value></data>
+  <data name="Thanks! We've received your request and will get back to you soon." xml:space="preserve"><value>Tack! Vi har tagit emot din förfrågan och hör av oss snart.</value></data>
+  <data name="Thanks! We've received your request and sent you a confirmation by email. We'll get back to you soon." xml:space="preserve"><value>Tack! Vi har tagit emot din förfrågan och skickat en bekräftelse till din e-post. Vi hör av oss snart.</value></data>
+  <data name="Allowed file types: images (JPG, PNG, WebP), PDF and 3D models (STL, 3MF, OBJ, STEP)." xml:space="preserve"><value>Tillåtna filtyper: bilder (JPG, PNG, WebP), PDF och 3D-modeller (STL, 3MF, OBJ, STEP).</value></data>
+  <data name="Files can be at most 25 MB." xml:space="preserve"><value>Filen får vara högst 25 MB.</value></data>
+  <data name="Order {0}" xml:space="preserve"><value>Beställning {0}</value></data>
+  <data name="Thank you for your order!" xml:space="preserve"><value>Tack för din beställning!</value></data>
+  <data name="We've received your payment and sent a confirmation to" xml:space="preserve"><value>Vi har tagit emot din betalning och skickat en bekräftelse till</value></data>
+  <data name="We'll email you again when it ships." xml:space="preserve"><value>Vi mejlar dig igen när paketet skickas.</value></data>
+  <data name="The payment didn't go through" xml:space="preserve"><value>Betalningen gick inte igenom</value></data>
+  <data name="No money has been taken. You can try again below, or contact us if the problem continues." xml:space="preserve"><value>Inga pengar har dragits. Du kan försöka igen nedan, eller kontakta oss om problemet kvarstår.</value></data>
+  <data name="Try paying again" xml:space="preserve"><value>Försök betala igen</value></data>
+  <data name="This order was cancelled" xml:space="preserve"><value>Beställningen har avbrutits</value></data>
+  <data name="Please contact us if you have questions." xml:space="preserve"><value>Kontakta oss om du har frågor.</value></data>
+  <data name="We're waiting for the payment to be confirmed" xml:space="preserve"><value>Vi väntar på att betalningen ska bekräftas</value></data>
+  <data name="This usually takes a few seconds." xml:space="preserve"><value>Det brukar ta några sekunder.</value></data>
+  <data name="Refresh this page" xml:space="preserve"><value>Ladda om sidan</value></data>
+  <data name="to check again." xml:space="preserve"><value>för att se om den har gått igenom.</value></data>
+  <data name="Didn't finish paying? Pay now" xml:space="preserve"><value>Hann du inte betala klart? Betala nu</value></data>
+  <data name="Order number:" xml:space="preserve"><value>Ordernummer:</value></data>
+  <data name="Back to the shop" xml:space="preserve"><value>Tillbaka till butiken</value></data>
+  <data name="We couldn't reach the payment provider. Please try again in a moment." xml:space="preserve"><value>Vi fick inte kontakt med betaltjänsten. Försök igen om en liten stund.</value></data>
+  <data name="Page not found" xml:space="preserve"><value>Sidan hittades inte</value></data>
+  <data name="Something went wrong" xml:space="preserve"><value>Något gick fel</value></data>
+  <data name="We couldn't find that page" xml:space="preserve"><value>Vi hittade inte sidan</value></data>
+  <data name="It may have moved or no longer exist." xml:space="preserve"><value>Den kan ha flyttats eller finns inte längre.</value></data>
+  <data name="Sorry about that. Please try again, or contact us if the problem continues." xml:space="preserve"><value>Ledsen för det. Försök igen, eller kontakta oss om problemet kvarstår.</value></data>
+  <data name="Reference:" xml:space="preserve"><value>Referens:</value></data>
+</root>

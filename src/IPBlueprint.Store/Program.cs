@@ -2,6 +2,7 @@ using System.Threading.RateLimiting;
 using IPBlueprint.Store.Admin;
 using IPBlueprint.Store.Data;
 using IPBlueprint.Store.Email;
+using IPBlueprint.Store.Localization;
 using IPBlueprint.Store.Payments;
 using IPBlueprint.Store.Shop;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -67,11 +68,19 @@ services.AddRateLimiter(o =>
         _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(5) }));
 });
 
+// Swedish by default, English on request. See Localization/Languages.cs.
+services.AddLocalization();
+// Write å, ä, ö and other letters as-is instead of as &#xE5; entities (still HTML-encoded where it matters).
+services.AddWebEncoders(o => o.TextEncoderSettings = new System.Text.Encodings.Web.TextEncoderSettings(System.Text.Unicode.UnicodeRanges.All));
+services.Configure<RequestLocalizationOptions>(Languages.Configure);
+
 services.AddRazorPages(o =>
-{
-    o.Conventions.AuthorizeFolder("/Admin", AdminPolicy.Name);
-    o.Conventions.AllowAnonymousToPage("/Admin/Login");
-});
+    {
+        o.Conventions.AuthorizeFolder("/Admin", AdminPolicy.Name);
+        o.Conventions.AllowAnonymousToPage("/Admin/Login");
+    })
+    .AddDataAnnotationsLocalization(o =>
+        o.DataAnnotationLocalizerProvider = (_, factory) => factory.Create(typeof(SharedResource)));
 
 // Behind a reverse proxy (nginx, Caddy) the real scheme and client IP arrive in forwarded headers.
 // Only trust them when told to, otherwise anyone could fake their IP and dodge the login rate limit.
@@ -115,6 +124,7 @@ app.UseStaticFiles(new StaticFileOptions
     OnPrepareResponse = ctx => ctx.Context.Response.Headers.CacheControl = "public,max-age=604800",
 });
 
+app.UseRequestLocalization();
 app.UseRouting();
 app.UseRateLimiter();
 app.UseAuthentication();
@@ -122,6 +132,20 @@ app.UseAuthorization();
 
 app.MapStaticAssets();
 app.MapRazorPages().WithStaticAssets();
+
+// The language switch in the header. A plain link (no JavaScript), remembered for a year.
+app.MapGet("/language/{language}", (string language, string? returnUrl, HttpContext http) =>
+{
+    http.Response.Cookies.Append(Languages.CookieName, Languages.CookieValue(language), new CookieOptions
+    {
+        MaxAge = TimeSpan.FromDays(365),
+        IsEssential = true, // the visitor asked for it, so it needs no consent banner
+        HttpOnly = true,
+        SameSite = SameSiteMode.Lax,
+        Secure = http.Request.IsHttps,
+    });
+    return Results.LocalRedirect(SiteUrls.IsLocal(returnUrl) ? returnUrl! : "/");
+});
 
 // SumUp calls this when a checkout's status changes. The body is just {"event_type": "...", "id": "<checkout id>"};
 // we never trust it on its own and always ask SumUp for the checkout. A non-2xx answer makes SumUp retry later.

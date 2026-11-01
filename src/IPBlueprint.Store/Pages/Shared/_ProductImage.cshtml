@@ -1,9 +1,9 @@
 @model Product
 @if (Model.ImageFileName is { } file)
 {
-    <img class="product-image" src="/images/products/@file" alt="@Model.Name" loading="lazy" />
+    <img class="product-image" src="/images/products/@file" alt="@Model.DisplayName" loading="lazy" />
 }
 else
 {
-    <div class="placeholder-image" role="img" aria-label="No photo yet">No photo yet</div>
+    <div class="placeholder-image" role="img" aria-label="@L["No photo yet"]">@L["No photo yet"]</div>
 }

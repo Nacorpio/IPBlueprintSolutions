@@ -1,15 +1,15 @@
 @page
 @model CustomModel
 @{
-    ViewData["Title"] = "Custom orders";
-    ViewData["Description"] = "Get something 3D printed just for you. Send us an idea, a sketch or a model file.";
+    ViewData["Title"] = L["Custom orders"].Value;
+    ViewData["Description"] = L["Get something 3D printed just for you. Send us an idea, a sketch or a model file."].Value;
 }
 
 <div class="layout-two">
     <div>
-        <h1>Custom orders</h1>
-        <p>Want something that isn't in the shop? Describe what you have in mind. A few sentences are enough. A sketch, a photo or a 3D model file (STL, 3MF, OBJ, STEP) makes it easier for us to quote.</p>
-        <p>We'll reply by email with a price and an estimated delivery time, usually within a few days. If you want to go ahead, we'll send you a payment link from SumUp.</p>
+        <h1>@L["Custom orders"]</h1>
+        <p>@L["Want something that isn't in the shop? Describe what you have in mind. A few sentences are enough. A sketch, a photo or a 3D model file (STL, 3MF, OBJ, STEP) makes it easier for us to quote."]</p>
+        <p>@L["We'll reply by email with a price and an estimated delivery time, usually within a few days. If you want to go ahead, we'll send you a payment link from SumUp."]</p>
 
         <form method="post" enctype="multipart/form-data" class="panel">
             <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
@@ -27,7 +27,7 @@
             </div>
             <div class="field">
                 <label asp-for="Input.Description"></label>
-                <textarea asp-for="Input.Description" placeholder="What should we print? Roughly how big, how many, and what is it for?"></textarea>
+                <textarea asp-for="Input.Description" placeholder="@L["What should we print? Roughly how big, how many, and what is it for?"]"></textarea>
                 <span asp-validation-for="Input.Description" class="field-validation-error"></span>
             </div>
             <div class="field-row">
@@ -41,9 +41,9 @@
                 </div>
             </div>
             <div class="field">
-                <label asp-for="Attachment">File (optional)</label>
+                <label asp-for="Attachment">@L["File (optional)"]</label>
                 <input asp-for="Attachment" type="file" accept="@FileStore.AttachmentAcceptList" />
-                <div class="hint">Images, PDF or 3D models, up to 25 MB.</div>
+                <div class="hint">@L["Images, PDF or 3D models, up to 25 MB."]</div>
                 <span asp-validation-for="Attachment" class="field-validation-error"></span>
             </div>
             @* Hidden from people; bots that fill in every field give themselves away. *@
@@ -51,16 +51,16 @@
                 <label for="website">Website</label>
                 <input id="website" name="website" type="text" tabindex="-1" autocomplete="off" />
             </div>
-            <p class="muted small">We use your details only to answer this request. See our <a asp-page="/Info/Privacy">privacy policy</a>.</p>
-            <button class="button" type="submit">Send request</button>
+            <p class="muted small">@L["We use your details only to answer this request. See our"] <a asp-page="/Info/Privacy">@L["privacy policy"]</a>.</p>
+            <button class="button" type="submit">@L["Send request"]</button>
         </form>
     </div>
     <aside class="panel">
-        <h2>Good to know</h2>
+        <h2>@L["Good to know"]</h2>
         <ul class="small">
-            <li>We print in PLA and PETG in many colours.</li>
-            <li>Maximum single-piece size is about 25 × 25 × 25 cm. We can print bigger things in parts.</li>
-            <li>Custom items are made to order, so they can't be returned unless they are faulty.</li>
+            <li>@L["We print in PLA and PETG in many colours."]</li>
+            <li>@L["Maximum single-piece size is about 25 × 25 × 25 cm. We can print bigger things in parts."]</li>
+            <li>@L["Custom items are made to order, so they can't be returned unless they are faulty."]</li>
         </ul>
     </aside>
 </div>

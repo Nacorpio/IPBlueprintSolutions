@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using IPBlueprint.Store.Data;
 using IPBlueprint.Store.Email;
+using IPBlueprint.Store.Localization;
 using IPBlueprint.Store.Payments;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -54,6 +55,7 @@ public sealed class OrderService(
             PostalCode = customer.PostalCode.Trim(),
             City = customer.City.Trim(),
             CustomerNote = customer.Note?.Trim(),
+            Language = Languages.Current,
             Subtotal = cart.Subtotal,
             ShippingCost = cart.Shipping,
             Total = cart.Total,
@@ -61,7 +63,8 @@ public sealed class OrderService(
             Lines = cart.Lines.Select(l => new OrderLine
             {
                 ProductId = l.Product.Id,
-                ProductName = l.Product.Name,
+                // The name the customer saw, so the order page and receipt read the same as the cart did.
+                ProductName = l.Product.DisplayName,
                 UnitPrice = l.Product.Price,
                 Quantity = l.Quantity,
             }).ToList(),
@@ -87,7 +90,7 @@ public sealed class OrderService(
             CheckoutReference: checkoutReference,
             Amount: order.Total,
             Currency: sumUpOptions.Value.Currency,
-            Description: $"Order {order.Reference}",
+            Description: (order.Language == Languages.English ? "Order " : "Beställning ") + order.Reference,
             RedirectUrl: new Uri(siteBaseUrl, $"order/{order.Id}"),
             WebhookUrl: new Uri(siteBaseUrl, "webhooks/sumup")), ct);
 
