@@ -77,6 +77,11 @@ namespace IPBlueprint.Store.Data.Migrations
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Delivery")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(4000)
@@ -164,14 +169,12 @@ namespace IPBlueprint.Store.Data.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("AddressLine1")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<string>("AddressLine2")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("City")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Country")
@@ -186,6 +189,11 @@ namespace IPBlueprint.Store.Data.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("CustomerNote")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Delivery")
+                        .IsRequired()
+                        .HasMaxLength(10)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Email")
@@ -207,7 +215,6 @@ namespace IPBlueprint.Store.Data.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("PostalCode")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Reference")

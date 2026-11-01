@@ -1,18 +1,36 @@
 @page
 @inject IOptions<ShopOptions> Shop
-@{ ViewData["Title"] = L["About us"].Value; ViewData["Description"] = L["Who we are: two friends in Sweden who 3D print everything in the shop ourselves, in PLA, PETG and ABS."].Value; var email = Shop.Value.ContactEmail; }
+@{
+    var shop = Shop.Value;
+    var town = shop.Town;
+    ViewData["Title"] = L["About us"].Value;
+    ViewData["Description"] = L["Who we are: two friends in {0} who 3D print everything in the shop ourselves, in PLA, PETG and ABS. Free pickup in {0}.", town].Value;
+    var email = shop.ContactEmail;
+}
 @* Longer texts are kept here in both languages, side by side, instead of in the resource file. *@
 <div class="prose">
     @if (Languages.IsEnglish)
     {
         <h1>About us</h1>
-        <p>We're two friends in Sweden who 3D print. We design or choose everything in the shop and print it on our own printers, in PLA, PETG and ABS.</p>
+        <p>We're two friends in @town, @shop.Region, who 3D print. We design or choose everything in the shop and print it on our own printers, in PLA, PETG and ABS.</p>
+        @if (shop.OffersPickup)
+        {
+            <h2 id="pickup">Free pickup in @town</h2>
+            <p>Live in or near @town? Choose <strong>Pick up in @town</strong> at checkout and you won't pay anything for delivery. When your order is ready, we'll email you to agree on a time, and send you the address then. That works for <a asp-page="/Custom">custom orders</a> too.</p>
+            <p>Not nearby? We ship anywhere in Sweden.</p>
+        }
         <p>Want us to make something? <a asp-page="/Custom">Send us a custom request</a> or email <a href="mailto:@email">@email</a>.</p>
     }
     else
     {
         <h1>Om oss</h1>
-        <p>Vi är två vänner i Sverige som 3D-printar. Allt i butiken har vi designat eller valt ut själva, och vi printar det på våra egna 3D-skrivare, i PLA, PETG och ABS.</p>
+        <p>Vi är två vänner i @town i @shop.Region som 3D-printar. Allt i butiken har vi designat eller valt ut själva, och vi printar det på våra egna 3D-skrivare, i PLA, PETG och ABS.</p>
+        @if (shop.OffersPickup)
+        {
+            <h2 id="pickup">Fri upphämtning i @town</h2>
+            <p>Bor du i eller nära @town? Välj <strong>Hämta själv i @town</strong> i kassan, så kostar leveransen ingenting. När beställningen är klar mejlar vi dig för att bestämma en tid, och då får du adressen. Det fungerar för <a asp-page="/Custom">specialbeställningar</a> också.</p>
+            <p>Bor du längre bort? Vi skickar till hela Sverige.</p>
+        }
         <p>Vill du att vi gör något åt dig? <a asp-page="/Custom">Skicka en förfrågan</a> eller mejla <a href="mailto:@email">@email</a>.</p>
     }
     <partial name="_FollowUs" />

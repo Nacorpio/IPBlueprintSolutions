@@ -2,16 +2,19 @@
 @model IndexModel
 @inject IOptions<ShopOptions> Shop
 @{
-    var description = L["3D printed items made by two friends in Sweden. We also print custom orders."].Value;
+    var town = Shop.Value.Town;
+    var description = Shop.Value.OffersPickup
+        ? L["3D printed items made by two friends in {0}. Free pickup in {0}, shipping across Sweden. We also print custom orders.", town].Value
+        : L["3D printed items made by two friends in {0}. We ship across Sweden and also print custom orders.", town].Value;
     ViewData["Title"] = L["Shop"].Value;
-    ViewData["FullTitle"] = $"{Shop.Value.Name} · {L["3D prints made in Sweden"].Value}";
+    ViewData["FullTitle"] = $"{Shop.Value.Name} · {L["3D printing in {0}", town].Value}";
     ViewData["Description"] = description;
     ViewData["JsonLd"] = Seo.StoreJsonLd(SiteUrls.BaseUrl(Request, Shop.Value), Shop.Value, description);
 }
 
 <section class="hero">
     <h1>@L["3D prints from our own printers"]</h1>
-    <p>@L["We print everything in the shop ourselves, here in Sweden. If you want something that isn't listed, we take custom orders too."]</p>
+    <p>@L["We print everything in the shop ourselves, here in {0}. If you want something that isn't listed, we take custom orders too.", town]</p>
 </section>
 
 <partial name="_Catalog" model="Model.View" />

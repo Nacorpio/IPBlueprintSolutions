@@ -59,6 +59,8 @@ public class StoreDbContext(DbContextOptions<StoreDbContext> options) : DbContex
             e.Property(o => o.Reference).HasMaxLength(32);
             e.Property(o => o.Status).HasConversion<string>().HasMaxLength(20);
             e.Property(o => o.Language).HasMaxLength(5);
+            e.Property(o => o.Delivery).HasConversion<string>().HasMaxLength(10);
+            e.Ignore(o => o.IsPickup);
             e.HasMany(o => o.Lines).WithOne().HasForeignKey(l => l.OrderId).OnDelete(DeleteBehavior.Cascade);
             e.HasMany(o => o.History).WithOne().HasForeignKey(h => h.OrderId).OnDelete(DeleteBehavior.Cascade);
         });
@@ -70,6 +72,7 @@ public class StoreDbContext(DbContextOptions<StoreDbContext> options) : DbContex
             e.Property(r => r.Status).HasConversion<string>().HasMaxLength(20);
             e.Property(r => r.Description).HasMaxLength(4000);
             e.Property(r => r.Language).HasMaxLength(5);
+            e.Property(r => r.Delivery).HasConversion<string>().HasMaxLength(10);
         });
 
         b.Entity<GalleryImage>(e =>

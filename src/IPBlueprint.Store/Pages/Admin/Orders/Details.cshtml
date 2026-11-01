@@ -7,7 +7,13 @@
 <p class="small"><a asp-page="Index">← All orders</a></p>
 <div class="toolbar">
     <h1 style="margin:0">Order @o.Reference</h1>
-    <span class="badge @o.Status">@OrderStatusFlow.AdminLabel(o.Status)</span>
+    <span>
+        <span class="badge @o.Status">@OrderStatusFlow.AdminLabel(o.Status, o.Delivery)</span>
+        @if (o.IsPickup)
+        {
+            <span class="badge Pickup">Pickup</span>
+        }
+    </span>
 </div>
 
 <div class="layout-two">
@@ -20,7 +26,7 @@
                 {
                     <tr><td>@l.ProductName</td><td>@l.Quantity</td><td>@Money.Format(l.UnitPrice)</td><td>@Money.Format(l.LineTotal)</td></tr>
                 }
-                <tr><td colspan="3">Shipping</td><td>@Money.Format(o.ShippingCost)</td></tr>
+                <tr><td colspan="3">@(o.IsPickup ? $"Pickup in {Model.Town}" : "Shipping")</td><td>@Money.Format(o.ShippingCost)</td></tr>
                 <tr><td colspan="3"><strong>Total</strong></td><td><strong>@Money.Format(o.Total)</strong></td></tr>
             </tbody>
         </table>
@@ -31,12 +37,21 @@
         }
     </div>
     <aside class="panel">
-        <h2>Ship to</h2>
-        <p>
-            @o.CustomerName<br />@o.AddressLine1<br />
-            @if (!string.IsNullOrWhiteSpace(o.AddressLine2)) { @o.AddressLine2<br /> }
-            @o.PostalCode @o.City
-        </p>
+        @if (o.IsPickup)
+        {
+            <h2>Pickup in @Model.Town</h2>
+            <p>@o.CustomerName</p>
+            <p class="muted small">No address needed. When it's ready, mark it as ready for pickup: the customer gets an email asking which times suit them, and you reply with the address. Keep the address out of the site.</p>
+        }
+        else
+        {
+            <h2>Ship to</h2>
+            <p>
+                @o.CustomerName<br />@o.AddressLine1<br />
+                @if (!string.IsNullOrWhiteSpace(o.AddressLine2)) { @o.AddressLine2<br /> }
+                @o.PostalCode @o.City
+            </p>
+        }
         <p><a href="mailto:@o.Email">@o.Email</a>@if (!string.IsNullOrWhiteSpace(o.Phone)) { <br />@o.Phone }</p>
         <p class="small muted">
             Created @ShopTime.ToSwedish(o.CreatedAtUtc).ToString("yyyy-MM-dd HH:mm")<br />
@@ -46,7 +61,7 @@
             @if (!string.IsNullOrWhiteSpace(o.TrackingNumber)) { <text>Tracking number @o.TrackingNumber</text> }
         </p>
 
-        @foreach (var next in OrderStatusFlow.NextSteps(o.Status))
+        @foreach (var next in OrderStatusFlow.NextSteps(o.Status, o.Delivery))
         {
             switch (next)
             {
@@ -68,11 +83,18 @@
                         <button class="button wide" type="submit">Mark as shipped</button>
                     </form>
                     break;
+                case OrderStatus.ReadyForPickup:
+                    <form method="post" asp-page-handler="Status" class="status-action">
+                        <input type="hidden" name="to" value="@next" />
+                        <label class="check small"><input type="checkbox" name="emailCustomer" value="true" checked /> <span>Email the customer to agree on a time</span></label>
+                        <button class="button wide" type="submit">Mark as ready for pickup</button>
+                    </form>
+                    break;
                 case OrderStatus.Delivered:
                     <form method="post" asp-page-handler="Status" class="status-action">
                         <input type="hidden" name="to" value="@next" />
                         <label class="check small"><input type="checkbox" name="emailCustomer" value="true" checked /> <span>Email the customer</span></label>
-                        <button class="button wide" type="submit">Mark as delivered</button>
+                        <button class="button wide" type="submit">@(o.IsPickup ? "Mark as picked up" : "Mark as delivered")</button>
                     </form>
                     break;
                 case OrderStatus.Refunded:
@@ -83,7 +105,7 @@
                             <p class="muted small">Make the refund in the SumUp dashboard first. This only updates the order and tells the customer.</p>
                             @if (Model.HasStockedItems && !o.StockRestored)
                             {
-                                <label class="check small"><input type="checkbox" name="restock" value="true" checked="@(o.Status is OrderStatus.Paid or OrderStatus.InProduction)" /> <span>Put the items back in stock</span></label>
+                                <label class="check small"><input type="checkbox" name="restock" value="true" checked="@(o.Status is OrderStatus.Paid or OrderStatus.InProduction or OrderStatus.ReadyForPickup)" /> <span>Put the items back in stock</span></label>
                             }
                             <label class="check small"><input type="checkbox" name="emailCustomer" value="true" checked /> <span>Email the customer</span></label>
                             <button class="button danger wide" type="submit">Mark as refunded</button>
@@ -105,7 +127,7 @@
             <ul class="history small">
                 @foreach (var h in o.History)
                 {
-                    <li>@ShopTime.ToSwedish(h.AtUtc).ToString("yyyy-MM-dd HH:mm") · @OrderStatusFlow.AdminLabel(h.Status)@(h.CustomerEmailed ? " · customer emailed" : "")</li>
+                    <li>@ShopTime.ToSwedish(h.AtUtc).ToString("yyyy-MM-dd HH:mm") · @OrderStatusFlow.AdminLabel(h.Status, o.Delivery)@(h.CustomerEmailed ? " · customer emailed" : "")</li>
                 }
             </ul>
         }

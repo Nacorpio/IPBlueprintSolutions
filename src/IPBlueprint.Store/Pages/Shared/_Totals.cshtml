@@ -1,7 +1,15 @@
 @model CartSummary
+@inject IOptions<ShopOptions> Shop
 <table class="totals">
     <tr><td>@L["Subtotal"]</td><td>@Money.Format(Model.Subtotal)</td></tr>
-    <tr><td>@L["Shipping"]</td><td>@(Model.Shipping == 0 ? L["Free"].Value : Money.Format(Model.Shipping))</td></tr>
+    @if (Model.Delivery == DeliveryMethod.Pickup)
+    {
+        <tr><td>@L["Pickup in {0}", Shop.Value.Town]</td><td>@L["Free"]</td></tr>
+    }
+    else
+    {
+        <tr><td>@L["Shipping"]</td><td>@(Model.Shipping == 0 ? L["Free"].Value : Money.Format(Model.Shipping))</td></tr>
+    }
     <tr class="grand"><td>@L["Total"]</td><td>@Money.Format(Model.Total)</td></tr>
 </table>
 <p class="muted small">@L["Including VAT of {0}.", Money.Format(Math.Round(Model.Total * 0.2m, 2))]</p>

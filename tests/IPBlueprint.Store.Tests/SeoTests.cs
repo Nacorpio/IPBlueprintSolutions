@@ -130,10 +130,10 @@ public partial class SeoTests : IClassFixture<StoreFactory>
     {
         var html = await _factory.CreateClient().GetStringAsync("/");
 
-        Assert.Contains("<title>IP Blueprint Solutions · 3D-utskrifter från Sverige</title>", html);
+        Assert.Contains("<title>IP Blueprint Solutions · 3D-utskrift i Smedjebacken</title>", html);
         Assert.Contains("<meta name=\"description\"", html);
         Assert.Contains("<link rel=\"canonical\" href=\"https://shop.test/\" />", html);
-        Assert.Contains("\"@type\":\"OnlineStore\"", html);
+        Assert.Contains("\"@type\":[\"OnlineStore\",\"LocalBusiness\"]", html);
         Assert.Contains("\"sameAs\":[\"https://www.instagram.com/ip.blueprint.solutions/\"", html);
     }
 

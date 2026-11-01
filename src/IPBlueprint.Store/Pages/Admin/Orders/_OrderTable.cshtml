@@ -16,7 +16,7 @@ else
                         <td>@ShopTime.ToSwedish(o.CreatedAtUtc).ToString("yyyy-MM-dd HH:mm")</td>
                         <td>@o.CustomerName<br /><span class="muted small">@o.Email</span></td>
                         <td>@Money.Format(o.Total)</td>
-                        <td><span class="badge @o.Status">@OrderStatusFlow.AdminLabel(o.Status)</span></td>
+                        <td><span class="badge @o.Status">@OrderStatusFlow.AdminLabel(o.Status, o.Delivery)</span>@if (o.IsPickup) { <text> </text><span class="badge Pickup">Pickup</span> }</td>
                     </tr>
                 }
             </tbody>

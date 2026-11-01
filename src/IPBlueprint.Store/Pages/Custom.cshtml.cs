@@ -5,12 +5,18 @@ using IPBlueprint.Store.Shop;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Options;
 
 namespace IPBlueprint.Store.Pages;
 
 [RequestSizeLimit(FileStore.MaxAttachmentBytes + 1024 * 1024)]
 [RequestFormLimits(MultipartBodyLengthLimit = FileStore.MaxAttachmentBytes + 1024 * 1024)]
-public class CustomModel(StoreDbContext db, FileStore files, OrderNotifications notifications, IStringLocalizer<SharedResource> localizer) : PageModel
+public class CustomModel(
+    StoreDbContext db,
+    FileStore files,
+    OrderNotifications notifications,
+    IOptions<ShopOptions> shop,
+    IStringLocalizer<SharedResource> localizer) : PageModel
 {
     [BindProperty]
     public CustomInput Input { get; set; } = new();
@@ -50,6 +56,7 @@ public class CustomModel(StoreDbContext db, FileStore files, OrderNotifications 
             Description = Input.Description.Trim(),
             PreferredColour = Input.PreferredColour?.Trim(),
             Budget = Input.Budget?.Trim(),
+            Delivery = Input.Delivery == DeliveryMethod.Pickup && shop.Value.OffersPickup ? DeliveryMethod.Pickup : DeliveryMethod.Shipping,
             AttachmentFileName = storedName,
             AttachmentOriginalName = storedName is null ? null : Path.GetFileName(Attachment!.FileName),
             Language = Languages.Current,
@@ -89,4 +96,6 @@ public class CustomInput
     [StringLength(100, ErrorMessage = "This can be at most {1} characters.")]
     [Display(Name = "Budget (optional)")]
     public string? Budget { get; set; }
+
+    public DeliveryMethod Delivery { get; set; } = DeliveryMethod.Shipping;
 }

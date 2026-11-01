@@ -124,6 +124,16 @@ public enum OrderStatus
     InProduction = 5,
     Delivered = 6,
     Refunded = 7,
+    /// <summary>Pickup orders only: made and waiting for the customer to collect it. Delivered then means "picked up".</summary>
+    ReadyForPickup = 8,
+}
+
+/// <summary>How the customer gets the order: by post, or by picking it up from us (free, time agreed by email or text).
+/// Stored as text.</summary>
+public enum DeliveryMethod
+{
+    Shipping = 0,
+    Pickup = 1,
 }
 
 /// <summary>One step in an order's history, shown on the customer's order page and in the admin.</summary>
@@ -148,10 +158,16 @@ public class Order
     public required string CustomerName { get; set; }
     public required string Email { get; set; }
     public string? Phone { get; set; }
-    public required string AddressLine1 { get; set; }
+
+    public DeliveryMethod Delivery { get; set; } = DeliveryMethod.Shipping;
+
+    public bool IsPickup => Delivery == DeliveryMethod.Pickup;
+
+    /// <summary>The address fields are empty for pickup orders: there is nothing to send.</summary>
+    public string? AddressLine1 { get; set; }
     public string? AddressLine2 { get; set; }
-    public required string PostalCode { get; set; }
-    public required string City { get; set; }
+    public string? PostalCode { get; set; }
+    public string? City { get; set; }
     public string Country { get; set; } = "SE";
     public string? CustomerNote { get; set; }
 
@@ -217,6 +233,9 @@ public class CustomOrderRequest
     public required string Description { get; set; }
     public string? PreferredColour { get; set; }
     public string? Budget { get; set; }
+
+    /// <summary>Whether the customer wants it sent or would rather pick it up from us.</summary>
+    public DeliveryMethod Delivery { get; set; } = DeliveryMethod.Shipping;
 
     /// <summary>"sv" or "en": the language the customer wrote in, so the confirmation email matches.</summary>
     public string Language { get; set; } = Languages.Swedish;

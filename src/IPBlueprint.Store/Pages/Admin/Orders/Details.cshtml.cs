@@ -3,11 +3,14 @@ using IPBlueprint.Store.Shop;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace IPBlueprint.Store.Pages.Admin.Orders;
 
-public class DetailsModel(StoreDbContext db, OrderService orders, OrderNotifications notifications) : PageModel
+public class DetailsModel(StoreDbContext db, OrderService orders, OrderNotifications notifications, IOptions<ShopOptions> shop) : PageModel
 {
+    public string Town => shop.Value.Town;
+
     public Order Order { get; private set; } = null!;
 
     /// <summary>The customer's private order page, to copy into a reply if they ask.</summary>
@@ -36,7 +39,8 @@ public class DetailsModel(StoreDbContext db, OrderService orders, OrderNotificat
         var result = await orders.ChangeStatusAsync(id, new StatusChangeRequest(to, trackingNumber, emailCustomer, restock), ct);
         if (result == StatusChangeResult.NotFound) return NotFound();
 
-        var label = OrderStatusFlow.AdminLabel(to).ToLowerInvariant();
+        var delivery = await db.Orders.Where(o => o.Id == id).Select(o => o.Delivery).FirstOrDefaultAsync(ct);
+        var label = OrderStatusFlow.AdminLabel(to, delivery).ToLowerInvariant();
         TempData["Flash"] = result == StatusChangeResult.Changed
             ? $"Marked as {label}." + (emailCustomer && OrderStatusFlow.EmailsCustomer(to) ? " The customer has been emailed." : "")
             : "That change isn't possible from the order's current status. Someone may have just changed it; here is how it looks now.";

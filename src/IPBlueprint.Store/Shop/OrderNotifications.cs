@@ -31,13 +31,21 @@ public sealed class OrderNotifications(
               ". Printa fler eller kontakta kunden.</p>"
             : "";
 
+        var town = Html.Encode(Shop.Town);
+        var nextStep = order.IsPickup
+            ? (en
+                ? $"we'll print and pack your items as soon as we can. When they're ready for pickup in {town}, we'll get in touch to agree on a time."
+                : $"vi printar och packar dina varor så snart vi kan. När de är redo att hämtas i {town} hör vi av oss och bestämmer en tid.")
+            : (en
+                ? "we'll print and pack your items as soon as we can. We'll email you again when the parcel is on its way."
+                : "vi printar och packar dina varor så snart vi kan. Vi mejlar dig igen när paketet är på väg.");
+
         await TrySendAsync(order.Email,
             en ? $"Thank you for your order {order.Reference}" : $"Tack för din beställning {order.Reference}",
             en
                 ? $"""
                   <p>Hi {Html.Encode(order.CustomerName)},</p>
-                  <p>Thank you for your order! Your payment has come through, and we'll print and pack your items as soon as we can.
-                  We'll email you again when the parcel is on its way.</p>
+                  <p>Thank you for your order! Your payment has come through, and {nextStep}</p>
                   {OrderSummaryHtml(order, en)}
                   {StatusLinkHtml(order, en)}
                   <p>Questions? Just reply to this email.</p>
@@ -46,8 +54,7 @@ public sealed class OrderNotifications(
                   """
                 : $"""
                   <p>Hej {Html.Encode(order.CustomerName)}!</p>
-                  <p>Tack för din beställning! Betalningen har gått igenom, och vi printar och packar dina varor så snart vi kan.
-                  Vi mejlar dig igen när paketet är på väg.</p>
+                  <p>Tack för din beställning! Betalningen har gått igenom, och {nextStep}</p>
                   {OrderSummaryHtml(order, en)}
                   {StatusLinkHtml(order, en)}
                   <p>Har du frågor? Svara bara på det här mejlet.</p>
@@ -58,12 +65,12 @@ public sealed class OrderNotifications(
 
         foreach (var owner in Shop.NotificationRecipients)
         {
-            await TrySendAsync(owner, $"Ny betald beställning {order.Reference} ({Money.Format(order.Total)})",
+            await TrySendAsync(owner, $"Ny betald beställning {order.Reference} ({Money.Format(order.Total)}){(order.IsPickup ? ", hämtas" : "")}",
                 $"""
                 <p>Ny betald beställning från {Html.Encode(order.CustomerName)} ({Html.Encode(order.Email)}).{(en ? " Kunden handlade på engelska." : "")}</p>
                 {shortageHtml}
                 {OrderSummaryHtml(order, english: false)}
-                {AddressHtml(order)}
+                {(order.IsPickup ? PickupHtml(order) : AddressHtml(order))}
                 {(string.IsNullOrWhiteSpace(order.CustomerNote) ? "" : $"<p><strong>Meddelande från kunden:</strong> {Html.Encode(order.CustomerNote)}</p>")}
                 """, replyTo: order.Email, ct);
         }
@@ -109,13 +116,28 @@ public sealed class OrderNotifications(
         var hi = en ? $"<p>Hi {Html.Encode(order.CustomerName)},</p>" : $"<p>Hej {Html.Encode(order.CustomerName)}!</p>";
         var reference = Html.Encode(order.Reference);
 
+        var town = Html.Encode(Shop.Town);
         (string Subject, string Text)? content = order.Status switch
         {
             OrderStatus.InProduction => en
                 ? ($"We're printing your order {order.Reference}",
-                    $"<p>We've started printing your order {reference}. Some prints take a while, so we'll email you again when the parcel is on its way.</p>")
+                    order.IsPickup
+                        ? $"<p>We've started printing your order {reference}. Some prints take a while, so we'll email you again when it's ready to pick up in {town}.</p>"
+                        : $"<p>We've started printing your order {reference}. Some prints take a while, so we'll email you again when the parcel is on its way.</p>")
                 : ($"Nu printar vi din beställning {order.Reference}",
-                    $"<p>Vi har börjat printa din beställning {reference}. En del utskrifter tar ett tag, så vi mejlar dig igen när paketet är på väg.</p>"),
+                    order.IsPickup
+                        ? $"<p>Vi har börjat printa din beställning {reference}. En del utskrifter tar ett tag, så vi mejlar dig igen när den är redo att hämtas i {town}.</p>"
+                        : $"<p>Vi har börjat printa din beställning {reference}. En del utskrifter tar ett tag, så vi mejlar dig igen när paketet är på väg.</p>"),
+            OrderStatus.ReadyForPickup => en
+                ? ($"Your order {order.Reference} is ready to pick up",
+                    $"<p>Your order {reference} is ready to pick up in {town}. Reply to this email and tell us which days and times suit you, and we'll send you the address. If you'd rather we texted you, put your phone number in the reply.</p>")
+                : ($"Din beställning {order.Reference} är redo att hämtas",
+                    $"<p>Din beställning {reference} är redo att hämtas i {town}. Svara på det här mejlet och berätta vilka dagar och tider som passar dig, så skickar vi adressen. Vill du hellre att vi sms:ar, skriv ditt telefonnummer i svaret.</p>"),
+            OrderStatus.Delivered when order.IsPickup => en
+                ? ($"Thanks for picking up your order {order.Reference}",
+                    $"<p>Thanks for picking up your order {reference}. We hope you like it! If something isn't right, reply to this email and we'll sort it out.</p>")
+                : ($"Tack för att du hämtade din beställning {order.Reference}",
+                    $"<p>Tack för att du hämtade din beställning {reference}. Vi hoppas att du gillar den! Om något inte stämmer, svara på det här mejlet så löser vi det.</p>"),
             OrderStatus.Delivered => en
                 ? ($"Your order {order.Reference} has been delivered",
                     $"<p>Your order {reference} should now be with you. We hope you like it! If something isn't right, reply to this email and we'll sort it out.</p>")
@@ -218,7 +240,8 @@ public sealed class OrderNotifications(
                 <p><strong>{Html.Encode(request.Name)}</strong> ({Html.Encode(request.Email)}) har skickat en förfrågan om specialbeställning{(en ? " (på engelska, så svara gärna på engelska)" : "")}:</p>
                 <blockquote>{description}</blockquote>
                 <p>Färg: {Html.Encode(request.PreferredColour ?? "-")}<br>Budget: {Html.Encode(request.Budget ?? "-")}<br>
-                Bifogad fil: {Html.Encode(request.AttachmentOriginalName ?? "ingen")}</p>
+                Bifogad fil: {Html.Encode(request.AttachmentOriginalName ?? "ingen")}<br>
+                Leverans: {(request.Delivery == DeliveryMethod.Pickup ? "Vill hämta i " + Html.Encode(Shop.Town) : "Skickas")}</p>
                 <p>Öppna adminsidan för att se förfrågan och ladda ner eventuell fil.</p>
                 """, replyTo: request.Email, ct);
         }
@@ -237,28 +260,45 @@ public sealed class OrderNotifications(
 
     private static bool IsEnglish(string? language) => Languages.Normalize(language) == Languages.English;
 
-    private static string OrderSummaryHtml(Order order, bool english)
+    private string OrderSummaryHtml(Order order, bool english)
     {
         var sb = new StringBuilder("<table cellpadding=\"4\" style=\"border-collapse:collapse\">");
         foreach (var line in order.Lines)
         {
             sb.Append($"<tr><td>{line.Quantity} × {Html.Encode(line.ProductName)}</td><td align=\"right\">{Money.Format(line.LineTotal)}</td></tr>");
         }
-        var shipping = order.ShippingCost == 0 ? (english ? "Free" : "Fri frakt") : Money.Format(order.ShippingCost);
-        sb.Append($"<tr><td>{(english ? "Shipping" : "Frakt")}</td><td align=\"right\">{shipping}</td></tr>");
+        if (order.IsPickup)
+        {
+            sb.Append($"<tr><td>{(english ? "Pickup in " : "Upphämtning i ")}{Html.Encode(Shop.Town)}</td><td align=\"right\">{(english ? "Free" : "Gratis")}</td></tr>");
+        }
+        else
+        {
+            var shipping = order.ShippingCost == 0 ? (english ? "Free" : "Fri frakt") : Money.Format(order.ShippingCost);
+            sb.Append($"<tr><td>{(english ? "Shipping" : "Frakt")}</td><td align=\"right\">{shipping}</td></tr>");
+        }
         sb.Append($"<tr><td><strong>{(english ? "Total (incl. VAT)" : "Totalt (inkl. moms)")}</strong></td><td align=\"right\"><strong>{Money.Format(order.Total)}</strong></td></tr>");
         sb.Append("</table>");
         sb.Append($"<p>{(english ? "Order number" : "Ordernummer")}: <strong>{Html.Encode(order.Reference)}</strong></p>");
         return sb.ToString();
     }
 
+    /// <summary>For the owners: a pickup order has no address, just who to contact about a time.</summary>
+    private string PickupHtml(Order o) =>
+        $"""
+        <p><strong>Hämtas i {Html.Encode(Shop.Town)}</strong> (gratis). Kunden har fått veta att vi hör av oss.
+        Markera ordern som "Ready for pickup" i admin när den är klar, så får kunden ett mejl och kan svara med vilka tider som passar.</p>
+        <p>{Html.Encode(o.CustomerName)}<br>
+        E-post: {Html.Encode(o.Email)}<br>
+        {(string.IsNullOrWhiteSpace(o.Phone) ? "Inget telefonnummer angivet." : "Telefon: " + Html.Encode(o.Phone))}</p>
+        """;
+
     private static string AddressHtml(Order o) =>
         $"""
         <p><strong>Leveransadress:</strong><br>
         {Html.Encode(o.CustomerName)}<br>
-        {Html.Encode(o.AddressLine1)}<br>
+        {Html.Encode(o.AddressLine1 ?? "")}<br>
         {(string.IsNullOrWhiteSpace(o.AddressLine2) ? "" : Html.Encode(o.AddressLine2) + "<br>")}
-        {Html.Encode(o.PostalCode)} {Html.Encode(o.City)}<br>
+        {Html.Encode(o.PostalCode ?? "")} {Html.Encode(o.City ?? "")}<br>
         {(string.IsNullOrWhiteSpace(o.Phone) ? "" : "Telefon: " + Html.Encode(o.Phone))}</p>
         """;
 

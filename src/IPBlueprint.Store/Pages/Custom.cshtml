@@ -1,8 +1,10 @@
 @page
 @model CustomModel
+@inject IOptions<ShopOptions> Shop
 @{
+    var shop = Shop.Value;
     ViewData["Title"] = L["Custom orders"].Value;
-    ViewData["Description"] = L["Get something 3D printed just for you. Send us an idea, a sketch or a model file."].Value;
+    ViewData["Description"] = L["Get something 3D printed just for you in {0}. Send us an idea, a sketch or a model file. Free pickup in {0}.", shop.Town].Value;
 }
 
 <div class="layout-two">
@@ -40,6 +42,14 @@
                     <input asp-for="Input.Budget" />
                 </div>
             </div>
+            @if (shop.OffersPickup)
+            {
+                <fieldset class="field radio-group">
+                    <legend>@L["How do you want to get it?"]</legend>
+                    <label class="check"><input type="radio" name="Input.Delivery" value="@DeliveryMethod.Shipping" checked="@(Model.Input.Delivery != DeliveryMethod.Pickup)" /> <span>@L["Send it to me"]</span></label>
+                    <label class="check"><input type="radio" name="Input.Delivery" value="@DeliveryMethod.Pickup" checked="@(Model.Input.Delivery == DeliveryMethod.Pickup)" /> <span>@L["I'll pick it up in {0} (free)", shop.Town]</span></label>
+                </fieldset>
+            }
             <div class="field">
                 <label asp-for="Attachment">@L["File (optional)"]</label>
                 <input asp-for="Attachment" type="file" accept="@FileStore.AttachmentAcceptList" />
@@ -61,6 +71,10 @@
             <li>@L["We print in PLA, PETG and ABS in many colours."]</li>
             <li>@L["Maximum single-piece size is about 25 × 25 × 25 cm. We can print bigger things in parts."]</li>
             <li>@L["Custom items are made to order, so they can't be returned unless they are faulty."]</li>
+            @if (shop.OffersPickup)
+            {
+                <li>@L["Live near {0}? Pick it up from us for free.", shop.Town]</li>
+            }
         </ul>
     </aside>
 </div>
