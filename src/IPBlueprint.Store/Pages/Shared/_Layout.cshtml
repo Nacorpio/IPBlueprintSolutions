@@ -15,6 +15,10 @@
     var title = ViewData["FullTitle"] as string ?? (ViewData["Title"] is string t ? $"{t} · {shop.Name}" : shop.Name);
     var description = ViewData["Description"] as string;
     var shareImage = new Uri(baseUrl, (ViewData["Image"] as string ?? Seo.DefaultShareImage).TrimStart('/')).AbsoluteUri;
+
+    // Marks the main-nav link for the section the visitor is in (styled as an underline).
+    string? Current(params string[] prefixes) =>
+        prefixes.Any(p => p == "/" ? path == "/" : path.StartsWith(p, StringComparison.OrdinalIgnoreCase)) ? "page" : null;
 }
 <!DOCTYPE html>
 <html lang="@Languages.Current">
@@ -88,11 +92,11 @@
                 <img class="logo-light" src="~/img/logo-light.png" asp-append-version="true" alt="@shop.Name" width="697" height="274" />
             </a>
             <nav class="main-nav" aria-label="@L["Main"]">
-                <a asp-page="/Index">@L["Shop"]</a>
-                <a asp-page="/Gallery">@L["Gallery"]</a>
-                <a asp-page="/Custom">@L["Custom orders"]</a>
-                <a asp-page="/Info/About">@L["About"]</a>
-                <a asp-page="/Cart" class="cart-link">@L["Cart"]@(cartCount > 0 ? $" ({cartCount})" : "")</a>
+                <a asp-page="/Index" aria-current="@Current("/", "/categories", "/products")">@L["Shop"]</a>
+                <a asp-page="/Gallery" aria-current="@Current("/gallery")">@L["Gallery"]</a>
+                <a asp-page="/Custom" aria-current="@Current("/custom")">@L["Custom orders"]</a>
+                <a asp-page="/Info/About" aria-current="@Current("/info/about")">@L["About"]</a>
+                <a asp-page="/Cart" class="cart-link" aria-current="@Current("/cart", "/checkout")">@L["Cart"]@(cartCount > 0 ? $" ({cartCount})" : "")</a>
                 @if (Languages.IsEnglish)
                 {
                     <a class="lang-switch" href="@Seo.WithLanguage(Context.Request, Languages.Swedish)" lang="sv" hreflang="sv" title="Visa sidan på svenska">Svenska</a>
