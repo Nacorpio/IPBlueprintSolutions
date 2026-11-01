@@ -1,6 +1,6 @@
 @page
 @inject IOptions<ShopOptions> Shop
-@{ ViewData["Title"] = L["Returns & right of withdrawal"].Value; var s = Shop.Value; }
+@{ ViewData["Title"] = L["Returns & right of withdrawal"].Value; ViewData["Description"] = L["How to return an item and use your 14-day right of withdrawal."].Value; var s = Shop.Value; }
 <div class="prose">
     <partial name="_DraftNotice" />
     @if (Languages.IsEnglish)

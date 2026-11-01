@@ -31,6 +31,7 @@ public sealed class OrderNotifications(IEmailSender email, IOptions<ShopOptions>
                   We'll email you again when the parcel is on its way.</p>
                   {OrderSummaryHtml(order, en)}
                   <p>Questions? Just reply to this email.</p>
+                  {FollowUsHtml(en)}
                   <p>{Html.Encode(Shop.Name)}</p>
                   """
                 : $"""
@@ -39,6 +40,7 @@ public sealed class OrderNotifications(IEmailSender email, IOptions<ShopOptions>
                   Vi mejlar dig igen när paketet är på väg.</p>
                   {OrderSummaryHtml(order, en)}
                   <p>Har du frågor? Svara bara på det här mejlet.</p>
+                  {FollowUsHtml(en)}
                   <p>{Html.Encode(Shop.Name)}</p>
                   """,
             replyTo: Shop.ContactEmail, ct);
@@ -70,6 +72,7 @@ public sealed class OrderNotifications(IEmailSender email, IOptions<ShopOptions>
                   <p>Your order {Html.Encode(order.Reference)} has been shipped.</p>
                   {tracking}
                   <p>If something is wrong when it arrives, reply to this email and we'll sort it out.</p>
+                  {FollowUsHtml(en)}
                   <p>{Html.Encode(Shop.Name)}</p>
                   """
                 : $"""
@@ -77,6 +80,7 @@ public sealed class OrderNotifications(IEmailSender email, IOptions<ShopOptions>
                   <p>Din beställning {Html.Encode(order.Reference)} har skickats.</p>
                   {tracking}
                   <p>Om något inte stämmer när paketet kommer fram, svara på det här mejlet så löser vi det.</p>
+                  {FollowUsHtml(en)}
                   <p>{Html.Encode(Shop.Name)}</p>
                   """,
             replyTo: Shop.ContactEmail, ct);
@@ -117,6 +121,17 @@ public sealed class OrderNotifications(IEmailSender email, IOptions<ShopOptions>
                 <p>Öppna adminsidan för att se förfrågan och ladda ner eventuell fil.</p>
                 """, replyTo: request.Email, ct);
         }
+    }
+
+    /// <summary>"Follow us on Instagram and Facebook", or nothing when no accounts are set.</summary>
+    private string FollowUsHtml(bool english)
+    {
+        var links = Shop.SocialLinks.Select(s => $"<a href=\"{Html.Encode(s.Url)}\">{s.Name}</a>").ToList();
+        if (links.Count == 0) return "";
+        var joined = links.Count == 1 ? links[0] : string.Join(", ", links[..^1]) + (english ? " and " : " och ") + links[^1];
+        return english
+            ? $"<p>Follow us on {joined} to see what we're printing next.</p>"
+            : $"<p>Följ oss på {joined} för att se vad vi printar härnäst.</p>";
     }
 
     private static bool IsEnglish(string? language) => Languages.Normalize(language) == Languages.English;

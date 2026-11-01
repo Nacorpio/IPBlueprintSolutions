@@ -1,0 +1,15 @@
+@inject IOptions<AnalyticsOptions> AnalyticsOptions
+@* Cookie-free visitor statistics, only when configured. See Shop/AnalyticsOptions.cs. *@
+@{
+    var analytics = AnalyticsOptions.Value;
+    var script = analytics.Script;
+}
+@if (script is not null && analytics.IsPlausible)
+{
+    <script async src="@script"></script>
+    <script>window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};plausible.init()</script>
+}
+else if (script is not null && analytics.IsUmami)
+{
+    <script defer src="@script" data-website-id="@analytics.WebsiteId.Trim()"></script>
+}

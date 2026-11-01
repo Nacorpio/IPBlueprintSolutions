@@ -97,11 +97,11 @@ public sealed class FakeSumUp : ISumUpClient
 
 public sealed class CapturingEmailSender : IEmailSender
 {
-    public ConcurrentQueue<(string To, string Subject)> Sent { get; } = new();
+    public ConcurrentQueue<(string To, string Subject, string Body)> Sent { get; } = new();
 
     public Task SendAsync(string to, string subject, string htmlBody, string? replyTo = null, CancellationToken ct = default)
     {
-        Sent.Enqueue((to, subject));
+        Sent.Enqueue((to, subject, htmlBody));
         return Task.CompletedTask;
     }
 }

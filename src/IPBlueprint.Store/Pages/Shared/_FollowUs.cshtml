@@ -1,0 +1,18 @@
+@inject IOptions<ShopOptions> ShopOptions
+@inject System.Text.Encodings.Web.HtmlEncoder Encoder
+@* "See more of what we print on Instagram and Facebook", for the gallery and About pages. Nothing when no accounts are set. *@
+@{
+    var links = ShopOptions.Value.SocialLinks
+        .Select(s => $"<a href=\"{Encoder.Encode(s.Url)}\" rel=\"me noopener\" target=\"_blank\">{Encoder.Encode(s.Name)}</a>")
+        .ToList();
+    var joined = links.Count switch
+    {
+        0 => null,
+        1 => links[0],
+        _ => string.Join(", ", links[..^1]) + $" {Encoder.Encode(L["and"].Value)} " + links[^1],
+    };
+}
+@if (joined is not null)
+{
+    <p class="follow-us">@L["See more of what we print on"] @Html.Raw(joined).</p>
+}

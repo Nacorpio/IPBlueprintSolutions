@@ -45,10 +45,12 @@ All settings are in `appsettings.json`. Secrets belong in user-secrets locally a
 
 | Setting | What it is |
 | --- | --- |
-| `Shop:PublicBaseUrl` | The public address, e.g. `https://www.example.se`. Used for the URLs sent to SumUp. |
+| `Shop:PublicBaseUrl` | The public address, e.g. `https://www.example.se`. Used for the URLs sent to SumUp, and for the canonical links, sitemap and link previews, so **set it before going live**. |
 | `Shop:ContactEmail` | Shown to customers and used as reply-to. |
 | `Shop:NotificationEmails` | Where new orders and requests are emailed (comma-separated). |
 | `Shop:ShippingFlatRate`, `Shop:FreeShippingFrom` | Shipping cost in kr, and the order value from which shipping is free (0 = never free). |
+| `Shop:InstagramUrl`, `Shop:FacebookUrl` | The shop's social media pages, shown as footer icons, a line on the gallery and About pages, and in the order confirmation email. Leave one empty to hide it. |
+| `Analytics:*` | Optional cookie-free visitor statistics. Off when empty. See [Getting found](#getting-found). |
 | `SumUp:ApiKey`, `SumUp:MerchantCode` | From the SumUp dashboard (Developers → API keys). **Secret.** |
 | `Smtp:*` | Outgoing mail server. Your web host usually provides one. |
 | `Admin:Password` | Admin password, at least 12 characters. **Secret.** |
@@ -61,6 +63,21 @@ All settings are in `appsettings.json`. Secrets belong in user-secrets locally a
 2. Make sure the server is reachable over HTTPS so SumUp can call the webhook.
 3. Finish the legal pages in `Pages/Info/`: company details, delivery times, and who pays return postage.
 4. Set up SMTP and send yourself a test order.
+5. Set `Shop:PublicBaseUrl`, then add the site to Google Search Console and Bing Webmaster Tools and submit `https://<your domain>/sitemap.xml`.
+
+## Getting found
+
+- Every page has a title, a description, a canonical link and link-preview tags (Open Graph), so shared links show the page's name, text and photo (products) or the logo (`wwwroot/img/share.png`).
+- Each page has a Swedish address (`/gallery`) and an English one (`/gallery?lang=en`), linked with `hreflang` so Google shows the right one. The language switch links to these addresses too, and the choice is still remembered in the cookie.
+- `/sitemap.xml` lists every public page and active product in both languages. `/robots.txt` points to it and keeps crawlers out of the admin pages. Cart, checkout, order and error pages say `noindex`.
+- Product pages include structured data (schema.org `Product` with the price in SEK and the shipping cost), and the front page describes the store and links its social accounts.
+
+### Visitor statistics
+
+Statistics are off until configured. Both supported services count visits without cookies or personal data, so no cookie banner is needed, and the privacy policy gets a short paragraph about it automatically when it's turned on. They're never loaded on the admin or order pages.
+
+- **Umami Cloud** (umami.is): create a site, then set `Analytics:Provider` to `Umami` and `Analytics:WebsiteId` to its id. If you host Umami yourself, also set `Analytics:ScriptUrl` to your server's `script.js`.
+- **Plausible** (plausible.io, paid, EU-hosted): add the site, then set `Analytics:Provider` to `Plausible` and `Analytics:ScriptUrl` to the script address on the site's installation page (`https://plausible.io/js/pa-….js`).
 
 ## Hosting
 

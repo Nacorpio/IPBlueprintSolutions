@@ -1,8 +1,12 @@
 @page
 @model IndexModel
+@inject IOptions<ShopOptions> Shop
 @{
+    var description = L["3D printed items made by two friends in Sweden. We also print custom orders."].Value;
     ViewData["Title"] = L["Shop"].Value;
-    ViewData["Description"] = L["3D printed items made by two friends in Sweden. We also print custom orders."].Value;
+    ViewData["FullTitle"] = $"{Shop.Value.Name} · {L["3D prints made in Sweden"].Value}";
+    ViewData["Description"] = description;
+    ViewData["JsonLd"] = Seo.StoreJsonLd(SiteUrls.BaseUrl(Request, Shop.Value), Shop.Value, description);
 }
 
 <section class="hero">

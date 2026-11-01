@@ -1,9 +1,18 @@
 @page "/products/{slug}"
 @model ProductModel
+@inject IOptions<ShopOptions> Shop
 @{
     var description = Model.Product.DisplayDescription;
+    var baseUrl = SiteUrls.BaseUrl(Request, Shop.Value);
     ViewData["Title"] = Model.Product.DisplayName;
-    ViewData["Description"] = description.Length > 155 ? description[..155] : description;
+    ViewData["Description"] = string.IsNullOrWhiteSpace(description)
+        ? L["{0}, 3D printed by us in Sweden.", Model.Product.DisplayName].Value
+        : Seo.Describe(description);
+    ViewData["Image"] = Seo.ProductImagePath(Model.Product);
+    ViewData["OgType"] = "product";
+    ViewData["PriceSek"] = Model.Product.Price;
+    ViewData["JsonLd"] = Seo.ProductJsonLd(Model.Product, baseUrl,
+        Seo.PageUrl(baseUrl, Seo.CanonicalPath(Request), Languages.Current), Shop.Value);
 }
 
 <p class="small"><a asp-page="/Index">@L["← Back to the shop"]</a></p>
