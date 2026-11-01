@@ -21,6 +21,20 @@ public class ShopOptions
 
     public decimal ShippingFlatRate { get; set; } = 69m;
 
+    /// <summary>The town we're in. Shown in the footer and on the About page, and given to search engines so people
+    /// nearby can find the shop.</summary>
+    public string Town { get; set; } = "Smedjebacken";
+
+    /// <summary>The region (län/landskap) the town is in, for search engines.</summary>
+    public string Region { get; set; } = "Dalarna";
+
+    /// <summary>Lets customers pick their order up from us in <see cref="Town"/> for free instead of having it sent.
+    /// The address is never shown on the site; we agree on a time and place by email or text.</summary>
+    public bool PickupEnabled { get; set; } = true;
+
+    /// <summary>True when customers can choose pickup: it's switched on and we've said where.</summary>
+    public bool OffersPickup => PickupEnabled && !string.IsNullOrWhiteSpace(Town);
+
     /// <summary>Orders at or above this subtotal ship for free. Set to 0 to disable free shipping.</summary>
     public decimal FreeShippingFrom { get; set; } = 600m;
 

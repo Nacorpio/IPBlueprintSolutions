@@ -8,14 +8,15 @@ using Microsoft.Extensions.Options;
 
 namespace IPBlueprint.Store.Shop;
 
+/// <summary>Who ordered and where it goes. The address is ignored (and may be empty) for pickup orders.</summary>
 public sealed record CustomerDetails(
     string Name,
     string Email,
     string? Phone,
-    string AddressLine1,
+    string? AddressLine1,
     string? AddressLine2,
-    string PostalCode,
-    string City,
+    string? PostalCode,
+    string? City,
     string? Note);
 
 /// <summary>An order took more than was in stock (two people bought the last one at the same time). The owners are told.</summary>
@@ -26,29 +27,37 @@ public static class OrderStatusFlow
 {
     /// <summary>Statuses where the customer has paid and nothing has been refunded.</summary>
     public static readonly OrderStatus[] PaidStatuses =
-        [OrderStatus.Paid, OrderStatus.InProduction, OrderStatus.Shipped, OrderStatus.Delivered];
+        [OrderStatus.Paid, OrderStatus.InProduction, OrderStatus.Shipped, OrderStatus.ReadyForPickup, OrderStatus.Delivered];
 
     /// <summary>Paid but not yet sent: what the shop still has to make or pack.</summary>
     public static readonly OrderStatus[] ToDo = [OrderStatus.Paid, OrderStatus.InProduction];
 
-    public static IReadOnlyList<OrderStatus> NextSteps(OrderStatus from) => from switch
+    /// <summary>Pickup orders go Paid, InProduction, ReadyForPickup, Delivered (picked up); shipped orders go through
+    /// Shipped instead. Each can skip production.</summary>
+    public static IReadOnlyList<OrderStatus> NextSteps(OrderStatus from, DeliveryMethod delivery)
     {
-        OrderStatus.Paid => [OrderStatus.InProduction, OrderStatus.Shipped, OrderStatus.Refunded],
-        OrderStatus.InProduction => [OrderStatus.Shipped, OrderStatus.Refunded],
-        OrderStatus.Shipped => [OrderStatus.Delivered, OrderStatus.Refunded],
-        OrderStatus.Delivered => [OrderStatus.Refunded],
-        OrderStatus.AwaitingPayment or OrderStatus.PaymentFailed => [OrderStatus.Cancelled],
-        _ => [],
-    };
+        var handOver = delivery == DeliveryMethod.Pickup ? OrderStatus.ReadyForPickup : OrderStatus.Shipped;
+        return from switch
+        {
+            OrderStatus.Paid => [OrderStatus.InProduction, handOver, OrderStatus.Refunded],
+            OrderStatus.InProduction => [handOver, OrderStatus.Refunded],
+            OrderStatus.Shipped or OrderStatus.ReadyForPickup => [OrderStatus.Delivered, OrderStatus.Refunded],
+            OrderStatus.Delivered => [OrderStatus.Refunded],
+            OrderStatus.AwaitingPayment or OrderStatus.PaymentFailed => [OrderStatus.Cancelled],
+            _ => [],
+        };
+    }
 
-    public static bool CanChange(OrderStatus from, OrderStatus to) => NextSteps(from).Contains(to);
+    public static bool CanChange(OrderStatus from, OrderStatus to, DeliveryMethod delivery) => NextSteps(from, delivery).Contains(to);
 
-    /// <summary>The status as the admin pages show it (they're in English).</summary>
-    public static string AdminLabel(OrderStatus status) => status switch
+    /// <summary>The status as the admin pages show it (they're in English). Delivered reads "Picked up" for pickup orders.</summary>
+    public static string AdminLabel(OrderStatus status, DeliveryMethod delivery = DeliveryMethod.Shipping) => status switch
     {
         OrderStatus.AwaitingPayment => "Awaiting payment",
         OrderStatus.PaymentFailed => "Payment failed",
         OrderStatus.InProduction => "In production",
+        OrderStatus.ReadyForPickup => "Ready for pickup",
+        OrderStatus.Delivered when delivery == DeliveryMethod.Pickup => "Picked up",
         _ => status.ToString(),
     };
 
@@ -93,16 +102,19 @@ public sealed class OrderService(
     {
         if (cart.IsEmpty) throw new InvalidOperationException("The cart is empty.");
 
+        var pickup = cart.Delivery == DeliveryMethod.Pickup;
         var order = new Order
         {
             Reference = NewReference(clock.GetUtcNow()),
             CustomerName = customer.Name.Trim(),
             Email = customer.Email.Trim(),
             Phone = customer.Phone?.Trim(),
-            AddressLine1 = customer.AddressLine1.Trim(),
-            AddressLine2 = customer.AddressLine2?.Trim(),
-            PostalCode = customer.PostalCode.Trim(),
-            City = customer.City.Trim(),
+            Delivery = cart.Delivery,
+            // Nothing to send, so don't keep an address we don't need.
+            AddressLine1 = pickup ? null : customer.AddressLine1?.Trim(),
+            AddressLine2 = pickup ? null : customer.AddressLine2?.Trim(),
+            PostalCode = pickup ? null : customer.PostalCode?.Trim(),
+            City = pickup ? null : customer.City?.Trim(),
             CustomerNote = customer.Note?.Trim(),
             Language = Languages.Current,
             Subtotal = cart.Subtotal,
@@ -250,7 +262,7 @@ public sealed class OrderService(
         if (order is null) return StatusChangeResult.NotFound;
 
         var from = order.Status;
-        if (!OrderStatusFlow.CanChange(from, request.To)) return StatusChangeResult.NotAllowed;
+        if (!OrderStatusFlow.CanChange(from, request.To, order.Delivery)) return StatusChangeResult.NotAllowed;
 
         var now = clock.GetUtcNow().UtcDateTime;
         var tracking = string.IsNullOrWhiteSpace(request.TrackingNumber) ? null : request.TrackingNumber.Trim();

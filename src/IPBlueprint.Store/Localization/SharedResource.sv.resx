@@ -22,9 +22,7 @@
   <data name="Prices include 25% VAT. Card payments are handled by SumUp." xml:space="preserve"><value>Alla priser är inklusive 25 % moms. Kortbetalningar hanteras av SumUp.</value></data>
   <data name="Draft." xml:space="preserve"><value>Utkast.</value></data>
   <data name="This page is a starting point and must be checked and completed before the shop goes live." xml:space="preserve"><value>Den här sidan är en utgångspunkt och måste ses över och kompletteras innan butiken öppnar.</value></data>
-  <data name="3D printed items made by two friends in Sweden. We also print custom orders." xml:space="preserve"><value>3D-printade saker från två vänner i Sverige. Vi tar även emot specialbeställningar.</value></data>
   <data name="3D prints from our own printers" xml:space="preserve"><value>3D-utskrifter från våra egna skrivare</value></data>
-  <data name="We print everything in the shop ourselves, here in Sweden. If you want something that isn't listed, we take custom orders too." xml:space="preserve"><value>Allt i butiken printar vi själva, här i Sverige. Hittar du inte det du söker tar vi även emot specialbeställningar.</value></data>
   <data name="There's nothing in the shop yet. We're adding products soon." xml:space="preserve"><value>Butiken är tom än så länge. Vi lägger snart upp produkter.</value></data>
   <data name="Looking for something else?" xml:space="preserve"><value>Letar du efter något annat?</value></data>
   <data name="Send us an idea, a sketch or a 3D model and we'll give you a price." xml:space="preserve"><value>Skicka en idé, en skiss eller en 3D-modell så ger vi dig ett pris.</value></data>
@@ -50,8 +48,6 @@
   <data name="Total" xml:space="preserve"><value>Totalt</value></data>
   <data name="Including VAT of {0}." xml:space="preserve"><value>Varav moms {0}.</value></data>
   <data name="Checkout" xml:space="preserve"><value>Kassa</value></data>
-  <data name="Delivery details" xml:space="preserve"><value>Leveransuppgifter</value></data>
-  <data name="Optional. Helps the courier reach you." xml:space="preserve"><value>Frivilligt. Gör det lättare för budet att nå dig.</value></data>
   <data name="We currently ship within Sweden only." xml:space="preserve"><value>Just nu skickar vi bara inom Sverige.</value></data>
   <data name="I have read and accept" xml:space="preserve"><value>Jag har läst och godkänner</value></data>
   <data name="the terms of purchase" xml:space="preserve"><value>köpvillkoren</value></data>
@@ -88,7 +84,6 @@
   <data name="Please accept the terms to continue." xml:space="preserve"><value>Du behöver godkänna villkoren för att gå vidare.</value></data>
   <data name="Please tell us what you'd like us to print." xml:space="preserve"><value>Berätta vad du vill att vi ska printa.</value></data>
   <data name="Please write between {2} and {1} characters." xml:space="preserve"><value>Skriv mellan {2} och {1} tecken.</value></data>
-  <data name="Get something 3D printed just for you. Send us an idea, a sketch or a model file." xml:space="preserve"><value>Få något 3D-printat bara för dig. Skicka en idé, en skiss eller en modellfil.</value></data>
   <data name="Want something that isn't in the shop? Describe what you have in mind. A few sentences are enough. A sketch, a photo or a 3D model file (STL, 3MF, OBJ, STEP) makes it easier for us to quote." xml:space="preserve"><value>Vill du ha något som inte finns i butiken? Beskriv vad du har i tankarna, några meningar räcker. En skiss, ett foto eller en 3D-modell (STL, 3MF, OBJ, STEP) gör det lättare för oss att sätta ett pris.</value></data>
   <data name="We'll reply by email with a price and an estimated delivery time, usually within a few days. If you want to go ahead, we'll send you a payment link from SumUp." xml:space="preserve"><value>Vi svarar via e-post med ett pris och en ungefärlig leveranstid, oftast inom några dagar. Vill du gå vidare skickar vi en betallänk från SumUp.</value></data>
   <data name="Your name" xml:space="preserve"><value>Ditt namn</value></data>
@@ -141,9 +136,6 @@
   <data name="Previous photo" xml:space="preserve"><value>Föregående bild</value></data>
   <data name="Next photo" xml:space="preserve"><value>Nästa bild</value></data>
   <data name="Want something like this?" xml:space="preserve"><value>Vill du ha något liknande?</value></data>
-  <data name="3D prints made in Sweden" xml:space="preserve"><value>3D-utskrifter från Sverige</value></data>
-  <data name="{0}, 3D printed by us in Sweden." xml:space="preserve"><value>{0}, 3D-printad av oss i Sverige.</value></data>
-  <data name="Who we are: two friends in Sweden who 3D print everything in the shop ourselves, in PLA, PETG and ABS." xml:space="preserve"><value>Vilka vi är: två vänner i Sverige som själva 3D-printar allt i butiken, i PLA, PETG och ABS.</value></data>
   <data name="The terms that apply when you buy from us: prices, payment, delivery and complaints." xml:space="preserve"><value>Villkoren som gäller när du handlar hos oss: priser, betalning, leverans och reklamationer.</value></data>
   <data name="How to return an item and use your 14-day right of withdrawal." xml:space="preserve"><value>Så returnerar du en vara och använder din ångerrätt på 14 dagar.</value></data>
   <data name="What personal data we collect, why, and the rights you have." xml:space="preserve"><value>Vilka personuppgifter vi samlar in, varför, och vilka rättigheter du har.</value></data>
@@ -193,4 +185,39 @@
   <data name="Your email" xml:space="preserve"><value>Din e-postadress</value></data>
   <data name="Your order has been delivered" xml:space="preserve"><value>Din beställning har levererats</value></data>
   <data name="Your order is on its way" xml:space="preserve"><value>Din beställning är på väg</value></data>
+  <!-- Free pickup -->
+  <data name="{0}, 3D printed by us in {1}. Free pickup in {1} or shipping within Sweden." xml:space="preserve"><value>{0}, 3D-printad av oss i {1}. Fri upphämtning i {1} eller frakt inom Sverige.</value></data>
+  <data name="3D printed in {0}, Sweden." xml:space="preserve"><value>3D-printat i {0}.</value></data>
+  <data name="3D printed items made by two friends in {0}. Free pickup in {0}, shipping across Sweden. We also print custom orders." xml:space="preserve"><value>3D-printade saker från två vänner i {0}. Fri upphämtning i {0} och frakt i hela Sverige. Vi tar även emot specialbeställningar.</value></data>
+  <data name="3D printed items made by two friends in {0}. We ship across Sweden and also print custom orders." xml:space="preserve"><value>3D-printade saker från två vänner i {0}. Vi skickar i hela Sverige och tar även emot specialbeställningar.</value></data>
+  <data name="3D printing in {0}" xml:space="preserve"><value>3D-utskrift i {0}</value></data>
+  <data name="Delivery" xml:space="preserve"><value>Leverans</value></data>
+  <data name="Delivery address" xml:space="preserve"><value>Leveransadress</value></data>
+  <data name="Free pickup in {0}" xml:space="preserve"><value>Fri upphämtning i {0}</value></data>
+  <data name="Free shipping from {0}" xml:space="preserve"><value>Fri frakt från {0}</value></data>
+  <data name="Get something 3D printed just for you in {0}. Send us an idea, a sketch or a model file. Free pickup in {0}." xml:space="preserve"><value>Få något 3D-printat bara för dig i {0}. Skicka en idé, en skiss eller en modellfil. Fri upphämtning i {0}.</value></data>
+  <data name="How do you want to get it?" xml:space="preserve"><value>Hur vill du få den?</value></data>
+  <data name="How do you want to get your order?" xml:space="preserve"><value>Hur vill du få din beställning?</value></data>
+  <data name="I'll pick it up in {0} (free)" xml:space="preserve"><value>Jag hämtar själv i {0} (gratis)</value></data>
+  <data name="Live near {0}? Pick it up from us for free." xml:space="preserve"><value>Bor du nära {0}? Hämta hos oss, helt gratis.</value></data>
+  <data name="Live near {0}? Pick up your order from us for free. Choose it at checkout." xml:space="preserve"><value>Bor du nära {0}? Hämta din beställning hos oss, helt gratis. Välj det i kassan.</value></data>
+  <data name="No address needed. When your order is ready, we'll contact you to agree on a time." xml:space="preserve"><value>Ingen adress behövs. När beställningen är klar hör vi av oss och bestämmer en tid.</value></data>
+  <data name="Optional. Lets us or the courier reach you." xml:space="preserve"><value>Frivilligt. Gör det lättare för oss eller budet att nå dig.</value></data>
+  <data name="Pick up in {0}" xml:space="preserve"><value>Hämta själv i {0}</value></data>
+  <data name="Picked up" xml:space="preserve"><value>Hämtad</value></data>
+  <data name="Pickup in {0}" xml:space="preserve"><value>Upphämtning i {0}</value></data>
+  <data name="Posted to your address in Sweden." xml:space="preserve"><value>Skickas till din adress i Sverige.</value></data>
+  <data name="Ready for pickup" xml:space="preserve"><value>Redo att hämtas</value></data>
+  <data name="Send it to me" xml:space="preserve"><value>Skicka till mig</value></data>
+  <data name="Shipping within Sweden {0}, free from {1}." xml:space="preserve"><value>Frakt inom Sverige {0}, fri frakt från {1}.</value></data>
+  <data name="Shipping within Sweden {0}." xml:space="preserve"><value>Frakt inom Sverige {0}.</value></data>
+  <data name="Some prints take a while. We'll email you when it's ready to pick up." xml:space="preserve"><value>En del utskrifter tar ett tag. Vi mejlar dig när den är redo att hämtas.</value></data>
+  <data name="Thanks for picking up your order" xml:space="preserve"><value>Tack för att du hämtade din beställning</value></data>
+  <data name="We print everything in the shop ourselves, here in {0}. If you want something that isn't listed, we take custom orders too." xml:space="preserve"><value>Allt i butiken printar vi själva, här i {0}. Hittar du inte det du söker tar vi även emot specialbeställningar.</value></data>
+  <data name="We'll agree on a time with you." xml:space="preserve"><value>Vi bestämmer en tid tillsammans.</value></data>
+  <data name="When your order is ready to pick up in {0}, we'll contact you to agree on a time." xml:space="preserve"><value>När din beställning är redo att hämtas i {0} hör vi av oss och bestämmer en tid.</value></data>
+  <data name="Who we are: two friends in {0} who 3D print everything in the shop ourselves, in PLA, PETG and ABS. Free pickup in {0}." xml:space="preserve"><value>Vilka vi är: två vänner i {0} som själva 3D-printar allt i butiken, i PLA, PETG och ABS. Fri upphämtning i {0}.</value></data>
+  <data name="You can pick it up from us in {0}. Reply to our email with the days and times that suit you, and we'll send you the address." xml:space="preserve"><value>Du kan hämta den hos oss i {0}. Svara på vårt mejl med vilka dagar och tider som passar dig, så skickar vi adressen.</value></data>
+  <data name="Your details" xml:space="preserve"><value>Dina uppgifter</value></data>
+  <data name="Your order is ready to pick up" xml:space="preserve"><value>Din beställning är redo att hämtas</value></data>
 </root>

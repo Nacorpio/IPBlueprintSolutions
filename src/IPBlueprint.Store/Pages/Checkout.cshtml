@@ -3,6 +3,9 @@
 @{
     ViewData["Title"] = L["Checkout"].Value;
     ViewData["NoIndex"] = true;
+    var shop = Model.Shop;
+    var pickup = shop.OffersPickup && Model.Input.Delivery == DeliveryMethod.Pickup;
+    var shippingCost = Model.ForDelivery(DeliveryMethod.Shipping).Shipping;
 }
 
 <h1>@L["Checkout"]</h1>
@@ -18,7 +21,30 @@
     <form method="post" class="panel">
         <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
 
-        <h2>@L["Delivery details"]</h2>
+        @if (shop.OffersPickup)
+        {
+            <fieldset class="delivery-choice">
+                <legend>@L["How do you want to get your order?"]</legend>
+                <label class="delivery-option">
+                    <input type="radio" name="Input.Delivery" value="@DeliveryMethod.Shipping" checked="@(!pickup)" />
+                    <span>
+                        <strong>@L["Send it to me"]</strong>
+                        <span class="option-price">@(shippingCost == 0 ? L["Free"].Value : Money.Format(shippingCost))</span>
+                        <span class="hint">@L["Posted to your address in Sweden."]</span>
+                    </span>
+                </label>
+                <label class="delivery-option">
+                    <input type="radio" name="Input.Delivery" value="@DeliveryMethod.Pickup" checked="@pickup" />
+                    <span>
+                        <strong>@L["Pick up in {0}", shop.Town]</strong>
+                        <span class="option-price free">@L["Free"]</span>
+                        <span class="hint">@L["No address needed. When your order is ready, we'll contact you to agree on a time."]</span>
+                    </span>
+                </label>
+            </fieldset>
+        }
+
+        <h2>@L["Your details"]</h2>
         <div class="field">
             <label asp-for="Input.Name"></label>
             <input asp-for="Input.Name" autocomplete="name" />
@@ -33,9 +59,11 @@
             <div class="field">
                 <label asp-for="Input.Phone"></label>
                 <input asp-for="Input.Phone" autocomplete="tel" />
-                <div class="hint">@L["Optional. Helps the courier reach you."]</div>
+                <div class="hint">@L["Optional. Lets us or the courier reach you."]</div>
             </div>
         </div>
+        <div id="address-fields" hidden="@pickup">
+        <h2>@L["Delivery address"]</h2>
         <div class="field">
             <label asp-for="Input.AddressLine1"></label>
             <input asp-for="Input.AddressLine1" autocomplete="address-line1" />
@@ -58,6 +86,7 @@
             </div>
         </div>
         <p class="muted small">@L["We currently ship within Sweden only."]</p>
+        </div>
         <div class="field">
             <label asp-for="Input.Note"></label>
             <textarea asp-for="Input.Note" style="min-height:80px"></textarea>
@@ -83,7 +112,35 @@
             </div>
         }
         <hr style="border:0;border-top:1px solid var(--border)" />
-        <partial name="_Totals" model="Model.Summary" />
+        @if (shop.OffersPickup)
+        {
+            <div data-totals="@DeliveryMethod.Shipping" hidden="@pickup"><partial name="_Totals" model="Model.ForDelivery(DeliveryMethod.Shipping)" /></div>
+            <div data-totals="@DeliveryMethod.Pickup" hidden="@(!pickup)"><partial name="_Totals" model="Model.ForDelivery(DeliveryMethod.Pickup)" /></div>
+        }
+        else
+        {
+            <partial name="_Totals" model="Model.Summary" />
+        }
         <a asp-page="/Cart" class="small">@L["Edit cart"]</a>
     </aside>
 </div>
+
+@section Scripts {
+    <script>
+        // Pickup needs no address: hide those fields and show the total without shipping. Without JavaScript both
+        // stay visible and the server simply ignores the address for pickup orders.
+        (function () {
+            var radios = document.querySelectorAll('input[name="Input.Delivery"]');
+            if (!radios.length) return;
+            var address = document.getElementById("address-fields");
+            function update() {
+                var chosen = document.querySelector('input[name="Input.Delivery"]:checked');
+                var value = chosen ? chosen.value : "Shipping";
+                address.hidden = value === "Pickup";
+                document.querySelectorAll("[data-totals]").forEach(function (el) { el.hidden = el.dataset.totals !== value; });
+            }
+            radios.forEach(function (r) { r.addEventListener("change", update); });
+            update();
+        })();
+    </script>
+}

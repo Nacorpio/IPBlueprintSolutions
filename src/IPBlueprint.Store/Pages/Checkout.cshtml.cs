@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using IPBlueprint.Store.Data;
 using IPBlueprint.Store.Localization;
 using IPBlueprint.Store.Payments;
 using IPBlueprint.Store.Shop;
@@ -22,6 +23,15 @@ public class CheckoutModel(
     public CartSummary Summary { get; private set; } = null!;
     public string? ErrorMessage { get; private set; }
 
+    public ShopOptions Shop => shopOptions.Value;
+
+    /// <summary>The cart priced for each way of getting it, so the page can show both totals and switch between them.</summary>
+    public CartSummary ForDelivery(DeliveryMethod delivery) => Summary.WithDelivery(delivery, Shop);
+
+    /// <summary>The address fields, which a pickup order doesn't need.</summary>
+    private static readonly string[] AddressFields =
+        [nameof(CheckoutInput.AddressLine1), nameof(CheckoutInput.AddressLine2), nameof(CheckoutInput.PostalCode), nameof(CheckoutInput.City)];
+
     public async Task<IActionResult> OnGetAsync(CancellationToken ct)
     {
         Summary = await cart.GetSummaryAsync(ct);
@@ -32,6 +42,17 @@ public class CheckoutModel(
     {
         Summary = await cart.GetSummaryAsync(ct);
         if (Summary.IsEmpty) return RedirectToPage("/Cart");
+
+        // Pickup switched off since the page was loaded (or a made-up form): fall back to shipping, which needs the address.
+        if (Input.Delivery == DeliveryMethod.Pickup && !Shop.OffersPickup) Input.Delivery = DeliveryMethod.Shipping;
+        if (!Enum.IsDefined(Input.Delivery)) Input.Delivery = DeliveryMethod.Shipping;
+
+        if (Input.Delivery == DeliveryMethod.Pickup)
+        {
+            foreach (var field in AddressFields) ModelState.Remove($"{nameof(Input)}.{field}");
+        }
+
+        Summary = Summary.WithDelivery(Input.Delivery, Shop);
         if (!ModelState.IsValid) return Page();
 
         // Something sold out while they were filling in the form: show the new cart and total before taking payment.
@@ -59,6 +80,9 @@ public class CheckoutModel(
 /// <summary>Messages and labels are English keys; Swedish comes from Localization/SharedResource.sv.resx.</summary>
 public class CheckoutInput
 {
+    /// <summary>Sent by post, or picked up from us for free. The address is only required when it's sent.</summary>
+    public DeliveryMethod Delivery { get; set; } = DeliveryMethod.Shipping;
+
     [Required(ErrorMessage = "Please enter your name.")]
     [StringLength(100, ErrorMessage = "The name can be at most {1} characters.")]
     [Display(Name = "Full name")]

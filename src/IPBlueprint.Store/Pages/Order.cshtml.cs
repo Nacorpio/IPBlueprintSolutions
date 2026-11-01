@@ -26,11 +26,17 @@ public class OrderModel(
 {
     public Order Order { get; private set; } = null!;
 
+    /// <summary>Where pickup orders are collected.</summary>
+    public string Town => shopOptions.Value.Town;
+
     /// <summary>Paid, in production, shipped, delivered, for paid orders. Empty otherwise.</summary>
     public IReadOnlyList<OrderStep> Steps { get; private set; } = [];
 
-    /// <summary>The normal path of a paid order.</summary>
-    private static readonly OrderStatus[] Path = [OrderStatus.Paid, OrderStatus.InProduction, OrderStatus.Shipped, OrderStatus.Delivered];
+    /// <summary>The normal path of a paid order that is sent.</summary>
+    private static readonly OrderStatus[] ShippingPath = [OrderStatus.Paid, OrderStatus.InProduction, OrderStatus.Shipped, OrderStatus.Delivered];
+
+    /// <summary>The normal path of a paid order the customer picks up. Delivered is shown as "Picked up".</summary>
+    private static readonly OrderStatus[] PickupPath = [OrderStatus.Paid, OrderStatus.InProduction, OrderStatus.ReadyForPickup, OrderStatus.Delivered];
 
     public async Task<IActionResult> OnGetAsync(Guid id, CancellationToken ct)
     {
@@ -59,10 +65,11 @@ public class OrderModel(
 
     internal static IReadOnlyList<OrderStep> BuildSteps(Order order)
     {
-        var at = Array.IndexOf(Path, order.Status);
+        var path = order.IsPickup ? PickupPath : ShippingPath;
+        var at = Array.IndexOf(path, order.Status);
         if (at < 0) return [];
 
-        return Path.Select((status, i) =>
+        return path.Select((status, i) =>
         {
             // Orders from before the history was kept still have their paid and shipped times.
             var when = order.History.Where(h => h.Status == status).Select(h => (DateTime?)h.AtUtc).LastOrDefault()

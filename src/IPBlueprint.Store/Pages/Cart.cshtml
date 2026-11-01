@@ -46,6 +46,10 @@ else
             {
                 <p class="muted small">@L["Free shipping on orders from {0}.", Money.Format(shop.FreeShippingFrom)]</p>
             }
+            @if (shop.OffersPickup)
+            {
+                <p class="pickup-note small">@L["Live near {0}? Pick up your order from us for free. Choose it at checkout.", shop.Town]</p>
+            }
             <a class="button wide" asp-page="/Checkout">@L["Go to checkout"]</a>
         </aside>
     </div>

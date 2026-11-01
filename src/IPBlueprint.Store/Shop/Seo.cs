@@ -179,20 +179,50 @@ public static class Seo
                     ["inLanguage"] = new JsonArray("sv-SE", "en-GB"),
                     ["publisher"] = new JsonObject { ["@id"] = home + "#store" },
                 },
-                new JsonObject
-                {
-                    ["@type"] = "OnlineStore",
-                    ["@id"] = home + "#store",
-                    ["name"] = shop.Name,
-                    ["url"] = home,
-                    ["description"] = description,
-                    ["logo"] = new Uri(baseUrl, "img/logo-mark.png").AbsoluteUri,
-                    ["email"] = shop.ContactEmail,
-                    ["areaServed"] = "SE",
-                    ["sameAs"] = new JsonArray([.. shop.SocialLinks.Select(s => (JsonNode)s.Url)]),
-                }),
+                StoreNode(baseUrl, shop, description)),
         };
         return Serialize(json);
+    }
+
+    /// <summary>
+    /// The store as both an online shop and a local business in <see cref="ShopOptions.Town"/>, so searches like
+    /// "3D-utskrift Smedjebacken" can find it. Only the town and region are given, never a street address: pickup is
+    /// arranged by email. A Google Business Profile (set up by hand) does the most for local searches; this backs it up.
+    /// </summary>
+    private static JsonObject StoreNode(Uri baseUrl, ShopOptions shop, string description)
+    {
+        var home = baseUrl.AbsoluteUri;
+        var hasTown = !string.IsNullOrWhiteSpace(shop.Town);
+        var node = new JsonObject
+        {
+            ["@type"] = hasTown ? new JsonArray("OnlineStore", "LocalBusiness") : "OnlineStore",
+            ["@id"] = home + "#store",
+            ["name"] = shop.Name,
+            ["url"] = home,
+            ["description"] = description,
+            ["logo"] = new Uri(baseUrl, "img/logo-mark.png").AbsoluteUri,
+            ["image"] = new Uri(baseUrl, DefaultShareImage.TrimStart('/')).AbsoluteUri,
+            ["email"] = shop.ContactEmail,
+            ["currenciesAccepted"] = "SEK",
+            ["paymentAccepted"] = "Card",
+            ["sameAs"] = new JsonArray([.. shop.SocialLinks.Select(s => (JsonNode)s.Url)]),
+        };
+
+        if (!hasTown)
+        {
+            node["areaServed"] = "SE";
+            return node;
+        }
+
+        var address = new JsonObject { ["@type"] = "PostalAddress", ["addressLocality"] = shop.Town.Trim() };
+        if (!string.IsNullOrWhiteSpace(shop.Region)) address["addressRegion"] = shop.Region.Trim();
+        address["addressCountry"] = "SE";
+        node["address"] = address;
+        node["areaServed"] = new JsonArray(
+            new JsonObject { ["@type"] = "City", ["name"] = shop.Town.Trim() },
+            new JsonObject { ["@type"] = "Country", ["name"] = "Sverige" });
+        node["knowsAbout"] = new JsonArray("3D-utskrift", "3D printing", "PLA", "PETG", "ABS");
+        return node;
     }
 
     public static string? ProductImagePath(Product product) =>

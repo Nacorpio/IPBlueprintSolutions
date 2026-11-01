@@ -4,13 +4,15 @@
     var o = Model.Order;
     var lang = Languages.Current;
     ViewData["Title"] = L["Order {0}", o.Reference].Value;
+    var town = Model.Town;
 
     string StepLabel(OrderStatus status) => status switch
     {
         OrderStatus.Paid => L["Paid"],
         OrderStatus.InProduction => L["Being printed"],
         OrderStatus.Shipped => L["Shipped"],
-        _ => L["Delivered"],
+        OrderStatus.ReadyForPickup => L["Ready for pickup"],
+        _ => o.IsPickup ? L["Picked up"] : L["Delivered"],
     };
 }
 
@@ -18,11 +20,26 @@
 {
     case OrderStatus.Paid:
         <h1>@L["Thank you for your order!"]</h1>
-        <p>@L["We've received your payment and sent a confirmation to"] <strong>@o.Email</strong>. @L["We'll email you again when it ships."]</p>
+        @if (o.IsPickup)
+        {
+            <p>@L["We've received your payment and sent a confirmation to"] <strong>@o.Email</strong>. @L["When your order is ready to pick up in {0}, we'll contact you to agree on a time.", town]</p>
+        }
+        else
+        {
+            <p>@L["We've received your payment and sent a confirmation to"] <strong>@o.Email</strong>. @L["We'll email you again when it ships."]</p>
+        }
         break;
     case OrderStatus.InProduction:
         <h1>@L["We're printing your order"]</h1>
-        <p>@L["Some prints take a while. We'll email you when the parcel is on its way."]</p>
+        <p>@(o.IsPickup ? L["Some prints take a while. We'll email you when it's ready to pick up."] : L["Some prints take a while. We'll email you when the parcel is on its way."])</p>
+        break;
+    case OrderStatus.ReadyForPickup:
+        <h1>@L["Your order is ready to pick up"]</h1>
+        <p>@L["You can pick it up from us in {0}. Reply to our email with the days and times that suit you, and we'll send you the address.", town]</p>
+        break;
+    case OrderStatus.Delivered when o.IsPickup:
+        <h1>@L["Thanks for picking up your order"]</h1>
+        <p>@L["We hope you like it! If something isn't right, just get in touch."]</p>
         break;
     case OrderStatus.Shipped:
         <h1>@L["Your order is on its way"]</h1>
@@ -80,7 +97,14 @@
     {
         <div style="display:flex;justify-content:space-between;gap:8px"><span>@line.Quantity × @line.ProductName</span><span>@Money.Format(line.LineTotal)</span></div>
     }
-    <div style="display:flex;justify-content:space-between;gap:8px"><span>@L["Shipping"]</span><span>@(o.ShippingCost == 0 ? L["Free"].Value : Money.Format(o.ShippingCost))</span></div>
+    @if (o.IsPickup)
+    {
+        <div style="display:flex;justify-content:space-between;gap:8px"><span>@L["Pickup in {0}", town]</span><span>@L["Free"]</span></div>
+    }
+    else
+    {
+        <div style="display:flex;justify-content:space-between;gap:8px"><span>@L["Shipping"]</span><span>@(o.ShippingCost == 0 ? L["Free"].Value : Money.Format(o.ShippingCost))</span></div>
+    }
     <div style="display:flex;justify-content:space-between;gap:8px;font-weight:700;margin-top:8px"><span>@L["Total"]</span><span>@Money.Format(o.Total)</span></div>
 </div>
 

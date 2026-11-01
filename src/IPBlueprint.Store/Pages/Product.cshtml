@@ -6,7 +6,7 @@
     var baseUrl = SiteUrls.BaseUrl(Request, Shop.Value);
     ViewData["Title"] = Model.Product.DisplayName;
     ViewData["Description"] = string.IsNullOrWhiteSpace(description)
-        ? L["{0}, 3D printed by us in Sweden.", Model.Product.DisplayName].Value
+        ? L["{0}, 3D printed by us in {1}. Free pickup in {1} or shipping within Sweden.", Model.Product.DisplayName, Shop.Value.Town].Value
         : Seo.Describe(description);
     ViewData["Image"] = Seo.ProductImagePath(Model.Product);
     ViewData["OgType"] = "product";
@@ -90,6 +90,22 @@
                 <p class="stock-note"><partial name="_StockBadge" model="Model.Product" /></p>
             }
         }
+
+        <ul class="delivery-perks small" aria-label="@L["Delivery"]">
+            @if (Shop.Value.OffersPickup)
+            {
+                <li>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.1-7-11.5A7 7 0 0 1 19 9.5C19 14.9 12 21 12 21z" /><circle cx="12" cy="9.5" r="2.5" /></svg>
+                    <span><strong>@L["Free pickup in {0}", Shop.Value.Town]</strong>. @L["We'll agree on a time with you."]</span>
+                </li>
+            }
+            <li>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7z" /><circle cx="7" cy="17.5" r="1.5" /><circle cx="17" cy="17.5" r="1.5" /></svg>
+                <span>@(Shop.Value.FreeShippingFrom > 0
+                    ? L["Shipping within Sweden {0}, free from {1}.", Money.Format(Shop.Value.ShippingFlatRate), Money.Format(Shop.Value.FreeShippingFrom)]
+                    : L["Shipping within Sweden {0}.", Money.Format(Shop.Value.ShippingFlatRate)])</span>
+            </li>
+        </ul>
 
         <p class="muted small">@L["We print every item ourselves, so you may see faint layer lines and small colour differences from one print to the next."]</p>
     </div>

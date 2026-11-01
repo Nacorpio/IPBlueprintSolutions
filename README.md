@@ -52,6 +52,8 @@ All settings are in `appsettings.json`. Secrets belong in user-secrets locally a
 | `Shop:NotificationEmails` | Where new orders and requests are emailed (comma-separated). |
 | `Shop:LowStockThreshold` | Products with this many or fewer left say "Endast 2 kvar" (default 3, 0 = never). |
 | `Shop:ShippingFlatRate`, `Shop:FreeShippingFrom` | Shipping cost in kr, and the order value from which shipping is free (0 = never free). |
+| `Shop:Town`, `Shop:Region` | Where you are (default Smedjebacken, Dalarna). Shown in the footer, About page and page descriptions, and given to search engines as the shop's town. No street address is ever shown. |
+| `Shop:PickupEnabled` | `true` lets customers choose free pickup in `Shop:Town` at checkout and on the custom order form. Pickup orders need no address; mark them "Ready for pickup" in the admin and the customer is emailed to agree on a time. |
 | `Shop:InstagramUrl`, `Shop:FacebookUrl` | The shop's social media pages, shown as footer icons, a line on the gallery and About pages, and in the order confirmation email. Leave one empty to hide it. |
 | `Analytics:*` | Optional cookie-free visitor statistics. Off when empty. See [Getting found](#getting-found). |
 | `SumUp:ApiKey`, `SumUp:MerchantCode` | From the SumUp dashboard (Developers → API keys). **Secret.** |

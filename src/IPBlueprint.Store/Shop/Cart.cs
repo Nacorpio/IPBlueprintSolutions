@@ -14,6 +14,13 @@ public sealed record CartAdjustment(Product Product, int Requested, int Availabl
 
 public sealed record CartSummary(IReadOnlyList<CartLine> Lines, decimal Subtotal, decimal Shipping)
 {
+    /// <summary>Shipping until the customer picks something else at checkout.</summary>
+    public DeliveryMethod Delivery { get; init; } = DeliveryMethod.Shipping;
+
+    /// <summary>The same cart with <paramref name="delivery"/> chosen, and the shipping cost that goes with it.</summary>
+    public CartSummary WithDelivery(DeliveryMethod delivery, ShopOptions options) =>
+        this with { Delivery = delivery, Shipping = Pricing.ShippingFor(Subtotal, options, delivery) };
+
     /// <summary>Lines changed because of stock since the customer added them. The cart already reflects the change.</summary>
     public IReadOnlyList<CartAdjustment> Adjustments { get; init; } = [];
 
@@ -24,9 +31,10 @@ public sealed record CartSummary(IReadOnlyList<CartLine> Lines, decimal Subtotal
 
 public static class Pricing
 {
-    public static decimal ShippingFor(decimal subtotal, ShopOptions options)
+    public static decimal ShippingFor(decimal subtotal, ShopOptions options, DeliveryMethod delivery = DeliveryMethod.Shipping)
     {
         if (subtotal <= 0) return 0;
+        if (delivery == DeliveryMethod.Pickup) return 0; // picking it up from us is always free
         if (options.FreeShippingFrom > 0 && subtotal >= options.FreeShippingFrom) return 0;
         return options.ShippingFlatRate;
     }

@@ -13,6 +13,7 @@
         <p class="small">
             Colour: @(r.PreferredColour ?? "-")<br />
             Budget: @(r.Budget ?? "-")<br />
+            Delivery: @(r.Delivery == DeliveryMethod.Pickup ? "Wants to pick it up" : "Send it")<br />
             Received @r.CreatedAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
         </p>
         @if (r.AttachmentFileName is not null)
