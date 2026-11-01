@@ -18,12 +18,12 @@ public static class DevelopmentSeed
             new Product
             {
                 Slug = "articulated-dragon", Name = "Articulated dragon", Price = 349m, SortOrder = 2,
-                Description = "A fully poseable dragon, printed in one piece with moving joints. About 30 cm long.",
+                Description = "A poseable dragon printed in one piece, with joints that move. About 30 cm long.",
             },
             new Product
             {
                 Slug = "cable-organiser-set", Name = "Cable organiser set", Price = 129m, SortOrder = 3,
-                Description = "Six desk clips that keep charging cables in place. Sticks on with 3M tape (included).",
+                Description = "Six desk clips that hold charging cables in place. They stick on with adhesive tape, which is included.",
             });
 
         await db.SaveChangesAsync();
