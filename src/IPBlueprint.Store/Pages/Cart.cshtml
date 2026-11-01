@@ -1,0 +1,48 @@
+@page
+@model CartModel
+@{
+    ViewData["Title"] = "Your cart";
+    var shop = Model.Shop;
+}
+
+<h1>Your cart</h1>
+
+@if (Model.Summary.IsEmpty)
+{
+    <p>Your cart is empty.</p>
+    <a class="button" asp-page="/Index">Browse the shop</a>
+}
+else
+{
+    <div class="layout-two">
+        <div class="panel">
+            @foreach (var line in Model.Summary.Lines)
+            {
+                <div class="cart-line">
+                    <partial name="_ProductImage" model="line.Product" />
+                    <div>
+                        <a asp-page="/Product" asp-route-slug="@line.Product.Slug"><strong>@line.Product.Name</strong></a>
+                        <div class="muted small">@Money.Format(line.Product.Price) each</div>
+                        <form method="post" asp-page-handler="Update" class="qty">
+                            <input type="hidden" name="productId" value="@line.Product.Id" />
+                            <label class="small" for="q-@line.Product.Id" style="margin:0">Qty</label>
+                            <input id="q-@line.Product.Id" name="quantity" type="number" min="0" max="@shop.MaxQuantityPerItem" value="@line.Quantity" />
+                            <button class="link-button small" type="submit">Update</button>
+                            <button class="link-button small" type="submit" name="quantity" value="0">Remove</button>
+                        </form>
+                    </div>
+                    <div class="price">@Money.Format(line.LineTotal)</div>
+                </div>
+            }
+        </div>
+
+        <aside class="panel">
+            <partial name="_Totals" model="Model.Summary" />
+            @if (Model.Summary.Shipping > 0 && shop.FreeShippingFrom > 0)
+            {
+                <p class="muted small">Free shipping on orders from @Money.Format(shop.FreeShippingFrom).</p>
+            }
+            <a class="button wide" asp-page="/Checkout">Go to checkout</a>
+        </aside>
+    </div>
+}

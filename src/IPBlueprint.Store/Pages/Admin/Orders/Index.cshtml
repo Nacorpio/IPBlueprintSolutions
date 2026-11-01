@@ -1,0 +1,16 @@
+@page
+@model IndexModel
+@{ ViewData["Title"] = "Orders"; }
+<div class="toolbar">
+    <h1 style="margin:0">Orders</h1>
+    <form method="get" style="display:flex;gap:8px">
+        <select name="status" onchange="this.form.submit()">
+            <option value="">All except unpaid</option>
+            @foreach (var s in Enum.GetValues<OrderStatus>())
+            {
+                <option value="@s" selected="@(Model.Status == s)">@s</option>
+            }
+        </select>
+    </form>
+</div>
+<partial name="_OrderTable" model="Model.Orders" />

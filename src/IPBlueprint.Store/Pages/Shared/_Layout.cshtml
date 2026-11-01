@@ -1,0 +1,75 @@
+@inject CartService Cart
+@inject IOptions<ShopOptions> ShopOptions
+@{
+    var shop = ShopOptions.Value;
+    var cartCount = Cart.CountItems();
+    var isAdmin = Context.Request.Path.StartsWithSegments("/Admin") && User.Identity?.IsAuthenticated == true;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@(ViewData["Title"] is string t ? $"{t} · {shop.Name}" : shop.Name)</title>
+    @if (ViewData["Description"] is string description)
+    {
+        <meta name="description" content="@description" />
+    }
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    <header class="site-header">
+        <div class="container header-row">
+            <a class="brand" asp-page="/Index">@shop.Name</a>
+            <nav class="main-nav" aria-label="Main">
+                <a asp-page="/Index">Shop</a>
+                <a asp-page="/Custom">Custom orders</a>
+                <a asp-page="/Info/About">About</a>
+                <a asp-page="/Cart" class="cart-link">Cart@(cartCount > 0 ? $" ({cartCount})" : "")</a>
+            </nav>
+        </div>
+        @if (isAdmin)
+        {
+            <div class="admin-bar">
+                <div class="container header-row">
+                    <strong>Admin</strong>
+                    <nav aria-label="Admin">
+                        <a asp-page="/Admin/Index">Overview</a>
+                        <a asp-page="/Admin/Orders/Index">Orders</a>
+                        <a asp-page="/Admin/Products/Index">Products</a>
+                        <a asp-page="/Admin/Requests/Index">Custom requests</a>
+                        <form method="post" asp-page="/Admin/Logout" class="inline"><button class="link-button">Log out</button></form>
+                    </nav>
+                </div>
+            </div>
+        }
+    </header>
+
+    <main class="container page">
+        @if (TempData["Flash"] is string flash)
+        {
+            <div class="flash" role="status">@flash</div>
+        }
+        @RenderBody()
+    </main>
+
+    <footer class="site-footer">
+        <div class="container footer-row">
+            <div>
+                <strong>@shop.Name</strong><br />
+                3D printed by hand in Sweden.<br />
+                <a href="mailto:@shop.ContactEmail">@shop.ContactEmail</a>
+            </div>
+            <nav aria-label="Information">
+                <a asp-page="/Info/Terms">Terms of purchase</a>
+                <a asp-page="/Info/Returns">Returns &amp; right of withdrawal</a>
+                <a asp-page="/Info/Privacy">Privacy policy</a>
+                <a asp-page="/Info/About">About us</a>
+            </nav>
+            <div class="muted small">Prices include 25% VAT. Card payments are handled securely by SumUp.</div>
+        </div>
+    </footer>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

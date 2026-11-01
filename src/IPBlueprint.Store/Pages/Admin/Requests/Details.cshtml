@@ -1,0 +1,41 @@
+@page "{id:int}"
+@model DetailsModel
+@{
+    var r = Model.CustomRequest;
+    ViewData["Title"] = $"Request from {r.Name}";
+}
+<p class="small"><a asp-page="Index">← All requests</a></p>
+<h1>Request from @r.Name</h1>
+
+<div class="layout-two">
+    <div class="panel">
+        <p class="description">@r.Description</p>
+        <p class="small">
+            Colour: @(r.PreferredColour ?? "-")<br />
+            Budget: @(r.Budget ?? "-")<br />
+            Received @r.CreatedAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+        </p>
+        @if (r.AttachmentFileName is not null)
+        {
+            <p><a class="button secondary" asp-page-handler="Attachment" asp-route-id="@r.Id">Download @r.AttachmentOriginalName</a></p>
+        }
+        <p><a class="button" href="mailto:@r.Email?subject=@Uri.EscapeDataString("Your custom order request")">Reply to @r.Email</a></p>
+        <p class="muted small">To take payment, create a payment link in the SumUp app or dashboard and send it in your reply.</p>
+    </div>
+    <form method="post" class="panel">
+        <div class="field">
+            <label for="status">Status</label>
+            <select id="status" name="status">
+                @foreach (var s in Enum.GetValues<CustomRequestStatus>())
+                {
+                    <option value="@s" selected="@(r.Status == s)">@s</option>
+                }
+            </select>
+        </div>
+        <div class="field">
+            <label for="notes">Notes (only you see these)</label>
+            <textarea id="notes" name="notes">@r.AdminNotes</textarea>
+        </div>
+        <button class="button" type="submit">Save</button>
+    </form>
+</div>

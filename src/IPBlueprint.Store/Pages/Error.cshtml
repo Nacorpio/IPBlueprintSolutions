@@ -1,0 +1,22 @@
+@page
+@model ErrorModel
+@{
+    ViewData["Title"] = Model.IsNotFound ? "Page not found" : "Something went wrong";
+}
+<div class="prose">
+    @if (Model.IsNotFound)
+    {
+        <h1>We couldn't find that page</h1>
+        <p>It may have moved or no longer exist.</p>
+    }
+    else
+    {
+        <h1>Something went wrong</h1>
+        <p>Sorry about that. Please try again, or contact us if the problem continues.</p>
+        @if (Model.RequestId is not null)
+        {
+            <p class="muted small">Reference: <code>@Model.RequestId</code></p>
+        }
+    }
+    <a class="button" asp-page="/Index">Back to the shop</a>
+</div>

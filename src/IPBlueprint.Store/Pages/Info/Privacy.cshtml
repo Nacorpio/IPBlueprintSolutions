@@ -1,0 +1,18 @@
+@page
+@inject IOptions<ShopOptions> Shop
+@{ ViewData["Title"] = "Privacy policy"; var s = Shop.Value; }
+<div class="prose">
+    <partial name="_DraftNotice" />
+    <h1>Privacy policy</h1>
+    <p>@s.Name <em>[company name and organisation number]</em> is responsible for the personal data you give us. Contact: <a href="mailto:@s.ContactEmail">@s.ContactEmail</a>.</p>
+    <h2>What we collect and why</h2>
+    <ul>
+        <li><strong>Orders:</strong> name, email, phone (optional) and delivery address, so we can deliver your order and keep the records that Swedish bookkeeping law requires (7 years).</li>
+        <li><strong>Custom requests:</strong> name, email, your description and any file you send, so we can answer your request. We delete requests that don't lead to an order after <em>[12 months]</em>.</li>
+        <li><strong>Payments:</strong> handled by SumUp, which processes your card details under its own privacy policy. We only receive whether the payment succeeded.</li>
+    </ul>
+    <h2>Cookies</h2>
+    <p>We use only the cookies the shop needs to work: one that remembers your cart and one that protects forms against misuse. We don't use tracking or advertising cookies.</p>
+    <h2>Your rights</h2>
+    <p>You can ask to see, correct or delete your data, or object to how we use it. You can also complain to the Swedish Authority for Privacy Protection (IMY, imy.se).</p>
+</div>

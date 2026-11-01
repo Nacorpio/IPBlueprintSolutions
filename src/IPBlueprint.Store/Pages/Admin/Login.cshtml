@@ -1,0 +1,22 @@
+@page
+@model LoginModel
+@{ ViewData["Title"] = "Admin login"; }
+<div style="max-width:380px">
+    <h1>Admin login</h1>
+    @if (!Model.IsConfigured)
+    {
+        <div class="error-box">No admin password is set. Set <code>Admin:Password</code> (at least 12 characters) in configuration and restart.</div>
+    }
+    @if (Model.Error is not null)
+    {
+        <div class="error-box">@Model.Error</div>
+    }
+    <form method="post" class="panel">
+        <div class="field">
+            <label for="password">Password</label>
+            <input id="password" name="password" type="password" autocomplete="current-password" autofocus />
+        </div>
+        <input type="hidden" name="returnUrl" value="@Model.ReturnUrl" />
+        <button class="button wide" type="submit">Log in</button>
+    </form>
+</div>

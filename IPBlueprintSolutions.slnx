@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/IPBlueprint.Store/IPBlueprint.Store.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/IPBlueprint.Store.Tests/IPBlueprint.Store.Tests.csproj" />
+  </Folder>
+</Solution>

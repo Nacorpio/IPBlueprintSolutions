@@ -1,0 +1,39 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Shop";
+    ViewData["Description"] = "3D printed items, designed and printed by hand in Sweden. Custom orders welcome.";
+}
+
+<section class="hero">
+    <h1>Printed by hand, one layer at a time</h1>
+    <p>Everything here is 3D printed by us in Sweden. Can't find what you're looking for? We take custom orders too.</p>
+</section>
+
+@if (Model.Products.Count == 0)
+{
+    <p class="muted">New products are on their way. Check back soon!</p>
+}
+else
+{
+    <div class="product-grid">
+        @foreach (var p in Model.Products)
+        {
+            <a class="product-card" asp-page="/Product" asp-route-slug="@p.Slug">
+                <partial name="_ProductImage" model="p" />
+                <div class="body">
+                    <h2>@p.Name</h2>
+                    <span class="price">@Money.Format(p.Price)</span>
+                </div>
+            </a>
+        }
+    </div>
+}
+
+<section class="custom-cta">
+    <div>
+        <h2>Have something special in mind?</h2>
+        <p>Send us an idea, a sketch or a 3D model and we'll give you a price.</p>
+    </div>
+    <a class="button" asp-page="/Custom">Request a custom print</a>
+</section>

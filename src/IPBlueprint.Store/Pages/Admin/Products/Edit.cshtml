@@ -1,0 +1,65 @@
+@page "{id:int?}"
+@model EditModel
+@{ ViewData["Title"] = Model.IsNew ? "Add product" : $"Edit {Model.Input.Name}"; }
+<p class="small"><a asp-page="Index">← All products</a></p>
+<h1>@ViewData["Title"]</h1>
+
+<div class="layout-two">
+    <form method="post" enctype="multipart/form-data" class="panel">
+        <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
+        <div class="field">
+            <label asp-for="Input.Name"></label>
+            <input asp-for="Input.Name" />
+            <span asp-validation-for="Input.Name" class="field-validation-error"></span>
+        </div>
+        <div class="field">
+            <label asp-for="Input.Slug"></label>
+            <input asp-for="Input.Slug" placeholder="Leave empty to make one from the name" />
+            <div class="hint">The product's web address: /products/<em>this-part</em>. Lowercase letters, numbers and dashes.</div>
+            <span asp-validation-for="Input.Slug" class="field-validation-error"></span>
+        </div>
+        <div class="field-row">
+            <div class="field">
+                <label asp-for="Input.Price"></label>
+                <input asp-for="Input.Price" asp-format="{0:0.##}" type="number" step="0.01" min="1" />
+                <span asp-validation-for="Input.Price" class="field-validation-error"></span>
+            </div>
+            <div class="field">
+                <label asp-for="Input.SortOrder"></label>
+                <input asp-for="Input.SortOrder" type="number" />
+                <div class="hint">Lower numbers are shown first.</div>
+            </div>
+        </div>
+        <div class="field">
+            <label asp-for="Input.Description"></label>
+            <textarea asp-for="Input.Description"></textarea>
+            <span asp-validation-for="Input.Description" class="field-validation-error"></span>
+        </div>
+        <div class="field">
+            <label asp-for="Image">Photo</label>
+            <input asp-for="Image" type="file" accept=".jpg,.jpeg,.png,.webp" />
+            <div class="hint">JPG, PNG or WebP, up to 10 MB. Square photos look best.@(Model.CurrentImage is not null ? " Uploading a new photo replaces the current one." : "")</div>
+            <span asp-validation-for="Image" class="field-validation-error"></span>
+        </div>
+        <div class="field">
+            <label class="check"><input asp-for="Input.IsActive" /> <span>Visible in the shop</span></label>
+        </div>
+        <button class="button" type="submit">Save</button>
+    </form>
+
+    <aside>
+        @if (Model.CurrentImage is not null)
+        {
+            <div class="panel">
+                <img class="product-image" src="/images/products/@Model.CurrentImage" alt="" style="border-radius:8px" />
+            </div>
+        }
+        @if (!Model.IsNew)
+        {
+            <form method="post" asp-page-handler="Delete" class="panel" style="margin-top:16px" onsubmit="return confirm('Delete this product? Past orders keep their details.')">
+                <p class="small muted">Hiding a product is usually better than deleting it.</p>
+                <button class="button danger" type="submit">Delete product</button>
+            </form>
+        }
+    </aside>
+</div>

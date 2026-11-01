@@ -1,0 +1,19 @@
+@page
+@model IndexModel
+@{ ViewData["Title"] = "Admin"; }
+<h1>Overview</h1>
+
+@if (!Model.SumUpConfigured)
+{
+    <div class="notice">SumUp is not configured yet, so checkout won't work. Set <code>SumUp:ApiKey</code> and <code>SumUp:MerchantCode</code>.</div>
+}
+
+<div class="stats">
+    <a class="stat" asp-page="/Admin/Orders/Index" asp-route-status="Paid" style="text-decoration:none;color:inherit"><div class="muted small">Paid, to ship</div><div class="value">@Model.ToShip</div></a>
+    <a class="stat" asp-page="/Admin/Requests/Index" style="text-decoration:none;color:inherit"><div class="muted small">New custom requests</div><div class="value">@Model.NewRequests</div></a>
+    <div class="stat"><div class="muted small">Sales last 30 days</div><div class="value">@Money.Format(Model.Sales30Days)</div></div>
+    <div class="stat"><div class="muted small">Active products</div><div class="value">@Model.ActiveProducts</div></div>
+</div>
+
+<h2>Latest orders</h2>
+<partial name="Orders/_OrderTable" model="Model.LatestOrders" />
