@@ -236,7 +236,8 @@ public sealed class OrderService(
             foreach (var s in shortages)
                 logger.LogWarning("Order {Reference} took {Ordered} × {Product}, but only {InStock} were in stock", order.Reference, s.Ordered, s.ProductName, s.InStock);
 
-            await notifications.OrderPaidAsync(order, shortages, ct);
+            // The payment is committed: from here on the visitor leaving must not stop the emails.
+            await notifications.OrderPaidAsync(order, shortages);
             return PaymentSyncResult.MarkedPaid;
         }
 
@@ -290,7 +291,8 @@ public sealed class OrderService(
             await db.Orders.Where(o => o.Id == orderId).ExecuteUpdateAsync(s => s.SetProperty(o => o.StockRestored, true), ct);
         }
 
-        db.OrderStatusChanges.Add(new OrderStatusChange { OrderId = orderId, Status = request.To, AtUtc = now, CustomerEmailed = emailCustomer });
+        var historyEntry = new OrderStatusChange { OrderId = orderId, Status = request.To, AtUtc = now, CustomerEmailed = emailCustomer };
+        db.OrderStatusChanges.Add(historyEntry);
         await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
 
@@ -303,8 +305,13 @@ public sealed class OrderService(
         }
 
         logger.LogInformation("Order {Reference}: {From} -> {To}", order.Reference, from, request.To);
-        if (emailCustomer) await notifications.StatusChangedAsync(order, ct);
-        foreach (var productId in backInStock) await stockAlerts.NotifyIfAvailableAsync(productId, ct);
+        // The change is committed: from here on the admin leaving the page must not stop the emails.
+        if (emailCustomer && !await notifications.StatusChangedAsync(order))
+        {
+            await db.OrderStatusChanges.Where(c => c.Id == historyEntry.Id)
+                .ExecuteUpdateAsync(s => s.SetProperty(c => c.CustomerEmailed, false), CancellationToken.None);
+        }
+        foreach (var productId in backInStock) await stockAlerts.NotifyIfAvailableAsync(productId, CancellationToken.None);
 
         return StatusChangeResult.Changed;
     }

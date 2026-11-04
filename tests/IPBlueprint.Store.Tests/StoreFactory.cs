@@ -99,8 +99,13 @@ public sealed class CapturingEmailSender : IEmailSender
 {
     public ConcurrentQueue<(string To, string Subject, string Body)> Sent { get; } = new();
 
+    /// <summary>Runs before each send, for example to cancel a token mid-way. The send then honours its token, as SMTP would.</summary>
+    public Action? BeforeSend { get; set; }
+
     public Task SendAsync(string to, string subject, string htmlBody, string? replyTo = null, CancellationToken ct = default)
     {
+        BeforeSend?.Invoke();
+        ct.ThrowIfCancellationRequested();
         Sent.Enqueue((to, subject, htmlBody));
         return Task.CompletedTask;
     }

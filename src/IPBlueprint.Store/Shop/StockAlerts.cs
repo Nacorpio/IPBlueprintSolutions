@@ -67,9 +67,10 @@ public sealed class StockAlerts(StoreDbContext db, OrderNotifications notificati
 
         // Forget the addresses first, so a second save of the product can't email the same people again.
         var ids = alerts.Select(a => a.Id).ToList();
-        await db.StockAlerts.Where(a => ids.Contains(a.Id)).ExecuteDeleteAsync(ct);
+        // After this point nothing may be cancelled, or the addresses would be gone without anyone being emailed.
+        await db.StockAlerts.Where(a => ids.Contains(a.Id)).ExecuteDeleteAsync(CancellationToken.None);
 
-        foreach (var alert in alerts) await notifications.BackInStockAsync(product, alert, ct);
+        foreach (var alert in alerts) await notifications.BackInStockAsync(product, alert);
 
         logger.LogInformation("{Product} is back in stock; emailed {Count} people who asked", product.Name, alerts.Count);
         return alerts.Count;

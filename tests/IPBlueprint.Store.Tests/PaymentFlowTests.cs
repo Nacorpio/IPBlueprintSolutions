@@ -131,4 +131,26 @@ public class PaymentFlowTests : IClassFixture<StoreFactory>
         Assert.Contains("Tack för din beställning", html);
         Assert.Equal(OrderStatus.Paid, (await ReloadAsync(order.Id)).Status);
     }
+
+    [Fact]
+    public async Task Paid_emails_still_go_out_when_the_visitor_leaves_while_they_are_sending()
+    {
+        var (order, checkoutId) = await PlaceOrderAsync();
+        _factory.SumUp.SetStatus(checkoutId, "PAID");
+        using var visitorLeaves = new CancellationTokenSource();
+        _factory.Emails.BeforeSend = visitorLeaves.Cancel; // the tab is closed as soon as the first email starts
+
+        try
+        {
+            await using var scope = _factory.Services.CreateAsyncScope();
+            var result = await scope.ServiceProvider.GetRequiredService<OrderService>().SyncCheckoutAsync(checkoutId, visitorLeaves.Token);
+            Assert.Equal(PaymentSyncResult.MarkedPaid, result);
+        }
+        finally
+        {
+            _factory.Emails.BeforeSend = null;
+        }
+
+        Assert.Equal(2, EmailsAbout(order.Reference)); // the customer's confirmation and the owner's new-order email
+    }
 }

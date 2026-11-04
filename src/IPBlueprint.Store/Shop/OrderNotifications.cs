@@ -20,9 +20,10 @@ public sealed class OrderNotifications(
     ILogger<OrderNotifications> logger)
 {
     private static readonly HtmlEncoder Html = HtmlEncoder.Default;
+    private static readonly TimeSpan SendTimeout = TimeSpan.FromMinutes(1);
     private ShopOptions Shop => shopOptions.Value;
 
-    public async Task OrderPaidAsync(Order order, IReadOnlyList<StockShortage>? shortages = null, CancellationToken ct = default)
+    public async Task OrderPaidAsync(Order order, IReadOnlyList<StockShortage>? shortages = null)
     {
         var en = IsEnglish(order.Language);
         var shortageHtml = shortages is { Count: > 0 }
@@ -61,7 +62,7 @@ public sealed class OrderNotifications(
                   {FollowUsHtml(en)}
                   <p>{Html.Encode(Shop.Name)}</p>
                   """,
-            replyTo: Shop.ContactEmail, ct);
+            replyTo: Shop.ContactEmail);
 
         foreach (var owner in Shop.NotificationRecipients)
         {
@@ -72,11 +73,11 @@ public sealed class OrderNotifications(
                 {OrderSummaryHtml(order, english: false)}
                 {(order.IsPickup ? PickupHtml(order) : AddressHtml(order))}
                 {(string.IsNullOrWhiteSpace(order.CustomerNote) ? "" : $"<p><strong>Meddelande från kunden:</strong> {Html.Encode(order.CustomerNote)}</p>")}
-                """, replyTo: order.Email, ct);
+                """, replyTo: order.Email);
         }
     }
 
-    public Task OrderShippedAsync(Order order, CancellationToken ct = default)
+    public Task<bool> OrderShippedAsync(Order order)
     {
         var en = IsEnglish(order.Language);
         var tracking = string.IsNullOrWhiteSpace(order.TrackingNumber)
@@ -104,13 +105,13 @@ public sealed class OrderNotifications(
                   {FollowUsHtml(en)}
                   <p>{Html.Encode(Shop.Name)}</p>
                   """,
-            replyTo: Shop.ContactEmail, ct);
+            replyTo: Shop.ContactEmail);
     }
 
     /// <summary>The customer's email for a status the admin just set. Shipped reuses <see cref="OrderShippedAsync"/>.</summary>
-    public Task StatusChangedAsync(Order order, CancellationToken ct = default)
+    public Task<bool> StatusChangedAsync(Order order)
     {
-        if (order.Status == OrderStatus.Shipped) return OrderShippedAsync(order, ct);
+        if (order.Status == OrderStatus.Shipped) return OrderShippedAsync(order);
 
         var en = IsEnglish(order.Language);
         var hi = en ? $"<p>Hi {Html.Encode(order.CustomerName)},</p>" : $"<p>Hej {Html.Encode(order.CustomerName)}!</p>";
@@ -151,7 +152,7 @@ public sealed class OrderNotifications(
             _ => default((string, string)?),
         };
 
-        if (content is not { } c) return Task.CompletedTask;
+        if (content is not { } c) return Task.FromResult(false);
 
         return TrySendAsync(order.Email, c.Subject,
             $"""
@@ -161,10 +162,10 @@ public sealed class OrderNotifications(
             {(order.Status == OrderStatus.Refunded ? "" : FollowUsHtml(en))}
             <p>{Html.Encode(Shop.Name)}</p>
             """,
-            replyTo: Shop.ContactEmail, ct);
+            replyTo: Shop.ContactEmail);
     }
 
-    public Task BackInStockAsync(Product product, StockAlert alert, CancellationToken ct = default)
+    public Task<bool> BackInStockAsync(Product product, StockAlert alert)
     {
         var en = IsEnglish(alert.Language);
         var name = en && !string.IsNullOrWhiteSpace(product.NameEn) ? product.NameEn : product.Name;
@@ -188,7 +189,7 @@ public sealed class OrderNotifications(
                   <p>Det här var ett engångsmejl. Vi har tagit bort din adress från listan.</p>
                   <p>{Html.Encode(Shop.Name)}</p>
                   """,
-            replyTo: Shop.ContactEmail, ct);
+            replyTo: Shop.ContactEmail);
     }
 
     /// <summary>The order's own page, where the customer can see where it is. The random order id is the key.</summary>
@@ -209,7 +210,7 @@ public sealed class OrderNotifications(
         return baseUrl is null ? null : Seo.PageUrl(baseUrl, path, english ? Languages.English : Languages.Swedish);
     }
 
-    public async Task CustomRequestReceivedAsync(CustomOrderRequest request, CancellationToken ct = default)
+    public async Task CustomRequestReceivedAsync(CustomOrderRequest request)
     {
         var en = IsEnglish(request.Language);
         var description = Html.Encode(request.Description).Replace("\n", "<br>");
@@ -231,7 +232,7 @@ public sealed class OrderNotifications(
                   <blockquote>{description}</blockquote>
                   <p>{Html.Encode(Shop.Name)}</p>
                   """,
-            replyTo: Shop.ContactEmail, ct);
+            replyTo: Shop.ContactEmail);
 
         foreach (var owner in Shop.NotificationRecipients)
         {
@@ -243,7 +244,7 @@ public sealed class OrderNotifications(
                 Bifogad fil: {Html.Encode(request.AttachmentOriginalName ?? "ingen")}<br>
                 Leverans: {(request.Delivery == DeliveryMethod.Pickup ? "Vill hämta i " + Html.Encode(Shop.Town) : "Skickas")}</p>
                 <p>Öppna adminsidan för att se förfrågan och ladda ner eventuell fil.</p>
-                """, replyTo: request.Email, ct);
+                """, replyTo: request.Email);
         }
     }
 
@@ -302,15 +303,22 @@ public sealed class OrderNotifications(
         {(string.IsNullOrWhiteSpace(o.Phone) ? "" : "Telefon: " + Html.Encode(o.Phone))}</p>
         """;
 
-    private async Task TrySendAsync(string to, string subject, string body, string? replyTo, CancellationToken ct)
+    /// <summary>
+    /// Sends one email and reports whether it went. It deliberately ignores the caller's request token: these emails
+    /// go out after an order or request is already saved, and a visitor closing the tab must not lose them.
+    /// </summary>
+    private async Task<bool> TrySendAsync(string to, string subject, string body, string? replyTo)
     {
+        using var timeout = new CancellationTokenSource(SendTimeout);
         try
         {
-            await email.SendAsync(to, subject, body, replyTo, ct);
+            await email.SendAsync(to, subject, body, replyTo, timeout.Token);
+            return true;
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Could not send email '{Subject}' to {To}", subject, to);
+            return false;
         }
     }
 }
