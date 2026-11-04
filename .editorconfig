@@ -1,0 +1,27 @@
+# Matches the code style already used in the repo, so `dotnet format` (and the Claude Code format hook) leave it alone.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.{json,csproj,props,targets,slnx,xml,resx}]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.cs]
+csharp_style_namespace_declarations = file_scoped:suggestion
+csharp_new_line_before_members_in_object_initializers = false
+csharp_new_line_before_members_in_anonymous_types = false
+csharp_preserve_single_line_statements = true
+csharp_preserve_single_line_blocks = true
+
+# EF Core writes these; leave them as generated.
+[**/Migrations/*.cs]
+generated_code = true
