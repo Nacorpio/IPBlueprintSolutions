@@ -73,6 +73,7 @@ services.AddRateLimiter(o =>
     o.AddPolicy(AdminPolicy.LoginRateLimit, ctx => RateLimitPartition.GetFixedWindowLimiter(
         ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
         _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(5) }));
+    o.AddFormRateLimits();
 });
 
 // Swedish by default, English on request. See Localization/Languages.cs.

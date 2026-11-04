@@ -123,6 +123,8 @@
   <data name="We couldn't reach the payment provider. Please try again in a moment." xml:space="preserve"><value>Vi fick inte kontakt med betaltjänsten. Försök igen om en liten stund.</value></data>
   <data name="Page not found" xml:space="preserve"><value>Sidan hittades inte</value></data>
   <data name="Something went wrong" xml:space="preserve"><value>Något gick fel</value></data>
+  <data name="Too many attempts" xml:space="preserve"><value>För många försök</value></data>
+  <data name="You've sent this form several times in a short while. Please wait a little and try again, or email us." xml:space="preserve"><value>Du har skickat formuläret flera gånger på kort tid. Vänta en stund och försök igen, eller mejla oss.</value></data>
   <data name="We couldn't find that page" xml:space="preserve"><value>Vi hittade inte sidan</value></data>
   <data name="It may have moved or no longer exist." xml:space="preserve"><value>Den kan ha flyttats eller finns inte längre.</value></data>
   <data name="Sorry about that. Please try again, or contact us if the problem continues." xml:space="preserve"><value>Ledsen för det. Försök igen, eller kontakta oss om problemet kvarstår.</value></data>

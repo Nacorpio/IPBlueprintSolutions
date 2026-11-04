@@ -5,11 +5,13 @@ using IPBlueprint.Store.Payments;
 using IPBlueprint.Store.Shop;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
 
 namespace IPBlueprint.Store.Pages;
 
+[EnableRateLimiting(FormRateLimits.Checkout)]
 public class CheckoutModel(
     CartService cart,
     OrderService orders,

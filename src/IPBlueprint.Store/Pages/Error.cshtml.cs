@@ -10,6 +10,7 @@ public class ErrorModel : PageModel
 {
     public string? RequestId { get; private set; }
     public bool IsNotFound { get; private set; }
+    public bool IsTooManyRequests { get; private set; }
 
     public void OnGet(int? code) => Set(code);
     public void OnPost(int? code) => Set(code);
@@ -17,6 +18,7 @@ public class ErrorModel : PageModel
     private void Set(int? code)
     {
         IsNotFound = code == 404;
+        IsTooManyRequests = code == 429;
         RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier;
     }
 }

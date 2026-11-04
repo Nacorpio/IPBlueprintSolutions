@@ -215,21 +215,23 @@ public sealed class OrderNotifications(
         var en = IsEnglish(request.Language);
         var description = Html.Encode(request.Description).Replace("\n", "<br>");
 
+        // The address was typed in by whoever filled in the form, so the customer's copy repeats none of their text
+        // (not even the name): otherwise the form could be used to send anyone a message from the shop's account.
         await TrySendAsync(request.Email,
             en ? "We received your custom order request" : "Vi har tagit emot din förfrågan",
             en
                 ? $"""
-                  <p>Hi {Html.Encode(request.Name)},</p>
-                  <p>Thanks for your request. We'll read it and reply with a price and an estimated delivery time,
-                  usually within a few days. This is what you sent:</p>
-                  <blockquote>{description}</blockquote>
+                  <p>Hi,</p>
+                  <p>Thanks for your custom order request. We'll read it and reply with a price and an estimated
+                  delivery time, usually within a few days.</p>
+                  <p>If you didn't send a request to us, you can ignore this email.</p>
                   <p>{Html.Encode(Shop.Name)}</p>
                   """
                 : $"""
-                  <p>Hej {Html.Encode(request.Name)}!</p>
-                  <p>Tack för din förfrågan. Vi läser igenom den och återkommer med ett pris och en ungefärlig leveranstid,
-                  oftast inom några dagar. Det här är vad du skickade:</p>
-                  <blockquote>{description}</blockquote>
+                  <p>Hej!</p>
+                  <p>Tack för din förfrågan om en specialbeställning. Vi läser igenom den och återkommer med ett pris och
+                  en ungefärlig leveranstid, oftast inom några dagar.</p>
+                  <p>Om du inte har skickat någon förfrågan till oss kan du bortse från det här mejlet.</p>
                   <p>{Html.Encode(Shop.Name)}</p>
                   """,
             replyTo: Shop.ContactEmail);
