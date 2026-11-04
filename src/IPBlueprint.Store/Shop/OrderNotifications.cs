@@ -3,6 +3,7 @@ using System.Text.Encodings.Web;
 using IPBlueprint.Store.Data;
 using IPBlueprint.Store.Email;
 using IPBlueprint.Store.Localization;
+using IPBlueprint.Store.Payments;
 using Microsoft.Extensions.Options;
 
 namespace IPBlueprint.Store.Shop;
@@ -73,6 +74,25 @@ public sealed class OrderNotifications(
                 {OrderSummaryHtml(order, english: false)}
                 {(order.IsPickup ? PickupHtml(order) : AddressHtml(order))}
                 {(string.IsNullOrWhiteSpace(order.CustomerNote) ? "" : $"<p><strong>Meddelande från kunden:</strong> {Html.Encode(order.CustomerNote)}</p>")}
+                """, replyTo: order.Email);
+        }
+    }
+
+    /// <summary>Tells the owners (in Swedish) that a customer paid a checkout the order didn't need, so it can be refunded.</summary>
+    public async Task ExtraPaymentAsync(Order order, SumUpCheckout checkout, bool cancelled)
+    {
+        var why = cancelled
+            ? "Beställningen var avbruten, men kunden har ändå betalat den."
+            : "Beställningen var redan betald, men kunden har betalat en gång till via en annan betalning.";
+        foreach (var owner in Shop.NotificationRecipients)
+        {
+            await TrySendAsync(owner, $"Kolla betalningen för {order.Reference}: {Money.Format(checkout.Amount)} ska återbetalas",
+                $"""
+                <p><strong>{why}</strong></p>
+                <p>Återbetala SumUp-betalningen <code>{Html.Encode(checkout.Id)}</code> ({Money.Format(checkout.Amount)}) i SumUp,
+                {(cancelled ? "eller återuppta beställningen" : "så att kunden bara betalar en gång")}.
+                Kund: {Html.Encode(order.CustomerName)} ({Html.Encode(order.Email)}).</p>
+                {OrderSummaryHtml(order, english: false)}
                 """, replyTo: order.Email);
         }
     }

@@ -283,6 +283,35 @@ public partial class StockAndStatusTests : IClassFixture<StoreFactory>
     }
 
     [Fact]
+    public async Task Refund_after_a_stock_shortage_puts_back_only_what_was_taken()
+    {
+        var product = await AddProductAsync("Sista vasen", stock: 1);
+        var first = await PlaceOrderAsync(product);
+        var second = await PlaceOrderAsync(product);
+        await PayAsync(first);
+        await PayAsync(second); // nothing left to take: the owners are warned about the shortage
+        Assert.Equal(0, await StockAsync(product.Id));
+
+        Assert.Equal(StatusChangeResult.Changed, await ChangeAsync(second.Id, new(OrderStatus.Refunded, Restock: true)));
+
+        Assert.Equal(0, await StockAsync(product.Id));
+    }
+
+    [Fact]
+    public async Task Refund_of_a_product_that_was_made_to_order_when_sold_adds_no_stock()
+    {
+        var product = await AddProductAsync("Beställd figur"); // made to order
+        var order = await PlaceOrderAsync(product, quantity: 2);
+        await PayAsync(order);
+        await _factory.WithDbAsync(db => db.Products.Where(p => p.Id == product.Id)
+            .ExecuteUpdateAsync(s => s.SetProperty(p => p.Stock, 3))); // later given a stock count
+
+        Assert.Equal(StatusChangeResult.Changed, await ChangeAsync(order.Id, new(OrderStatus.Refunded, Restock: true)));
+
+        Assert.Equal(3, await StockAsync(product.Id));
+    }
+
+    [Fact]
     public async Task Order_page_shows_where_the_order_is()
     {
         var order = await PlaceOrderAsync(await AddProductAsync("Spårad vas"));

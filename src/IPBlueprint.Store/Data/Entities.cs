@@ -196,6 +196,12 @@ public class Order
     /// <summary>True once a refund put the items back in stock, so it can't happen twice.</summary>
     public bool StockRestored { get; set; }
 
+    /// <summary>
+    /// A SumUp checkout that was paid although the order didn't need paying (already paid through another checkout,
+    /// or cancelled). The customer has been charged for it and the owners were emailed once to refund it.
+    /// </summary>
+    public string? ExtraPaymentCheckoutId { get; set; }
+
     public List<OrderLine> Lines { get; set; } = [];
 
     public List<OrderStatusChange> History { get; set; } = [];
@@ -212,6 +218,10 @@ public class OrderLine
     public required string ProductName { get; set; }
     public decimal UnitPrice { get; set; }
     public int Quantity { get; set; }
+
+    /// <summary>How many were actually taken out of stock at payment. Less than <see cref="Quantity"/> when stock ran
+    /// short, and 0 for made-to-order products. A refund puts back only this many.</summary>
+    public int StockTaken { get; set; }
 
     public decimal LineTotal => UnitPrice * Quantity;
 }
