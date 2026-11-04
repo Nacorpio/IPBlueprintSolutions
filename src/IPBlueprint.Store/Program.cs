@@ -111,6 +111,7 @@ await using (var scope = app.Services.CreateAsyncScope())
     var db = scope.ServiceProvider.GetRequiredService<StoreDbContext>();
     await db.Database.MigrateAsync();
     if (app.Environment.IsDevelopment()) await DevelopmentSeed.RunAsync(db);
+    await scope.ServiceProvider.GetRequiredService<FileStore>().ReencodeOldProductImagesAsync(db);
 }
 
 app.UseForwardedHeaders();
