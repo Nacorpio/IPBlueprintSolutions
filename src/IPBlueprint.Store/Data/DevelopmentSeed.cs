@@ -9,8 +9,11 @@ public static class DevelopmentSeed
     {
         if (await db.Products.AnyAsync()) return;
 
-        var home = new Category { Slug = "hem-och-inredning", Name = "Hem & inredning", NameEn = "Home & decor", SortOrder = 1,
-            Description = "Krukor, hållare och annat för hemmet.", DescriptionEn = "Planters, holders and other things for the home." };
+        var home = new Category
+        {
+            Slug = "hem-och-inredning", Name = "Hem & inredning", NameEn = "Home & decor", SortOrder = 1,
+            Description = "Krukor, hållare och annat för hemmet.", DescriptionEn = "Planters, holders and other things for the home."
+        };
         var figures = new Category { Slug = "figurer", Name = "Figurer", NameEn = "Figures", SortOrder = 2 };
         db.Categories.AddRange(home, figures);
 

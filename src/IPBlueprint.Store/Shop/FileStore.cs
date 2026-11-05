@@ -1,12 +1,17 @@
+using IPBlueprint.Store.Data;
 using IPBlueprint.Store.Localization;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Localization;
 
 namespace IPBlueprint.Store.Shop;
 
 /// <summary>Saves uploaded files under random names, after checking type and size.</summary>
-public sealed class FileStore(StoragePaths paths, IStringLocalizer<SharedResource> localizer)
+public sealed class FileStore(StoragePaths paths, IStringLocalizer<SharedResource> localizer, ILogger<FileStore> logger)
 {
     public const long MaxProductImageBytes = 10 * 1024 * 1024;
+
+    /// <summary>Longest side of a saved product photo.</summary>
+    public const int ProductImageSize = 1600;
     public const long MaxAttachmentBytes = 25 * 1024 * 1024;
 
     internal static readonly HashSet<string> ImageExtensions = [".jpg", ".jpeg", ".png", ".webp"];
@@ -23,7 +28,52 @@ public sealed class FileStore(StoragePaths paths, IStringLocalizer<SharedResourc
         if (file.Length > MaxProductImageBytes) return (null, "Images can be at most 10 MB.");
         if (!await LooksLikeImageAsync(file, ct)) return (null, "That file doesn't look like an image.");
 
-        return (await SaveAsync(file, paths.ProductImages, ext, ct), null);
+        using var buffer = new MemoryStream((int)file.Length);
+        await file.CopyToAsync(buffer, ct);
+        return SaveProductImage(buffer.ToArray()) is { } name
+            ? (name, null)
+            : (null, "That image couldn't be read. Try saving it again as JPG.");
+    }
+
+    /// <summary>
+    /// Re-encodes a product photo as WebP, the right way up and without metadata. Phone photos carry the GPS position
+    /// of where they were taken, and these are public, so the original file is never kept.
+    /// </summary>
+    internal string? SaveProductImage(byte[] data)
+    {
+        try
+        {
+            using var upright = GalleryPhotos.DecodeUpright(data, ProductImageSize);
+            return upright is null ? null
+                : GalleryPhotos.WriteWebp(upright, ProductImageSize, paths.ProductImages, $"{Guid.NewGuid():N}.webp").FileName;
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Could not process a product photo");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Product photos uploaded before they were re-encoded are still the original files, possibly with GPS data.
+    /// Converts each one once (at startup) and deletes the original.
+    /// </summary>
+    public async Task ReencodeOldProductImagesAsync(StoreDbContext db, CancellationToken ct = default)
+    {
+        var old = await db.Products.Where(p => p.ImageFileName != null && !p.ImageFileName.EndsWith(".webp")).ToListAsync(ct);
+        foreach (var product in old)
+        {
+            var path = SafePath(paths.ProductImages, product.ImageFileName);
+            if (path is null || !File.Exists(path)) continue;
+
+            var converted = SaveProductImage(await File.ReadAllBytesAsync(path, ct));
+            if (converted is null) continue; // leave it; the admin can upload it again
+
+            product.ImageFileName = converted;
+            await db.SaveChangesAsync(ct);
+            File.Delete(path);
+            logger.LogInformation("Re-encoded the photo of {Product} without its metadata", product.Name);
+        }
     }
 
     public async Task<(string? FileName, string? Error)> SaveAttachmentAsync(IFormFile file, CancellationToken ct = default)

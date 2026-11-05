@@ -46,6 +46,44 @@ public partial class GalleryTests : IClassFixture<StoreFactory>
     }
 
     [Fact]
+    public async Task Product_photo_is_saved_as_webp_upright_and_without_camera_data()
+    {
+        var jpeg = WithExifOrientation(MakeJpeg(3000, 1500), orientation: 6);
+        var files = _factory.Services.GetRequiredService<FileStore>();
+
+        var (name, error) = await files.SaveProductImageAsync(FormFile(jpeg, "IMG_5678.JPG"));
+
+        Assert.Null(error);
+        Assert.EndsWith(".webp", name);
+        var bytes = await File.ReadAllBytesAsync(Path.Combine(StoragePaths().ProductImages, name!));
+        Assert.Equal("WEBP", Encoding.ASCII.GetString(bytes, 8, 4));
+        Assert.DoesNotContain("Exif", Encoding.ASCII.GetString(bytes));
+        using var saved = SKBitmap.Decode(bytes);
+        Assert.Equal((FileStore.ProductImageSize / 2, FileStore.ProductImageSize), (saved.Width, saved.Height));
+    }
+
+    [Fact]
+    public async Task Product_photos_uploaded_before_re_encoding_are_converted_at_startup()
+    {
+        var product = await _factory.AddProductAsync("Gammal bild", 100m);
+        var original = Path.Combine(StoragePaths().ProductImages, $"{Guid.NewGuid():N}.jpg");
+        await File.WriteAllBytesAsync(original, WithExifOrientation(MakeJpeg(400, 300), orientation: 1));
+        await _factory.WithDbAsync(db => db.Products.Where(p => p.Id == product.Id)
+            .ExecuteUpdateAsync(s => s.SetProperty(p => p.ImageFileName, Path.GetFileName(original))));
+
+        await using (var scope = _factory.Services.CreateAsyncScope())
+        {
+            await scope.ServiceProvider.GetRequiredService<FileStore>()
+                .ReencodeOldProductImagesAsync(scope.ServiceProvider.GetRequiredService<StoreDbContext>());
+        }
+
+        var now = await _factory.WithDbAsync(db => db.Products.Where(p => p.Id == product.Id).Select(p => p.ImageFileName).SingleAsync());
+        Assert.EndsWith(".webp", now);
+        Assert.True(File.Exists(Path.Combine(StoragePaths().ProductImages, now!)));
+        Assert.False(File.Exists(original));
+    }
+
+    [Fact]
     public async Task Small_photos_are_not_enlarged()
     {
         var photos = _factory.Services.GetRequiredService<GalleryPhotos>();

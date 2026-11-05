@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(dotnet build:*)",
+      "Bash(dotnet test:*)",
+      "Bash(dotnet format:*)",
+      "Bash(dotnet ef migrations list:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if command -v dotnet >/dev/null 2>&1; then dotnet run \"$CLAUDE_PROJECT_DIR/.claude/hooks/format-cs.cs\"; fi",
+            "timeout": 120
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if command -v dotnet >/dev/null 2>&1; then dotnet run \"$CLAUDE_PROJECT_DIR/.claude/hooks/stop-check.cs\"; fi",
+            "timeout": 300
+          }
+        ]
+      }
+    ]
+  }
+}

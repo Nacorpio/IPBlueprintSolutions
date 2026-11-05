@@ -4,11 +4,13 @@ using IPBlueprint.Store.Localization;
 using IPBlueprint.Store.Shop;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
 
 namespace IPBlueprint.Store.Pages;
 
+[EnableRateLimiting(FormRateLimits.CustomRequest)]
 [RequestSizeLimit(FileStore.MaxAttachmentBytes + 1024 * 1024)]
 [RequestFormLimits(MultipartBodyLengthLimit = FileStore.MaxAttachmentBytes + 1024 * 1024)]
 public class CustomModel(
@@ -64,7 +66,7 @@ public class CustomModel(
         db.CustomOrderRequests.Add(request);
         await db.SaveChangesAsync(ct);
 
-        await notifications.CustomRequestReceivedAsync(request, ct);
+        await notifications.CustomRequestReceivedAsync(request);
 
         TempData["Flash"] = localizer["Thanks! We've received your request and sent you a confirmation by email. We'll get back to you soon."].Value;
         return RedirectToPage("/Index");

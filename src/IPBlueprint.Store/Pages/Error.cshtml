@@ -1,7 +1,9 @@
 @page
 @model ErrorModel
 @{
-    ViewData["Title"] = Model.IsNotFound ? L["Page not found"].Value : L["Something went wrong"].Value;
+    ViewData["Title"] = Model.IsNotFound ? L["Page not found"].Value
+        : Model.IsTooManyRequests ? L["Too many attempts"].Value
+        : L["Something went wrong"].Value;
     ViewData["NoIndex"] = true;
 }
 <div class="prose">
@@ -9,6 +11,11 @@
     {
         <h1>@L["We couldn't find that page"]</h1>
         <p>@L["It may have moved or no longer exist."]</p>
+    }
+    else if (Model.IsTooManyRequests)
+    {
+        <h1>@L["Too many attempts"]</h1>
+        <p>@L["You've sent this form several times in a short while. Please wait a little and try again, or email us."]</p>
     }
     else
     {

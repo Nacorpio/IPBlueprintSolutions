@@ -63,21 +63,29 @@ public sealed class GalleryPhotos(StoragePaths paths, ILogger<GalleryPhotos> log
 
     private SavedGalleryPhoto? Process(byte[] data)
     {
+        using var oriented = DecodeUpright(data, LargeSize);
+        if (oriented is null) return null;
+
+        var id = Guid.NewGuid().ToString("N");
+        var (large, lw, lh) = WriteWebp(oriented, LargeSize, paths.GalleryImages, $"{id}.webp");
+        var (thumb, tw, th) = WriteWebp(oriented, ThumbnailSize, paths.GalleryImages, $"{id}-thumb.webp");
+        return new SavedGalleryPhoto(large, lw, lh, thumb, tw, th);
+    }
+
+    /// <summary>
+    /// Decodes an uploaded image and turns it the right way up. The result has no metadata at all, so whatever is
+    /// written from it carries no camera data or GPS position. Null when the file can't be read or is too big.
+    /// </summary>
+    internal static SKBitmap? DecodeUpright(byte[] data, int longestSide)
+    {
         using var codec = SKCodec.Create(new SKMemoryStream(data));
         if (codec is null) return null;
 
         var info = codec.Info;
         if (info.Width <= 0 || info.Height <= 0 || (long)info.Width * info.Height > MaxSourcePixels) return null;
 
-        using var decoded = Decode(codec, LargeSize);
-        if (decoded is null) return null;
-
-        using var oriented = Orient(decoded, codec.EncodedOrigin);
-        var id = Guid.NewGuid().ToString("N");
-
-        var (large, lw, lh) = WriteWebp(oriented, LargeSize, $"{id}.webp");
-        var (thumb, tw, th) = WriteWebp(oriented, ThumbnailSize, $"{id}-thumb.webp");
-        return new SavedGalleryPhoto(large, lw, lh, thumb, tw, th);
+        using var decoded = Decode(codec, longestSide);
+        return decoded is null ? null : Orient(decoded, codec.EncodedOrigin);
     }
 
     /// <summary>
@@ -125,7 +133,8 @@ public sealed class GalleryPhotos(StoragePaths paths, ILogger<GalleryPhotos> log
         return result;
     }
 
-    private (string FileName, int Width, int Height) WriteWebp(SKBitmap source, int longestSide, string fileName)
+    /// <summary>Writes a WebP copy no bigger than <paramref name="longestSide"/> into <paramref name="folder"/>.</summary>
+    internal static (string FileName, int Width, int Height) WriteWebp(SKBitmap source, int longestSide, string folder, string fileName)
     {
         var scale = Math.Min(1.0, (double)longestSide / Math.Max(source.Width, source.Height));
         var width = Math.Max(1, (int)Math.Round(source.Width * scale));
@@ -138,7 +147,7 @@ public sealed class GalleryPhotos(StoragePaths paths, ILogger<GalleryPhotos> log
 
         using var image = SKImage.FromBitmap(resized);
         using var encoded = image.Encode(SKEncodedImageFormat.Webp, WebpQuality);
-        using (var output = File.Create(Path.Combine(paths.GalleryImages, fileName)))
+        using (var output = File.Create(Path.Combine(folder, fileName)))
         {
             encoded.SaveTo(output);
         }

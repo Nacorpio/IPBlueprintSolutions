@@ -200,6 +200,9 @@ namespace IPBlueprint.Store.Data.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("ExtraPaymentCheckoutId")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Language")
                         .IsRequired()
                         .HasMaxLength(5)
@@ -278,6 +281,9 @@ namespace IPBlueprint.Store.Data.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<int>("Quantity")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("StockTaken")
                         .HasColumnType("INTEGER");
 
                     b.Property<decimal>("UnitPrice")

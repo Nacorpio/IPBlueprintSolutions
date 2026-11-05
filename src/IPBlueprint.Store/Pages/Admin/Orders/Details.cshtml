@@ -16,6 +16,11 @@
     </span>
 </div>
 
+@if (o.ExtraPaymentCheckoutId is { } extra)
+{
+    <div class="notice">The customer also paid SumUp checkout <code>@extra</code>, which this order didn't need. Refund it in SumUp.</div>
+}
+
 <div class="layout-two">
     <div class="panel">
         <h2>Items</h2>

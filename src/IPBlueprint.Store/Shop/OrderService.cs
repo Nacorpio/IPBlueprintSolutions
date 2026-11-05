@@ -184,12 +184,16 @@ public sealed class OrderService(
         {
             if (order.Status == OrderStatus.Cancelled)
             {
-                logger.LogError("Order {Reference} was cancelled but SumUp checkout {CheckoutId} has been paid. Refund it or reinstate the order.",
-                    order.Reference, checkout.Id);
+                await ReportExtraPaymentAsync(order, checkout, cancelled: true, ct);
                 return PaymentSyncResult.AlreadyPaid;
             }
 
-            if (!Payable.Contains(order.Status)) return PaymentSyncResult.AlreadyPaid;
+            if (!Payable.Contains(order.Status))
+            {
+                // A second checkout for the same order (the "Pay now" retry) was paid too: the customer paid twice.
+                if (checkout.Id != order.SumUpCheckoutId) await ReportExtraPaymentAsync(order, checkout, cancelled: false, ct);
+                return PaymentSyncResult.AlreadyPaid;
+            }
 
             if (checkout.Amount != order.Total ||
                 !string.Equals(checkout.Currency, sumUpOptions.Value.Currency, StringComparison.OrdinalIgnoreCase))
@@ -236,7 +240,8 @@ public sealed class OrderService(
             foreach (var s in shortages)
                 logger.LogWarning("Order {Reference} took {Ordered} × {Product}, but only {InStock} were in stock", order.Reference, s.Ordered, s.ProductName, s.InStock);
 
-            await notifications.OrderPaidAsync(order, shortages, ct);
+            // The payment is committed: from here on the visitor leaving must not stop the emails.
+            await notifications.OrderPaidAsync(order, shortages);
             return PaymentSyncResult.MarkedPaid;
         }
 
@@ -290,7 +295,8 @@ public sealed class OrderService(
             await db.Orders.Where(o => o.Id == orderId).ExecuteUpdateAsync(s => s.SetProperty(o => o.StockRestored, true), ct);
         }
 
-        db.OrderStatusChanges.Add(new OrderStatusChange { OrderId = orderId, Status = request.To, AtUtc = now, CustomerEmailed = emailCustomer });
+        var historyEntry = new OrderStatusChange { OrderId = orderId, Status = request.To, AtUtc = now, CustomerEmailed = emailCustomer };
+        db.OrderStatusChanges.Add(historyEntry);
         await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
 
@@ -303,10 +309,33 @@ public sealed class OrderService(
         }
 
         logger.LogInformation("Order {Reference}: {From} -> {To}", order.Reference, from, request.To);
-        if (emailCustomer) await notifications.StatusChangedAsync(order, ct);
-        foreach (var productId in backInStock) await stockAlerts.NotifyIfAvailableAsync(productId, ct);
+        // The change is committed: from here on the admin leaving the page must not stop the emails.
+        if (emailCustomer && !await notifications.StatusChangedAsync(order))
+        {
+            await db.OrderStatusChanges.Where(c => c.Id == historyEntry.Id)
+                .ExecuteUpdateAsync(s => s.SetProperty(c => c.CustomerEmailed, false), CancellationToken.None);
+        }
+        foreach (var productId in backInStock) await stockAlerts.NotifyIfAvailableAsync(productId, CancellationToken.None);
 
         return StatusChangeResult.Changed;
+    }
+
+    /// <summary>
+    /// The customer paid a checkout the order didn't need. Logs an error and emails the owners, once per checkout even
+    /// though SumUp and the return page may report it many times.
+    /// </summary>
+    private async Task ReportExtraPaymentAsync(Order order, SumUpCheckout checkout, bool cancelled, CancellationToken ct)
+    {
+        var first = await db.Orders
+            .Where(o => o.Id == order.Id && (o.ExtraPaymentCheckoutId == null || o.ExtraPaymentCheckoutId != checkout.Id))
+            .ExecuteUpdateAsync(s => s.SetProperty(o => o.ExtraPaymentCheckoutId, checkout.Id), ct);
+        if (first == 0) return;
+
+        logger.LogError(cancelled
+                ? "Order {Reference} was cancelled but SumUp checkout {CheckoutId} has been paid. Refund it or reinstate the order."
+                : "Order {Reference} was already paid, but SumUp checkout {CheckoutId} was paid as well. Refund that checkout.",
+            order.Reference, checkout.Id);
+        await notifications.ExtraPaymentAsync(order, checkout, cancelled);
     }
 
     /// <summary>Takes a paid order's items out of stock. Made-to-order products have no stock and are skipped.
@@ -325,20 +354,29 @@ public sealed class OrderService(
 
             await db.Products.Where(p => p.Id == productId && p.Stock != null)
                 .ExecuteUpdateAsync(s => s.SetProperty(p => p.Stock, p => p.Stock > quantity ? p.Stock - quantity : 0), ct);
+
+            // Remember what was really taken (saved with the order's payment), so a refund can't put back more.
+            var taken = Math.Clamp(stock.Value, 0, quantity);
+            foreach (var orderLine in line)
+            {
+                orderLine.StockTaken = Math.Min(orderLine.Quantity, taken);
+                taken -= orderLine.StockTaken;
+            }
         }
         return shortages;
     }
 
-    /// <summary>Puts a refunded order's items back. Returns the products that were sold out and now aren't.</summary>
+    /// <summary>Puts back what a refunded order took out of stock (not more, if stock ran short or the product was made
+    /// to order then). Returns the products that were sold out and now aren't.</summary>
     private async Task<List<int>> ReturnToStockAsync(Order order, CancellationToken ct)
     {
         var backInStock = new List<int>();
-        foreach (var line in order.Lines.Where(l => l.ProductId is not null).GroupBy(l => l.ProductId!.Value))
+        foreach (var line in order.Lines.Where(l => l.ProductId is not null && l.StockTaken > 0).GroupBy(l => l.ProductId!.Value))
         {
             var productId = line.Key;
-            var quantity = line.Sum(l => l.Quantity);
+            var quantity = line.Sum(l => l.StockTaken);
             var stock = await db.Products.Where(p => p.Id == productId).Select(p => p.Stock).FirstOrDefaultAsync(ct);
-            if (stock is null) continue;
+            if (stock is null) continue; // made to order now: nothing to count
 
             await db.Products.Where(p => p.Id == productId && p.Stock != null)
                 .ExecuteUpdateAsync(s => s.SetProperty(p => p.Stock, p => (p.Stock > 0 ? p.Stock : 0) + quantity), ct);

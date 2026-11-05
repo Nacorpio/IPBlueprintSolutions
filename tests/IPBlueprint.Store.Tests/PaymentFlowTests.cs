@@ -131,4 +131,67 @@ public class PaymentFlowTests : IClassFixture<StoreFactory>
         Assert.Contains("Tack för din beställning", html);
         Assert.Equal(OrderStatus.Paid, (await ReloadAsync(order.Id)).Status);
     }
+
+    [Fact]
+    public async Task Paid_emails_still_go_out_when_the_visitor_leaves_while_they_are_sending()
+    {
+        var (order, checkoutId) = await PlaceOrderAsync();
+        _factory.SumUp.SetStatus(checkoutId, "PAID");
+        using var visitorLeaves = new CancellationTokenSource();
+        _factory.Emails.BeforeSend = visitorLeaves.Cancel; // the tab is closed as soon as the first email starts
+
+        try
+        {
+            await using var scope = _factory.Services.CreateAsyncScope();
+            var result = await scope.ServiceProvider.GetRequiredService<OrderService>().SyncCheckoutAsync(checkoutId, visitorLeaves.Token);
+            Assert.Equal(PaymentSyncResult.MarkedPaid, result);
+        }
+        finally
+        {
+            _factory.Emails.BeforeSend = null;
+        }
+
+        Assert.Equal(2, EmailsAbout(order.Reference)); // the customer's confirmation and the owner's new-order email
+    }
+
+    [Fact]
+    public async Task Paying_a_second_checkout_for_a_paid_order_tells_the_owners_once()
+    {
+        var (order, firstCheckout) = await PlaceOrderAsync();
+
+        // The customer used "Pay now" while the first payment page was still open, and then paid both.
+        await using (var scope = _factory.Services.CreateAsyncScope())
+        {
+            var tracked = await scope.ServiceProvider.GetRequiredService<StoreDbContext>().Orders.SingleAsync(o => o.Id == order.Id);
+            await scope.ServiceProvider.GetRequiredService<OrderService>().StartPaymentAsync(tracked, new Uri("https://shop.test/"));
+        }
+        var secondCheckout = (await ReloadAsync(order.Id)).SumUpCheckoutId!;
+        _factory.SumUp.SetStatus(secondCheckout, "PAID");
+        await PostWebhookAsync(secondCheckout);
+        _factory.SumUp.SetStatus(firstCheckout, "PAID");
+
+        await PostWebhookAsync(firstCheckout);
+        await PostWebhookAsync(firstCheckout); // SumUp may send it again
+
+        var saved = await ReloadAsync(order.Id);
+        Assert.Equal(OrderStatus.Paid, saved.Status);
+        Assert.Equal(secondCheckout, saved.SumUpCheckoutId);
+        Assert.Equal(firstCheckout, saved.ExtraPaymentCheckoutId);
+        var alert = Assert.Single(_factory.Emails.Sent, e => e.Subject.StartsWith($"Kolla betalningen för {order.Reference}"));
+        Assert.Equal("owner@shop.test", alert.To);
+        Assert.Contains(firstCheckout, alert.Body);
+    }
+
+    [Fact]
+    public async Task The_same_checkout_reported_again_is_not_a_second_payment()
+    {
+        var (order, checkoutId) = await PlaceOrderAsync();
+        _factory.SumUp.SetStatus(checkoutId, "PAID");
+
+        await PostWebhookAsync(checkoutId);
+        await PostWebhookAsync(checkoutId);
+
+        Assert.Null((await ReloadAsync(order.Id)).ExtraPaymentCheckoutId);
+        Assert.DoesNotContain(_factory.Emails.Sent, e => e.Subject.StartsWith($"Kolla betalningen för {order.Reference}"));
+    }
 }

@@ -73,6 +73,7 @@ services.AddRateLimiter(o =>
     o.AddPolicy(AdminPolicy.LoginRateLimit, ctx => RateLimitPartition.GetFixedWindowLimiter(
         ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
         _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(5) }));
+    o.AddFormRateLimits();
 });
 
 // Swedish by default, English on request. See Localization/Languages.cs.
@@ -110,6 +111,7 @@ await using (var scope = app.Services.CreateAsyncScope())
     var db = scope.ServiceProvider.GetRequiredService<StoreDbContext>();
     await db.Database.MigrateAsync();
     if (app.Environment.IsDevelopment()) await DevelopmentSeed.RunAsync(db);
+    await scope.ServiceProvider.GetRequiredService<FileStore>().ReencodeOldProductImagesAsync(db);
 }
 
 app.UseForwardedHeaders();
