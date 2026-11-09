@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using IPBlueprint.Store.Admin;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
@@ -27,8 +26,7 @@ public class LoginModel(IOptions<AdminOptions> options, ILogger<LoginModel> logg
             return Page();
         }
 
-        var identity = new ClaimsIdentity([new Claim(ClaimTypes.Name, "admin")], AdminPolicy.Scheme);
-        await HttpContext.SignInAsync(AdminPolicy.Scheme, new ClaimsPrincipal(identity));
+        await HttpContext.SignInAsync(AdminPolicy.Scheme, AdminSession.CreatePrincipal(options.Value));
 
         return LocalRedirect(Url.IsLocalUrl(returnUrl) ? returnUrl : "/Admin");
     }

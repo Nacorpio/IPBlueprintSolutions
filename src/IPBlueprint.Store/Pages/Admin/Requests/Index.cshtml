@@ -15,7 +15,7 @@ else
                 @foreach (var r in Model.Requests)
                 {
                     <tr>
-                        <td>@r.CreatedAtUtc.ToLocalTime().ToString("yyyy-MM-dd")</td>
+                        <td>@ShopTime.ToSwedish(r.CreatedAtUtc).ToString("yyyy-MM-dd")</td>
                         <td>@r.Name<br /><span class="muted small">@r.Email</span></td>
                         <td><a asp-page="Details" asp-route-id="@r.Id">@(r.Description.Length > 80 ? r.Description[..80] + "…" : r.Description)</a>@(r.AttachmentFileName is not null ? " 📎" : "")</td>
                         <td><span class="badge @r.Status">@r.Status</span></td>

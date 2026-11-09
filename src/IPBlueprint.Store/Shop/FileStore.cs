@@ -88,6 +88,13 @@ public sealed class FileStore(StoragePaths paths, IStringLocalizer<SharedResourc
 
     public string? AttachmentPath(string? fileName) => SafePath(paths.RequestAttachments, fileName);
 
+    /// <summary>Deletes a custom request's attached file, if it has one.</summary>
+    public void DeleteAttachment(string? fileName)
+    {
+        var path = SafePath(paths.RequestAttachments, fileName);
+        if (path is not null && File.Exists(path)) File.Delete(path);
+    }
+
     public void DeleteProductImage(string? fileName)
     {
         var path = SafePath(paths.ProductImages, fileName);
