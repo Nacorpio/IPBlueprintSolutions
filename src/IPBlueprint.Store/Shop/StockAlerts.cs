@@ -56,7 +56,8 @@ public sealed class StockAlerts(StoreDbContext db, OrderNotifications notificati
         return StockAlertResult.Added;
     }
 
-    /// <summary>Emails everyone waiting for the product if it can be bought again, then forgets them.</summary>
+    /// <summary>Emails everyone waiting for the product if it can be bought again, and forgets each address once its email
+    /// has gone out. Returns how many were emailed.</summary>
     public async Task<int> NotifyIfAvailableAsync(int productId, CancellationToken ct = default)
     {
         var product = await db.Products.AsNoTracking().FirstOrDefaultAsync(p => p.Id == productId, ct);
@@ -65,15 +66,47 @@ public sealed class StockAlerts(StoreDbContext db, OrderNotifications notificati
         var alerts = await db.StockAlerts.Where(a => a.ProductId == productId).ToListAsync(ct);
         if (alerts.Count == 0) return 0;
 
-        // Forget the addresses first, so a second save of the product can't email the same people again.
-        var ids = alerts.Select(a => a.Id).ToList();
-        // After this point nothing may be cancelled, or the addresses would be gone without anyone being emailed.
-        await db.StockAlerts.Where(a => ids.Contains(a.Id)).ExecuteDeleteAsync(CancellationToken.None);
+        var sent = 0;
+        foreach (var alert in alerts)
+        {
+            // Claim the address by deleting it before sending, so a second save of the product at the same time can't
+            // email the same person again. From here on nothing may be cancelled, or the address could be lost unsent.
+            var claimed = await db.StockAlerts.Where(a => a.Id == alert.Id).ExecuteDeleteAsync(CancellationToken.None);
+            if (claimed == 0) continue;
 
-        foreach (var alert in alerts) await notifications.BackInStockAsync(product, alert);
+            if (await notifications.BackInStockAsync(product, alert))
+            {
+                sent++;
+                continue;
+            }
 
-        logger.LogInformation("{Product} is back in stock; emailed {Count} people who asked", product.Name, alerts.Count);
-        return alerts.Count;
+            // Not sent (mail server down or rate limiting): put the address back so they hear about the next restock.
+            await RestoreAsync(alert);
+        }
+
+        logger.LogInformation("{Product} is back in stock; emailed {Sent} of {Count} people who asked", product.Name, sent, alerts.Count);
+        return sent;
+    }
+
+    private async Task RestoreAsync(StockAlert alert)
+    {
+        db.StockAlerts.Add(new StockAlert
+        {
+            ProductId = alert.ProductId,
+            Email = alert.Email,
+            Language = alert.Language,
+            CreatedAtUtc = alert.CreatedAtUtc,
+        });
+        try
+        {
+            await db.SaveChangesAsync(CancellationToken.None);
+        }
+        catch (DbUpdateException ex)
+        {
+            // They signed up again in the meantime (already on the list), or the product was just deleted.
+            db.ChangeTracker.Clear();
+            logger.LogWarning(ex, "Could not put a back-in-stock request for product {ProductId} back on the list", alert.ProductId);
+        }
     }
 
     public Task<int> CountWaitingAsync(int productId, CancellationToken ct = default) =>

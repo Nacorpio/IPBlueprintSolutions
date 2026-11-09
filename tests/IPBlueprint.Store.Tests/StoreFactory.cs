@@ -66,8 +66,12 @@ public sealed class FakeSumUp : ISumUpClient
     public ConcurrentDictionary<string, SumUpCheckout> Checkouts { get; } = new();
     public List<CreateCheckoutRequest> Created { get; } = [];
 
-    public Task<SumUpCheckout> CreateCheckoutAsync(CreateCheckoutRequest request, CancellationToken ct = default)
+    /// <summary>Runs before a checkout is created, for example to pay an earlier checkout while this one is being made.</summary>
+    public Func<Task>? BeforeCreate { get; set; }
+
+    public async Task<SumUpCheckout> CreateCheckoutAsync(CreateCheckoutRequest request, CancellationToken ct = default)
     {
+        if (BeforeCreate is { } beforeCreate) await beforeCreate();
         lock (Created) Created.Add(request);
         var id = Guid.NewGuid().ToString();
         var checkout = new SumUpCheckout
@@ -80,7 +84,7 @@ public sealed class FakeSumUp : ISumUpClient
             HostedCheckoutUrl = $"https://checkout.sumup.test/pay/{id}",
         };
         Checkouts[id] = checkout;
-        return Task.FromResult(checkout);
+        return checkout;
     }
 
     public Task<SumUpCheckout?> GetCheckoutAsync(string checkoutId, CancellationToken ct = default) =>

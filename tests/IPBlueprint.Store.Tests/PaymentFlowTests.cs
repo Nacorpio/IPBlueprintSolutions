@@ -194,4 +194,69 @@ public class PaymentFlowTests : IClassFixture<StoreFactory>
         Assert.Null((await ReloadAsync(order.Id)).ExtraPaymentCheckoutId);
         Assert.DoesNotContain(_factory.Emails.Sent, e => e.Subject.StartsWith($"Kolla betalningen för {order.Reference}"));
     }
+
+    [Fact]
+    public async Task Paying_the_first_checkout_while_pay_now_runs_keeps_the_order_on_the_paid_checkout()
+    {
+        var (order, firstCheckout) = await PlaceOrderAsync();
+        // The customer pays the first payment page in another tab while "Pay now" is waiting for SumUp.
+        _factory.SumUp.BeforeCreate = async () =>
+        {
+            _factory.SumUp.SetStatus(firstCheckout, "PAID");
+            await PostWebhookAsync(firstCheckout);
+        };
+
+        string? paymentUrl;
+        try
+        {
+            await using var scope = _factory.Services.CreateAsyncScope();
+            var tracked = await scope.ServiceProvider.GetRequiredService<StoreDbContext>().Orders.SingleAsync(o => o.Id == order.Id);
+            paymentUrl = await scope.ServiceProvider.GetRequiredService<OrderService>().StartPaymentAsync(tracked, new Uri("https://shop.test/"));
+        }
+        finally
+        {
+            _factory.SumUp.BeforeCreate = null;
+        }
+
+        Assert.Null(paymentUrl); // nothing left to pay, so the customer isn't sent to the new checkout
+        var saved = await ReloadAsync(order.Id);
+        Assert.Equal(OrderStatus.Paid, saved.Status);
+        Assert.Equal(firstCheckout, saved.SumUpCheckoutId);
+
+        // If they still manage to pay the new checkout, the owners hear about it.
+        var secondCheckout = _factory.SumUp.Checkouts.Values.Single(c => c.CheckoutReference == order.Reference + "-2").Id;
+        _factory.SumUp.SetStatus(secondCheckout, "PAID");
+        await PostWebhookAsync(secondCheckout);
+        Assert.Equal(secondCheckout, (await ReloadAsync(order.Id)).ExtraPaymentCheckoutId);
+    }
+
+    [Fact]
+    public async Task A_payment_with_the_wrong_amount_tells_the_owners_once_and_stops_the_customer_paying_again()
+    {
+        var (order, checkoutId) = await PlaceOrderAsync(price: 300m);
+        _factory.SumUp.SetStatus(checkoutId, "PAID", amount: 3m);
+
+        await PostWebhookAsync(checkoutId);
+        await PostWebhookAsync(checkoutId); // SumUp may send it again
+
+        var alert = Assert.Single(_factory.Emails.Sent, e => e.Subject == $"Kolla betalningen för {order.Reference}: fel belopp");
+        Assert.Equal("owner@shop.test", alert.To);
+        Assert.Contains(checkoutId, alert.Body);
+
+        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var html = await client.GetStringAsync($"/order/{order.Id}");
+        Assert.Contains("Vi kontrollerar din betalning", html);
+        Assert.DoesNotContain("handler=Retry", html);
+
+        // Even a hand-made "Pay now" post doesn't create a new checkout.
+        var token = System.Text.RegularExpressions.Regex.Match(await client.GetStringAsync("/Custom"),
+            "name=\"__RequestVerificationToken\" type=\"hidden\" value=\"([^\"]+)\"").Groups[1].Value;
+        var created = _factory.SumUp.Created.Count(c => c.CheckoutReference.StartsWith(order.Reference));
+        var retry = await client.PostAsync($"/order/{order.Id}?handler=Retry",
+            new FormUrlEncodedContent([new("__RequestVerificationToken", token)]));
+        Assert.Equal(HttpStatusCode.Redirect, retry.StatusCode);
+        Assert.Equal($"/order/{order.Id}", retry.Headers.Location?.OriginalString);
+        Assert.Equal(created, _factory.SumUp.Created.Count(c => c.CheckoutReference.StartsWith(order.Reference)));
+        Assert.Equal(OrderStatus.AwaitingPayment, (await ReloadAsync(order.Id)).Status);
+    }
 }

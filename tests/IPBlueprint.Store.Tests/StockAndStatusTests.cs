@@ -182,6 +182,38 @@ public partial class StockAndStatusTests : IClassFixture<StoreFactory>
     }
 
     [Fact]
+    public async Task Someone_whose_back_in_stock_email_fails_stays_on_the_list()
+    {
+        var product = await AddProductAsync("Svår figur", stock: 0);
+        await using (var scope = _factory.Services.CreateAsyncScope())
+        {
+            var alerts = scope.ServiceProvider.GetRequiredService<StockAlerts>();
+            await alerts.SubscribeAsync(product, "first@example.se", "sv");
+            await alerts.SubscribeAsync(product, "second@example.se", "sv");
+        }
+        await _factory.WithDbAsync(db => db.Products.Where(p => p.Id == product.Id).ExecuteUpdateAsync(s => s.SetProperty(p => p.Stock, 2)));
+
+        var sends = 0;
+        _factory.Emails.BeforeSend = () =>
+        {
+            if (Interlocked.Increment(ref sends) == 1) throw new IOException("Mail server said no");
+        };
+        try
+        {
+            await using var scope = _factory.Services.CreateAsyncScope();
+            Assert.Equal(1, await scope.ServiceProvider.GetRequiredService<StockAlerts>().NotifyIfAvailableAsync(product.Id));
+        }
+        finally
+        {
+            _factory.Emails.BeforeSend = null;
+        }
+
+        var emailed = _factory.Emails.Sent.Single(e => e.Subject.StartsWith("Svår figur")).To;
+        var waiting = await _factory.WithDbAsync(db => db.StockAlerts.Where(a => a.ProductId == product.Id).Select(a => a.Email).ToListAsync());
+        Assert.Equal([new[] { "first@example.se", "second@example.se" }.Single(e => e != emailed)], waiting);
+    }
+
+    [Fact]
     public async Task Visitors_can_sign_up_for_the_back_in_stock_email_on_the_product_page()
     {
         var product = await AddProductAsync("Väntelista", stock: 0);

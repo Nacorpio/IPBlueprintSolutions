@@ -136,16 +136,29 @@ public sealed class OrderService(
         return order;
     }
 
-    /// <summary>Creates a SumUp hosted checkout for the order and returns the URL to send the customer to.</summary>
-    public async Task<string> StartPaymentAsync(Order order, Uri siteBaseUrl, CancellationToken ct = default)
+    /// <summary>
+    /// Creates a SumUp hosted checkout for the order and returns the URL to send the customer to, or null when the order
+    /// was paid or cancelled in the meantime (for example in another tab), so there is nothing left to pay.
+    /// </summary>
+    public async Task<string?> StartPaymentAsync(Order order, Uri siteBaseUrl, CancellationToken ct = default)
     {
         if (!Payable.Contains(order.Status))
             throw new InvalidOperationException($"Order {order.Reference} cannot be paid in status {order.Status}.");
 
-        order.PaymentAttempts++;
+        // Count the attempt before calling SumUp, so a call that timed out after SumUp created the checkout doesn't
+        // make every later attempt reuse the same checkout reference (which SumUp refuses).
+        int attempt;
+        await using (var tx = await db.Database.BeginTransactionAsync(ct))
+        {
+            var counted = await db.Orders.Where(o => o.Id == order.Id && Payable.Contains(o.Status))
+                .ExecuteUpdateAsync(s => s.SetProperty(o => o.PaymentAttempts, o => o.PaymentAttempts + 1), ct);
+            if (counted == 0) return null;
+            attempt = await db.Orders.Where(o => o.Id == order.Id).Select(o => o.PaymentAttempts).SingleAsync(ct);
+            await tx.CommitAsync(ct);
+        }
 
         // SumUp needs a unique reference per checkout, so retries get a suffix: IPB-261031-7KQ2, IPB-261031-7KQ2-2, ...
-        var checkoutReference = order.PaymentAttempts == 1 ? order.Reference : $"{order.Reference}-{order.PaymentAttempts}";
+        var checkoutReference = attempt == 1 ? order.Reference : $"{order.Reference}-{attempt}";
 
         var checkout = await sumUp.CreateCheckoutAsync(new CreateCheckoutRequest(
             CheckoutReference: checkoutReference,
@@ -155,9 +168,25 @@ public sealed class OrderService(
             RedirectUrl: new Uri(siteBaseUrl, $"order/{order.Id}"),
             WebhookUrl: new Uri(siteBaseUrl, "webhooks/sumup")), ct);
 
+        // Only while the order is still unpaid: if the customer paid an earlier checkout while this one was being
+        // created, pointing the order at the new checkout would hide a second payment of it.
+        var saved = await db.Orders.Where(o => o.Id == order.Id && Payable.Contains(o.Status))
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(o => o.SumUpCheckoutId, checkout.Id)
+                .SetProperty(o => o.Status, OrderStatus.AwaitingPayment), ct);
+        if (saved == 0)
+        {
+            logger.LogInformation("Order {Reference} was paid or cancelled while checkout {CheckoutId} was created; not using it",
+                order.Reference, checkout.Id);
+            return null;
+        }
+
+        // Saved above; bring the caller's copy up to date without marking it as changed.
+        var entry = db.Entry(order);
+        order.PaymentAttempts = attempt;
         order.SumUpCheckoutId = checkout.Id;
         order.Status = OrderStatus.AwaitingPayment;
-        await db.SaveChangesAsync(ct);
+        if (entry.State != EntityState.Detached) entry.State = EntityState.Unchanged;
 
         return checkout.HostedCheckoutUrl!;
     }
@@ -198,8 +227,7 @@ public sealed class OrderService(
             if (checkout.Amount != order.Total ||
                 !string.Equals(checkout.Currency, sumUpOptions.Value.Currency, StringComparison.OrdinalIgnoreCase))
             {
-                logger.LogError("Order {Reference}: SumUp reports {Amount} {Currency} paid, but the order total is {Total}. Not marking as paid.",
-                    order.Reference, checkout.Amount, checkout.Currency, order.Total);
+                await ReportAmountMismatchAsync(order, checkout, ct);
                 return PaymentSyncResult.AmountMismatch;
             }
 
@@ -336,6 +364,23 @@ public sealed class OrderService(
                 : "Order {Reference} was already paid, but SumUp checkout {CheckoutId} was paid as well. Refund that checkout.",
             order.Reference, checkout.Id);
         await notifications.ExtraPaymentAsync(order, checkout, cancelled);
+    }
+
+    /// <summary>
+    /// SumUp says a checkout for the order was paid, but not with the order's amount or currency, so the order was not
+    /// marked paid. The customer has still been charged: logs an error and emails the owners, once per checkout. The
+    /// checkout is kept in <see cref="Order.ExtraPaymentCheckoutId"/>, which also stops the customer paying again.
+    /// </summary>
+    private async Task ReportAmountMismatchAsync(Order order, SumUpCheckout checkout, CancellationToken ct)
+    {
+        var first = await db.Orders
+            .Where(o => o.Id == order.Id && (o.ExtraPaymentCheckoutId == null || o.ExtraPaymentCheckoutId != checkout.Id))
+            .ExecuteUpdateAsync(s => s.SetProperty(o => o.ExtraPaymentCheckoutId, checkout.Id), ct);
+        if (first == 0) return;
+
+        logger.LogError("Order {Reference}: SumUp reports {Amount} {Currency} paid on checkout {CheckoutId}, but the order total is {Total}. Not marking as paid.",
+            order.Reference, checkout.Amount, checkout.Currency, checkout.Id, order.Total);
+        await notifications.AmountMismatchAsync(order, checkout);
     }
 
     /// <summary>Takes a paid order's items out of stock. Made-to-order products have no stock and are skipped.
