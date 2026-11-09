@@ -222,4 +222,5 @@
   <data name="You can pick it up from us in {0}. Reply to our email with the days and times that suit you, and we'll send you the address." xml:space="preserve"><value>Du kan hämta den hos oss i {0}. Svara på vårt mejl med vilka dagar och tider som passar dig, så skickar vi adressen.</value></data>
   <data name="Your details" xml:space="preserve"><value>Dina uppgifter</value></data>
   <data name="Your order is ready to pick up" xml:space="preserve"><value>Din beställning är redo att hämtas</value></data>
+  <data name="and {0} more" xml:space="preserve"><value>och {0} till</value></data>
 </root>

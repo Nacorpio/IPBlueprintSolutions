@@ -888,3 +888,52 @@ a.stat:hover { transform: translateY(-2px); box-shadow: inset 0 1px 0 var(--glas
 @media (max-width: 520px) { .cart-icon, .cart-icon svg { width: 28px; height: 28px; } .cart-count { top: 10px; font-size: 11px; } }
 @media (forced-colors: active) { .cart-count { border: 0; } }
 .main-nav a.cart-link { gap: 8px; }
+
+/* Cart preview: hovering (or tabbing to) the cart link opens a small glass panel
+   with what's in the cart, the subtotal and links on to the cart and checkout.
+   Only for mouse and keyboard; on touch screens a tap goes straight to the cart page. */
+.cart-menu { position: relative; display: flex; align-items: center; }
+.cart-preview {
+    position: absolute; top: calc(100% + 12px); right: -8px; z-index: 60; width: 340px;
+    padding: 14px 16px 16px; border-radius: 14px; text-align: left;
+    background-color: var(--surface); background-image: var(--sheen);
+    border: 1px solid var(--border);
+    box-shadow: inset 0 1px 0 var(--glass-edge), var(--depth-2);
+    opacity: 0; visibility: hidden; transform: translateY(-6px) scale(.98); transform-origin: top right;
+    transition: opacity .18s var(--ease), transform .22s var(--ease), visibility 0s linear .22s;
+}
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .cart-preview { background-color: color-mix(in srgb, var(--surface) 97%, transparent); border-color: var(--glass-border); -webkit-backdrop-filter: blur(20px) saturate(170%); backdrop-filter: blur(20px) saturate(170%); }
+}
+/* An invisible bridge over the gap, so the panel stays open while the mouse moves down to it. */
+.cart-preview::before { content: ""; position: absolute; left: 0; right: 0; top: -14px; height: 14px; }
+@media (hover: hover) {
+    .cart-menu:hover .cart-preview, .cart-menu:focus-within .cart-preview {
+        opacity: 1; visibility: visible; transform: none;
+        transition: opacity .18s var(--ease), transform .22s var(--ease), visibility 0s;
+    }
+    /* A short pause before it opens, so passing over the cart on the way to the theme button doesn't flash it. */
+    .cart-menu:hover .cart-preview { transition-delay: .12s, .12s, .12s; }
+}
+@media (hover: none) { .cart-preview { display: none; } }
+.cart-preview-title { margin: 0 0 8px; font-weight: 700; }
+.cart-preview ul { list-style: none; margin: 0; padding: 0; }
+.cart-preview li {
+    display: grid; grid-template-columns: 44px minmax(0, 1fr); grid-template-rows: auto auto; column-gap: 12px;
+    align-items: center; padding: 8px 0; border-bottom: 1px solid var(--seam); box-shadow: 0 1px 0 var(--glass-edge);
+}
+.cart-preview li img, .cart-preview-thumb {
+    grid-row: 1 / span 2; width: 44px; height: 44px; border-radius: 8px; object-fit: cover; background: var(--surface-alt);
+}
+.cart-preview-name { font-weight: 600; font-size: .92rem; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; align-self: end; }
+.cart-preview-qty { font-size: .85rem; color: var(--muted); align-self: start; }
+.cart-preview-more { margin: 8px 0 0; }
+.cart-preview-subtotal { display: flex; justify-content: space-between; margin: 12px 0 14px; }
+.cart-preview-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.cart-preview-actions .button { display: flex; align-items: center; justify-content: center; white-space: nowrap; padding: 9px 10px; font-size: .875rem; }
+.cart-preview .button, .cart-preview .button:hover { color: var(--on-accent); }
+.cart-preview .button.secondary, .cart-preview .button.secondary:hover { color: var(--text); }
+/* The header's link styles don't apply inside the panel. */
+.main-nav .cart-preview a::after { display: none; }
+.main-nav .cart-preview a { text-shadow: none; padding: 6px 12px; }
+@media (prefers-reduced-motion: reduce) { .cart-preview { transform: none; } }

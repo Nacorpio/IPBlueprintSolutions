@@ -3,6 +3,9 @@
 @{
     var shop = ShopOptions.Value;
     var cartCount = Cart.CountItems();
+    // The header's quick look at the cart; not needed on the cart and checkout pages themselves.
+    var onCartPages = Context.Request.Path.StartsWithSegments("/Cart") || Context.Request.Path.StartsWithSegments("/Checkout");
+    var cartPreview = cartCount > 0 && !onCartPages ? await Cart.PeekAsync(Context.RequestAborted) : [];
     var isAdmin = Context.Request.Path.StartsWithSegments("/Admin") && User.Identity?.IsAuthenticated == true;
 
     // Search engines and link previews. Pages fill in Title, Description, and optionally FullTitle, Image (a site path),
@@ -116,17 +119,23 @@
             </nav>
             @* Cart, language and theme sit apart on the right. *@
             <div class="main-nav header-actions">
-                <a asp-page="/Cart" class="cart-link" aria-current="@Current("/cart", "/checkout")">
-                    <span class="cart-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 8h14l-1.2 11.1a2 2 0 0 1-2 1.9H8.2a2 2 0 0 1-2-1.9L5 8z" /><path d="M9 10V7a3 3 0 0 1 6 0v3" /></svg>
-                        @if (cartCount > 0)
-                        {
-                            <span class="cart-count" aria-hidden="true">@cartCount</span>
-                        }
-                    </span>
-                    @* On phones only the icon shows; screen readers always hear "Cart (2)". *@
-                    <span class="cart-label">@L["Cart"]</span>@if (cartCount > 0) {<span class="visually-hidden"> (@cartCount)</span>}
-                </a>
+                <div class="cart-menu">
+                    <a asp-page="/Cart" class="cart-link" aria-current="@Current("/cart", "/checkout")">
+                        <span class="cart-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 8h14l-1.2 11.1a2 2 0 0 1-2 1.9H8.2a2 2 0 0 1-2-1.9L5 8z" /><path d="M9 10V7a3 3 0 0 1 6 0v3" /></svg>
+                            @if (cartCount > 0)
+                            {
+                                <span class="cart-count" aria-hidden="true">@cartCount</span>
+                            }
+                        </span>
+                        @* On phones only the icon shows; screen readers always hear "Cart (2)". *@
+                        <span class="cart-label">@L["Cart"]</span>@if (cartCount > 0) {<span class="visually-hidden"> (@cartCount)</span>}
+                    </a>
+                    @if (cartPreview.Count > 0)
+                    {
+                        <partial name="_CartPreview" model="cartPreview" />
+                    }
+                </div>
                 @if (Languages.IsEnglish)
                 {
                     <a class="lang-switch" href="@Seo.WithLanguage(Context.Request, Languages.Swedish)" lang="sv" hreflang="sv" title="Visa sidan på svenska">Svenska</a>
