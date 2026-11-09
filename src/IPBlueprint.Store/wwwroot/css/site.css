@@ -706,7 +706,7 @@ a.stat:hover { transform: translateY(-2px); box-shadow: inset 0 1px 0 var(--glas
 }
 :root[data-theme="dark"] .hero-stack span { border-color: rgba(255, 255, 255, .14); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .18), 0 18px 34px -12px rgba(0, 0, 0, .7); }
 @keyframes layer-float { from { transform: translateZ(calc(var(--i) * 16px)); } to { transform: translateZ(calc(var(--i) * 24px + 6px)); } }
-@media (max-width: 1199px) { .hero { display: block; } .hero-art { display: none; } }
+@media (max-width: 960px) { .hero { display: block; } .hero-art { display: none; } }
 
 /* Products and photos rise into place as they scroll into view. Pure CSS, so
    browsers without scroll-driven animations simply show them straight away.
@@ -830,47 +830,4 @@ a.stat:hover { transform: translateY(-2px); box-shadow: inset 0 1px 0 var(--glas
 @media (max-width: 360px) {
     .site-header > .header-row { padding-left: 10px; padding-right: 10px; }
     .site-header > .header-row > .main-nav:not(.header-actions) { gap: 0 14px; }
-}
-
-/* Wide screens: the navigation panel becomes a full-height glass sidebar on the
-   left. Logo at the top, page links stacked under it, cart / language / theme at
-   the bottom. The rest of the page (perk bar, content, footer) moves over to make room.
-   Below 1000px the panel stays across the top as above. */
-@media (min-width: 1000px) {
-    :root { --sidebar: 252px; }
-    html { scroll-padding-top: 24px; }
-    body { padding-left: calc(var(--sidebar) + 12px); }
-    .site-header, .is-scrolled .site-header {
-        position: fixed; top: 0; bottom: 0; left: 0; z-index: 50;
-        width: calc(var(--sidebar) + 12px); padding: 12px 0 12px 12px;
-        display: flex; flex-direction: column; gap: 8px;
-    }
-    .site-header > .header-row {
-        flex: 1; min-height: 0; width: auto; max-width: none; margin: 0;
-        display: flex; flex-direction: column; align-items: stretch; gap: 20px;
-        padding: 22px 14px 14px; overflow-y: auto; overscroll-behavior: contain;
-    }
-    .site-header > .header-row > .brand { align-self: flex-start; padding: 0 6px 6px; }
-    .site-header > .header-row > .brand img { height: 56px; }
-    .site-header > .header-row > .main-nav:not(.header-actions) { flex-direction: column; align-items: stretch; gap: 2px; flex-wrap: nowrap; }
-    .site-header > .header-row > .main-nav:not(.header-actions) a {
-        padding: 10px 12px; border-radius: 10px;
-        transition: background-color var(--fast) var(--ease), color var(--fast) var(--ease);
-    }
-    .site-header > .header-row > .main-nav:not(.header-actions) a::after { display: none; }
-    .site-header > .header-row > .main-nav:not(.header-actions) a:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); }
-    .site-header > .header-row > .main-nav:not(.header-actions) a[aria-current="page"] {
-        background: color-mix(in srgb, var(--accent) 13%, transparent); color: var(--link); font-weight: 600;
-        box-shadow: inset 3px 0 0 var(--accent);
-    }
-    .site-header > .header-row > .header-actions {
-        margin-top: auto; padding-top: 14px; border-top: 1px solid var(--glass-border);
-        justify-self: auto; flex-wrap: wrap; gap: 10px; align-items: center;
-    }
-    .site-header > .header-row > .header-actions .cart-link { flex: 1 0 100%; padding: 8px 6px; }
-    .site-header > .header-row > .header-actions .cart-link::after { display: none; }
-    .site-header > .header-row > .header-actions .lang-switch { flex: 1; text-align: center; }
-    .site-header .admin-bar { width: auto; max-width: none; margin: 0; border-radius: 14px; }
-    .site-header .admin-bar .header-row { flex-direction: column; align-items: flex-start; padding: 12px 16px; gap: 6px; }
-    .site-header .admin-bar nav { flex-direction: column; align-items: flex-start; gap: 4px; }
 }
