@@ -818,3 +818,18 @@ a.stat:hover { transform: translateY(-2px); box-shadow: inset 0 1px 0 var(--glas
     .site-header > .header-row { padding-left: 10px; padding-right: 10px; }
     .site-header > .header-row > .main-nav:not(.header-actions) { gap: 0 14px; }
 }
+
+/* The page you're on glows: its link is a brighter blue with a soft halo, and its
+   underline lights up. The other links are slightly dimmer so it stands out. */
+:root { --nav-active: #1f6fd1; --nav-glow: rgba(31, 111, 209, .45); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --nav-active: #b9dcff; --nav-glow: rgba(127, 190, 255, .9); } }
+:root[data-theme="dark"] { --nav-active: #b9dcff; --nav-glow: rgba(127, 190, 255, .9); }
+.main-nav:not(.header-actions) a { color: color-mix(in srgb, var(--text) 78%, var(--muted)); }
+.main-nav:not(.header-actions) a:hover { color: var(--text); }
+.main-nav a[aria-current="page"], .main-nav a[aria-current="page"]:hover {
+    color: var(--nav-active); font-weight: 600;
+    text-shadow: 0 0 12px var(--nav-glow), 0 0 2px color-mix(in srgb, var(--nav-glow) 50%, transparent);
+}
+.main-nav a[aria-current="page"]::after { box-shadow: 0 0 8px var(--nav-glow), 0 0 2px var(--nav-glow); }
+.main-nav a.cart-link[aria-current="page"] .cart-icon svg { filter: drop-shadow(0 0 5px var(--nav-glow)); }
+@media (forced-colors: active) { .main-nav a[aria-current="page"] { text-shadow: none; } }
