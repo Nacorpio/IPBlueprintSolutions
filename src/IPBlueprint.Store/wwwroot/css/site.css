@@ -937,3 +937,6 @@ a.stat:hover { transform: translateY(-2px); box-shadow: inset 0 1px 0 var(--glas
 .main-nav .cart-preview a::after { display: none; }
 .main-nav .cart-preview a { text-shadow: none; padding: 6px 12px; }
 @media (prefers-reduced-motion: reduce) { .cart-preview { transform: none; } }
+/* Give the cart some room from the language and theme buttons. */
+.header-actions > .cart-menu { margin-right: 22px; }
+@media (max-width: 520px) { .header-actions > .cart-menu { margin-right: 10px; } }
