@@ -706,7 +706,7 @@ a.stat:hover { transform: translateY(-2px); box-shadow: inset 0 1px 0 var(--glas
 }
 :root[data-theme="dark"] .hero-stack span { border-color: rgba(255, 255, 255, .14); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .18), 0 18px 34px -12px rgba(0, 0, 0, .7); }
 @keyframes layer-float { from { transform: translateZ(calc(var(--i) * 16px)); } to { transform: translateZ(calc(var(--i) * 24px + 6px)); } }
-@media (max-width: 720px) { .hero { display: block; } .hero-art { display: none; } }
+@media (max-width: 960px) { .hero { display: block; } .hero-art { display: none; } }
 
 /* Products and photos rise into place as they scroll into view. Pure CSS, so
    browsers without scroll-driven animations simply show them straight away.
@@ -809,3 +809,25 @@ a.stat:hover { transform: translateY(-2px); box-shadow: inset 0 1px 0 var(--glas
     .site-header > .header-row { padding: 4px 12px 2px; border-radius: 16px; }
 }
 @media (forced-colors: active) { .site-header > .header-row::before { display: none; } }
+
+/* Header layout: logo on the left, page links centred, cart / language / theme on the right.
+   Narrower screens put the logo and the actions on the first row and the links below. */
+.site-header > .header-row {
+    display: grid; grid-template-columns: 1fr auto 1fr; grid-template-areas: "brand nav actions";
+    align-items: center; column-gap: 24px;
+}
+.site-header > .header-row > .brand { grid-area: brand; justify-self: start; }
+.site-header > .header-row > .main-nav:not(.header-actions) { grid-area: nav; justify-content: center; }
+.site-header > .header-row > .header-actions { grid-area: actions; justify-self: end; gap: 14px; flex-wrap: nowrap; }
+@media (max-width: 1000px) {
+    .site-header > .header-row { grid-template-columns: auto 1fr; grid-template-areas: "brand actions" "nav nav"; row-gap: 2px; padding-bottom: 6px; }
+    .site-header > .header-row > .main-nav:not(.header-actions) { justify-content: center; }
+}
+@media (max-width: 520px) {
+    .site-header > .header-row > .main-nav:not(.header-actions) { justify-content: space-between; gap: 0 12px; }
+    .site-header > .header-row > .header-actions { gap: 8px; }
+}
+@media (max-width: 360px) {
+    .site-header > .header-row { padding-left: 10px; padding-right: 10px; }
+    .site-header > .header-row > .main-nav:not(.header-actions) { justify-content: center; gap: 0 14px; }
+}
