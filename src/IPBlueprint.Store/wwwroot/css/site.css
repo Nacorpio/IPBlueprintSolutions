@@ -768,47 +768,34 @@ a.stat:hover { transform: translateY(-2px); box-shadow: inset 0 1px 0 var(--glas
 @media (prefers-reduced-motion: reduce) { .cart-link:hover .cart-icon svg { transform: none; } }
 @media (forced-colors: active) { .cart-count { border: 1px solid CanvasText; } }
 
-/* Navigation as a floating glass panel: the header strip itself goes clear,
-   and the row with the logo and menu becomes a rounded pane with a lit rim
-   and its own shadow. On wide screens it stays pinned while the page scrolls under it. */
-.site-header { background: transparent; border-bottom: 0; box-shadow: none; padding: 12px 0 4px; }
-@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-    .site-header, .is-scrolled .site-header { background-color: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; }
-}
-.is-scrolled .site-header { box-shadow: none; }
-.site-header > .header-row {
-    position: relative; isolation: isolate;
-    max-width: 1068px; width: calc(100% - 32px);
-    padding: 0 12px 0 20px; min-height: 68px;
+/* Navigation as a full-width glass panel anchored to the top: it spans the whole
+   window edge to edge, with frosted glass, a lit top edge, a navy-tinted sheen and
+   a soft shadow underneath so it stands out from the page. On wide screens it stays
+   pinned while the page scrolls under it, and its shadow deepens once scrolled. */
+.site-header {
+    position: relative; z-index: 50; padding: 0;
     background-color: var(--surface);
-    background-image: var(--sheen), linear-gradient(120deg, color-mix(in srgb, var(--accent) 6%, transparent), transparent 50%);
-    border: 1px solid var(--border); border-radius: 18px;
+    background-image: var(--sheen), linear-gradient(100deg, color-mix(in srgb, var(--accent) 7%, transparent), transparent 45%, color-mix(in srgb, var(--accent) 4%, transparent));
+    border-bottom: 1px solid var(--border);
     box-shadow: inset 0 1px 0 var(--glass-edge), var(--depth-1);
     transition: box-shadow .3s var(--ease), background-color .3s var(--ease);
 }
-.site-header > .header-row::before {
-    content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none; border-radius: inherit; padding: 1px;
-    background: var(--rim);
-    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-    mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
-}
 @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-    .site-header > .header-row {
+    .site-header, .is-scrolled .site-header {
         background-color: var(--glass-strong); border-color: var(--glass-border);
         -webkit-backdrop-filter: blur(18px) saturate(170%); backdrop-filter: blur(18px) saturate(170%);
     }
 }
-.is-scrolled .site-header > .header-row { box-shadow: inset 0 1px 0 var(--glass-edge), var(--depth-2); }
-/* The admin bar sits under the panel as its own rounded strip. */
-.site-header .admin-bar { max-width: 1068px; width: calc(100% - 32px); margin: 8px auto 0; border-radius: 12px; }
-@media (min-width: 721px) { html { scroll-padding-top: 104px; } }
-@media (max-width: 520px) {
-    .site-header { padding-top: 8px; }
-    .site-header > .header-row, .site-header .admin-bar { width: calc(100% - 16px); }
-    .site-header > .header-row { padding: 4px 12px 2px; border-radius: 16px; }
+.is-scrolled .site-header { box-shadow: inset 0 1px 0 var(--glass-edge), var(--depth-2); }
+/* A thin navy highlight along the bottom edge, brightest in the middle, like light on the edge of a pane. */
+.site-header::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 1px; pointer-events: none;
+    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 45%, transparent) 30%, color-mix(in srgb, var(--accent) 45%, transparent) 70%, transparent);
 }
-@media (forced-colors: active) { .site-header > .header-row::before { display: none; } }
+.site-header > .header-row { min-height: 72px; }
+@media (min-width: 721px) { .site-header { position: sticky; top: 0; } html { scroll-padding-top: 96px; } }
+@media (max-width: 520px) { .site-header > .header-row { padding-top: 4px; padding-bottom: 2px; } }
+@media (forced-colors: active) { .site-header::after { display: none; } }
 
 /* Header layout: logo on the left with the page links right after it,
    cart / language / theme on the right. Narrower screens put the logo and
