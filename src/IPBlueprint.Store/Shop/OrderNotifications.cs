@@ -97,6 +97,24 @@ public sealed class OrderNotifications(
         }
     }
 
+    /// <summary>Tells the owners (in Swedish) that SumUp took a payment for an order with the wrong amount or currency,
+    /// so the order was not marked paid and someone has to check it.</summary>
+    public async Task AmountMismatchAsync(Order order, SumUpCheckout checkout)
+    {
+        foreach (var owner in Shop.NotificationRecipients)
+        {
+            await TrySendAsync(owner, $"Kolla betalningen för {order.Reference}: fel belopp",
+                $"""
+                <p><strong>SumUp säger att kunden har betalat {Html.Encode(checkout.Amount.ToString(System.Globalization.CultureInfo.InvariantCulture))} {Html.Encode(checkout.Currency)},
+                men beställningen kostar {Money.Format(order.Total)}.</strong> Beställningen är därför inte markerad som betald.</p>
+                <p>Kolla SumUp-betalningen <code>{Html.Encode(checkout.Id)}</code> i SumUp och återbetala den eller kontakta kunden.
+                Kunden kan inte betala igen från sin beställningssida.
+                Kund: {Html.Encode(order.CustomerName)} ({Html.Encode(order.Email)}).</p>
+                {OrderSummaryHtml(order, english: false)}
+                """, replyTo: order.Email);
+        }
+    }
+
     public Task<bool> OrderShippedAsync(Order order)
     {
         var en = IsEnglish(order.Language);

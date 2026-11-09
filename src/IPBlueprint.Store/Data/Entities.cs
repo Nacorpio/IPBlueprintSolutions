@@ -202,6 +202,11 @@ public class Order
     /// </summary>
     public string? ExtraPaymentCheckoutId { get; set; }
 
+    /// <summary>Not paid as far as the shop is concerned, but SumUp took a payment for it (with the wrong amount), so the
+    /// owners have to sort it out by hand and the customer must not be asked to pay again.</summary>
+    public bool PaymentNeedsChecking =>
+        ExtraPaymentCheckoutId is not null && Status is OrderStatus.AwaitingPayment or OrderStatus.PaymentFailed;
+
     public List<OrderLine> Lines { get; set; } = [];
 
     public List<OrderStatusChange> History { get; set; } = [];

@@ -18,7 +18,14 @@
 
 @if (o.ExtraPaymentCheckoutId is { } extra)
 {
-    <div class="notice">The customer also paid SumUp checkout <code>@extra</code>, which this order didn't need. Refund it in SumUp.</div>
+    @if (o.PaymentNeedsChecking)
+    {
+        <div class="notice">The customer paid SumUp checkout <code>@extra</code>, but not with this order's amount, so the order wasn't marked paid. Check it in SumUp, then refund it or contact the customer.</div>
+    }
+    else
+    {
+        <div class="notice">The customer also paid SumUp checkout <code>@extra</code>, which this order didn't need. Refund it in SumUp.</div>
+    }
 }
 
 <div class="layout-two">

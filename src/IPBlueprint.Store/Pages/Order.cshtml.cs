@@ -84,18 +84,22 @@ public class OrderModel(
         var order = await db.Orders.FirstOrDefaultAsync(o => o.Id == id, ct);
         if (order is null) return NotFound();
         if (order.Status is not (OrderStatus.AwaitingPayment or OrderStatus.PaymentFailed)) return RedirectToPage(new { id });
+        // A payment came in that the owners have to look at by hand (wrong amount): don't let the customer pay again.
+        if (order.PaymentNeedsChecking) return RedirectToPage(new { id });
 
         try
         {
             // Make sure the previous attempt didn't go through after all, so the customer isn't charged twice.
             if (order.SumUpCheckoutId is { } previous &&
-                await orders.SyncCheckoutAsync(previous, ct) is PaymentSyncResult.MarkedPaid or PaymentSyncResult.AlreadyPaid)
+                await orders.SyncCheckoutAsync(previous, ct) is PaymentSyncResult.MarkedPaid or PaymentSyncResult.AlreadyPaid
+                    or PaymentSyncResult.AmountMismatch)
             {
                 return RedirectToPage(new { id });
             }
 
             await db.Entry(order).ReloadAsync(ct);
-            return Redirect(await orders.StartPaymentAsync(order, SiteUrls.BaseUrl(Request, shopOptions.Value), ct));
+            var paymentUrl = await orders.StartPaymentAsync(order, SiteUrls.BaseUrl(Request, shopOptions.Value), ct);
+            return paymentUrl is null ? RedirectToPage(new { id }) : Redirect(paymentUrl);
         }
         catch (Exception ex) when (ex is SumUpException or HttpRequestException or TaskCanceledException)
         {

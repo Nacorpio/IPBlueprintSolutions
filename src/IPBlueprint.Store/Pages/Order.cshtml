@@ -18,6 +18,10 @@
 
 @switch (o.Status)
 {
+    case OrderStatus.AwaitingPayment or OrderStatus.PaymentFailed when o.PaymentNeedsChecking:
+        <h1>@L["We're checking your payment"]</h1>
+        <p>@L["A payment for this order came in that we need to look at by hand. Please don't pay again: we'll email you as soon as we've sorted it out."]</p>
+        break;
     case OrderStatus.Paid:
         <h1>@L["Thank you for your order!"]</h1>
         @if (o.IsPickup)

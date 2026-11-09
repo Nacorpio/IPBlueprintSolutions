@@ -3,12 +3,14 @@ using IPBlueprint.Store.Localization;
 using IPBlueprint.Store.Shop;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
 
 namespace IPBlueprint.Store.Pages;
 
+[EnableRateLimiting(FormRateLimits.StockAlert)]
 public class ProductModel(
     StoreDbContext db,
     CartService cart,
