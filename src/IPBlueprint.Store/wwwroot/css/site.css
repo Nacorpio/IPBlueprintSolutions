@@ -833,3 +833,13 @@ a.stat:hover { transform: translateY(-2px); box-shadow: inset 0 1px 0 var(--glas
 .main-nav a[aria-current="page"]::after { box-shadow: 0 0 8px var(--nav-glow), 0 0 2px var(--nav-glow); }
 .main-nav a.cart-link[aria-current="page"] .cart-icon svg { filter: drop-shadow(0 0 5px var(--nav-glow)); }
 @media (forced-colors: active) { .main-nav a[aria-current="page"] { text-shadow: none; } }
+
+/* Top banner (free pickup / free shipping): a deeper navy than the accent, with a
+   faint sheen, so it reads as a calm strip above the menu rather than a bright bar. */
+:root { --perk-bg: #102f4f; --perk-text: #ffffff; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --perk-bg: #1f4a78; --perk-text: #eef5ff; } }
+:root[data-theme="dark"] { --perk-bg: #1f4a78; --perk-text: #eef5ff; }
+.perk-bar {
+    background-color: var(--perk-bg); color: var(--perk-text);
+    background-image: linear-gradient(180deg, rgba(255, 255, 255, .07), rgba(255, 255, 255, 0));
+}
