@@ -259,4 +259,21 @@ public class PaymentFlowTests : IClassFixture<StoreFactory>
         Assert.Equal(created, _factory.SumUp.Created.Count(c => c.CheckoutReference.StartsWith(order.Reference)));
         Assert.Equal(OrderStatus.AwaitingPayment, (await ReloadAsync(order.Id)).Status);
     }
+
+    [Theory]
+    [InlineData("http")]
+    [InlineData("timeout")]
+    public async Task Webhook_asks_SumUp_to_retry_when_SumUp_cannot_be_reached(string failure)
+    {
+        var (_, checkoutId) = await PlaceOrderAsync();
+        _factory.SumUp.ReadFailure = failure == "http" ? new HttpRequestException("Connection refused") : new TaskCanceledException("Timed out");
+        try
+        {
+            Assert.Equal(HttpStatusCode.ServiceUnavailable, (await PostWebhookAsync(checkoutId)).StatusCode);
+        }
+        finally
+        {
+            _factory.SumUp.ReadFailure = null;
+        }
+    }
 }

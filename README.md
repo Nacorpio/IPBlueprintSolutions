@@ -14,6 +14,7 @@ Payments are made through SumUp Hosted Checkout, so card details never reach thi
 - **Custom orders:** a request form with an optional file (images, PDF, STL/3MF/OBJ/STEP, up to 25 MB). You get an email, then quote by hand and send a SumUp payment link. Each visitor can send the form at most 5 times an hour (and start checkout 10 times in 10 minutes), and the customer's confirmation email doesn't repeat what they typed, so the form can't be used to send spam from the shop's address.
 - **Emails:** an order confirmation to the customer, a new-order email to you, status emails (in production, shipped with an optional tracking number, delivered, refunded), back-in-stock emails, and custom request emails. If SMTP isn't set up, emails are written to the log instead.
 - **Admin (`/Admin`):** an overview, an order list (move orders through their statuses, see their history), a product editor with photo upload (saved as WebP at up to 1600 px, the right way up and without camera data such as GPS position; older photos are converted at startup), stock, material, colour and categories, a category editor (Swedish and English names), and custom requests (status, notes, attachment download). It is protected by one shared password and rate-limited.
+- **Old personal data:** once a day the shop deletes orders that were never paid (after 30 days, unless a stray payment on them still needs sorting out) and custom requests that didn't lead to an order (New, Quoted or Declined, after 12 months), with their files. An admin can also delete a request at once from its page.
 - **Information pages:** terms of purchase, returns and right of withdrawal, privacy policy, and about. The legal pages are **drafts** that must be completed before launch.
 
 ## Languages
@@ -57,8 +58,8 @@ All settings are in `appsettings.json`. Secrets belong in user-secrets locally a
 | `Shop:InstagramUrl`, `Shop:FacebookUrl` | The shop's social media pages, shown as footer icons, a line on the gallery and About pages, and in the order confirmation email. Leave one empty to hide it. |
 | `Analytics:*` | Optional cookie-free visitor statistics. Off when empty. See [Getting found](#getting-found). |
 | `SumUp:ApiKey`, `SumUp:MerchantCode` | From the SumUp dashboard (Developers → API keys). **Secret.** |
-| `Smtp:*` | Outgoing mail server. Your web host usually provides one. |
-| `Admin:Password` | Admin password, at least 12 characters. **Secret.** |
+| `Smtp:*` | Outgoing mail server. Your web host usually provides one. Without `Smtp:Host` no email is sent; outside development only the subject is logged. |
+| `Admin:Password` | Admin password, at least 12 characters. **Secret.** Changing it logs out every admin session. |
 | `Storage:DataPath` | Folder for the database, product and gallery photos, and uploads (default `App_Data`). **Back this folder up.** |
 | `Hosting:BehindReverseProxy` | Set to `true` when running behind nginx/Caddy, so the real client IP and HTTPS are seen. |
 
@@ -68,7 +69,7 @@ All settings are in `appsettings.json`. Secrets belong in user-secrets locally a
 2. Make sure the server is reachable over HTTPS so SumUp can call the webhook.
 3. Finish the legal pages in `Pages/Info/`: company details, delivery times, and who pays return postage.
 4. Set up SMTP and send yourself a test order.
-5. Set `Shop:PublicBaseUrl`, then add the site to Google Search Console and Bing Webmaster Tools and submit `https://<your domain>/sitemap.xml`.
+5. Set `Shop:PublicBaseUrl` and set `AllowedHosts` to the shop's own host names (e.g. `AllowedHosts=www.example.se;example.se`), so links in emails can't be pointed at another site through the request's Host header. Then add the site to Google Search Console and Bing Webmaster Tools and submit `https://<your domain>/sitemap.xml`.
 
 ## Getting found
 

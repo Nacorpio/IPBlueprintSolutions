@@ -14,7 +14,7 @@
             Colour: @(r.PreferredColour ?? "-")<br />
             Budget: @(r.Budget ?? "-")<br />
             Delivery: @(r.Delivery == DeliveryMethod.Pickup ? "Wants to pick it up" : "Send it")<br />
-            Received @r.CreatedAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+            Received @ShopTime.ToSwedish(r.CreatedAtUtc).ToString("yyyy-MM-dd HH:mm")
         </p>
         @if (r.AttachmentFileName is not null)
         {
@@ -40,3 +40,9 @@
         <button class="button" type="submit">Save</button>
     </form>
 </div>
+
+<form method="post" asp-page-handler="Delete" asp-route-id="@r.Id" class="panel"
+      onsubmit="return confirm('Delete this request and its file for good?');">
+    <p class="small muted">Requests that didn't lead to an order are deleted automatically after 12 months. Delete it now if the customer asks.</p>
+    <button class="button secondary" type="submit">Delete request</button>
+</form>

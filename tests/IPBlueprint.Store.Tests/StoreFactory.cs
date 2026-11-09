@@ -87,8 +87,11 @@ public sealed class FakeSumUp : ISumUpClient
         return checkout;
     }
 
+    /// <summary>When set, reading a checkout fails with this, as when SumUp is down or slow.</summary>
+    public Exception? ReadFailure { get; set; }
+
     public Task<SumUpCheckout?> GetCheckoutAsync(string checkoutId, CancellationToken ct = default) =>
-        Task.FromResult(Checkouts.GetValueOrDefault(checkoutId));
+        ReadFailure is { } failure ? Task.FromException<SumUpCheckout?>(failure) : Task.FromResult(Checkouts.GetValueOrDefault(checkoutId));
 
     public void SetStatus(string checkoutId, string status, decimal? amount = null) =>
         Checkouts[checkoutId] = Checkouts[checkoutId] with
