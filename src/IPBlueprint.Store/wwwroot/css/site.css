@@ -848,3 +848,17 @@ a.stat:hover { transform: translateY(-2px); box-shadow: inset 0 1px 0 var(--glas
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --perk-line: #04080f; } }
 :root[data-theme="dark"] { --perk-line: #04080f; }
 .perk-bar { border-bottom: 2px solid var(--perk-line); }
+
+/* Seams: thin lines darker than the surfaces on both sides, with a faint highlight
+   just below, so stacked parts read as separate layers (same idea as the line under the banner). */
+:root { --seam: rgba(9, 24, 44, .22); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --seam: rgba(0, 0, 0, .65); } }
+:root[data-theme="dark"] { --seam: rgba(0, 0, 0, .65); }
+/* Footer: mirrors the line under the banner, framing the page top and bottom. */
+.site-footer { border-top: 2px solid var(--perk-line); }
+/* Product cards: the photo sits on a glass base. */
+.card-media { border-bottom: 1px solid var(--seam); box-shadow: 0 1px 0 var(--glass-edge); }
+/* Cart and checkout panels: titles and the grand total are separated into layers. */
+.panel > h2 { padding-bottom: 10px; border-bottom: 1px solid var(--seam); box-shadow: 0 1px 0 var(--glass-edge); }
+.totals .grand td { border-top: 1px solid var(--seam); box-shadow: inset 0 1px 0 var(--glass-edge); }
+.cart-line { border-bottom-color: var(--seam); }
