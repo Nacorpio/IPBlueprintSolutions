@@ -93,7 +93,7 @@ else
         @foreach (var p in Model.Products)
         {
             <a class="product-card@(p.IsSoldOut ? " sold-out" : "")" asp-page="/Product" asp-route-slug="@p.Slug">
-                <partial name="_ProductImage" model="p" />
+                <div class="card-media"><partial name="_ProductImage" model="p" /></div>
                 <div class="body">
                     <h2>@p.DisplayName</h2>
                     <span class="price">@Money.Format(p.Price)</span>

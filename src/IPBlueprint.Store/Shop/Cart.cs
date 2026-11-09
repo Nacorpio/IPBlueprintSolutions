@@ -91,6 +91,27 @@ public sealed class CartService(IHttpContextAccessor http, StoreDbContext db, IO
 
     public int CountItems() => ReadRaw().Values.Sum();
 
+    /// <summary>
+    /// What's in the cart, for the quick look under the header's cart link. Quantities are capped at what's in
+    /// stock like on the cart page, but the cookie is left alone: the cart page is where changes are explained.
+    /// </summary>
+    public async Task<IReadOnlyList<CartLine>> PeekAsync(CancellationToken ct = default)
+    {
+        var raw = ReadRaw();
+        if (raw.Count == 0) return [];
+
+        var ids = raw.Keys.ToList();
+        var products = await db.Products.AsNoTracking()
+            .Where(p => ids.Contains(p.Id) && p.IsActive)
+            .ToListAsync(ct);
+
+        return products
+            .OrderBy(p => p.SortOrder).ThenBy(p => p.Name)
+            .Select(p => new CartLine(p, Math.Min(raw[p.Id], p.AvailableToBuy(options.Value.MaxQuantityPerItem))))
+            .Where(l => l.Quantity > 0)
+            .ToList();
+    }
+
     public async Task<CartSummary> GetSummaryAsync(CancellationToken ct = default)
     {
         var raw = ReadRaw();
