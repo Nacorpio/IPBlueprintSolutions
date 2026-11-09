@@ -940,3 +940,5 @@ a.stat:hover { transform: translateY(-2px); box-shadow: inset 0 1px 0 var(--glas
 /* Give the cart some room from the language and theme buttons. */
 .header-actions > .cart-menu { margin-right: 22px; }
 @media (max-width: 520px) { .header-actions > .cart-menu { margin-right: 10px; } }
+/* More room between the logo and the page links when they share a row. */
+@media (min-width: 1001px) { .site-header > .header-row > .main-nav:not(.header-actions) { margin-left: 24px; } }
