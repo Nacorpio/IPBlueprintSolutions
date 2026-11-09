@@ -388,15 +388,72 @@ span.label { display: block; font-weight: 600; margin-bottom: 4px; font-size: .9
     --lift-shadow: 0 2px 4px rgba(0, 0, 0, .35), 0 14px 32px rgba(0, 0, 0, .4);
 }
 
-/* Backdrop: two soft glows behind everything, fixed so they don't scroll away.
-   A pseudo-element instead of background-attachment: fixed, which is janky on iOS. */
-body::before {
+/* Backdrop: the workshop photo, fixed behind everything. It is sharp at the top
+   of the page and fades into a blurred, dimmer copy as the visitor scrolls, so
+   the glass cards stay easy to read.
+   - Two pseudo-elements instead of background-attachment: fixed, which is janky on iOS.
+   - The blur is baked into a tiny second image (workshop-blur.webp, ~2 KB), so the
+     browser only cross-fades opacity while scrolling and never runs a live blur filter.
+   - The fade is a CSS scroll-driven animation. Browsers without those (Firefox for now)
+     get a few lines of script in _Layout that set --backdrop-blur instead.
+   - Admin pages keep the plain glows (body.is-admin). */
+:root {
+    --backdrop-img: url("../img/workshop.webp");
+    --backdrop-scrim: color-mix(in srgb, var(--bg) 62%, transparent);       /* over the sharp photo */
+    --backdrop-scrim-top: color-mix(in srgb, var(--bg) 48%, transparent);   /* lighter near the header */
+    --backdrop-scrim-blur: color-mix(in srgb, var(--bg) 82%, transparent);  /* over the blurred photo */
+}
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        --backdrop-scrim: color-mix(in srgb, var(--bg) 62%, transparent);
+        --backdrop-scrim-top: color-mix(in srgb, var(--bg) 45%, transparent);
+        --backdrop-scrim-blur: color-mix(in srgb, var(--bg) 82%, transparent);
+    }
+}
+:root[data-theme="dark"] {
+    --backdrop-scrim: color-mix(in srgb, var(--bg) 62%, transparent);
+    --backdrop-scrim-top: color-mix(in srgb, var(--bg) 45%, transparent);
+    --backdrop-scrim-blur: color-mix(in srgb, var(--bg) 82%, transparent);
+}
+@media (max-width: 720px) and (orientation: portrait) {
+    :root { --backdrop-img: url("../img/workshop-phone.webp"); }
+}
+body::before, body::after {
     content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background-position: center 35%; background-size: cover; background-repeat: no-repeat;
+}
+body::before {
+    background-image:
+        linear-gradient(180deg, var(--backdrop-scrim-top), var(--backdrop-scrim) 45%),
+        var(--backdrop-img);
+}
+body::after {
+    background-image:
+        linear-gradient(var(--backdrop-scrim-blur), var(--backdrop-scrim-blur)),
+        url("../img/workshop-blur.webp");
+    opacity: var(--backdrop-blur, 0);
+    will-change: opacity;
+}
+@supports (animation-timeline: scroll()) {
+    body::after { animation: backdrop-blur linear both; animation-timeline: scroll(root); animation-range: 0 60vh; }
+}
+@keyframes backdrop-blur { from { opacity: 0; } to { opacity: 1; } }
+
+/* Text that sits straight on the photo gets a soft halo in the page colour, so it
+   stays readable over bright spots like the ceiling lights. Inside cards the halo
+   matches the card and can't be seen. */
+.page :is(h1, h2, h3, p, label, legend, li, dt, dd, .muted) { text-shadow: 0 0 2px var(--bg), 0 0 12px var(--bg); }
+.page :is(.button, button, input, select, textarea, .badge) { text-shadow: none; }
+body.is-admin .page * { text-shadow: none; }
+
+/* Admin pages: the two soft glows from before, no photo. */
+body.is-admin::before {
     background:
         radial-gradient(900px 520px at 8% -8%, var(--glow-a), transparent 65%),
         radial-gradient(800px 480px at 100% 10%, var(--glow-b), transparent 65%),
         radial-gradient(700px 500px at 50% 110%, var(--glow-b), transparent 70%);
 }
+body.is-admin::after { display: none; }
 
 /* Shared surfaces get a top-edge highlight and a faint sheen. */
 .site-header, .site-footer, .product-card, .panel, .custom-cta, .stat,
@@ -537,12 +594,14 @@ a.stat:hover { transform: translateY(-2px); box-shadow: inset 0 1px 0 var(--glas
     .product-card:active, .lang-switch:active, .theme-toggle:active, .social-icons a:active, .lightbox button:active { transform: none; }
     .lightbox-nav:active { transform: translateY(-50%); }
     .product-card:hover .product-image, .product-card:hover .placeholder-image, .gallery-grid a:hover img, .theme-toggle:hover svg { transform: none; }
+    /* The backdrop doesn't change with scrolling: it stays half blurred. */
+    body::after { animation: none; opacity: .6; }
 }
 @media (prefers-reduced-motion: reduce) and (max-width: 600px) { .lightbox-nav:active { transform: none; } }
 
 /* Windows high contrast: drop the decorative layers. */
 @media (forced-colors: active) {
-    body::before { display: none; }
+    body::before, body::after { display: none; }
     .button, .product-card, .panel { box-shadow: none; }
 }
 

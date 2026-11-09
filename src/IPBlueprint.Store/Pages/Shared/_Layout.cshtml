@@ -84,7 +84,7 @@
     <link rel="apple-touch-icon" href="~/apple-touch-icon.png" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
-<body>
+<body class="@(isAdmin ? "is-admin" : null)">
     @if (shop.OffersPickup && !isAdmin)
     {
         <div class="perk-bar">
@@ -184,6 +184,18 @@
             root.dataset.theme = next;
             try { localStorage.setItem("theme", next); } catch (e) { }
         });
+
+        // Blur the workshop photo behind the page as the visitor scrolls. Most browsers do this in
+        // CSS (scroll-driven animations); this covers the rest. Off for reduced motion.
+        if (!(window.CSS && CSS.supports("animation-timeline: scroll()")) && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+            var root = document.documentElement, queued = false;
+            var setBlur = function () {
+                queued = false;
+                root.style.setProperty("--backdrop-blur", Math.min(scrollY / (innerHeight * 0.6), 1).toFixed(3));
+            };
+            addEventListener("scroll", function () { if (!queued) { queued = true; requestAnimationFrame(setBlur); } }, { passive: true });
+            setBlur();
+        }
     </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
