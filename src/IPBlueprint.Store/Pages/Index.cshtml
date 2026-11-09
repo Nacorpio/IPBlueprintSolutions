@@ -13,8 +13,14 @@
 }
 
 <section class="hero">
-    <h1>@L["3D prints from our own printers"]</h1>
-    <p>@L["We print everything in the shop ourselves, here in {0}. If you want something that isn't listed, we take custom orders too.", town]</p>
+    <div>
+        <h1>@L["3D prints from our own printers"]</h1>
+        <p>@L["We print everything in the shop ourselves, here in {0}. If you want something that isn't listed, we take custom orders too.", town]</p>
+    </div>
+    @* Decorative: glass layers stacking up like a print. Hidden on phones. *@
+    <div class="hero-art" aria-hidden="true">
+        <div class="hero-stack"><span></span><span></span><span></span><span></span><span></span></div>
+    </div>
 </section>
 
 <partial name="_Catalog" model="Model.View" />

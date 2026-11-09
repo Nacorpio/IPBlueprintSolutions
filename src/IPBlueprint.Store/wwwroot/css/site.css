@@ -548,3 +548,194 @@ a.stat:hover { transform: translateY(-2px); box-shadow: inset 0 1px 0 var(--glas
 
 /* The category pills scroll sideways on phones, which would clip their drop shadow. */
 @media (max-width: 520px) { .category-tabs a { box-shadow: inset 0 1px 0 var(--glass-edge); } }
+
+/* ------------------------------------------------------------------------
+   Depth layer.
+   Builds on the glass layer above: layered shadows so surfaces sit at
+   different heights, a light rim along glass edges, and a few things that
+   respond to the pointer (cards tilt toward it, glass edges catch its light,
+   buttons ripple where they are pressed). wwwroot/js/depth.js sets the
+   --px / --py pointer position (0 to 1) and the is-pointer class.
+   - Tilt and edge light only run with a mouse or trackpad.
+   - prefers-reduced-motion keeps the colour and light, drops the movement.
+   - Phones get the cheap parts: ripple, press light and scroll reveal.
+   ------------------------------------------------------------------------ */
+@property --spot { syntax: "<color>"; inherits: true; initial-value: transparent; }
+
+:root {
+    --depth-1: 0 1px 1px rgba(16, 24, 40, .04), 0 2px 6px rgba(16, 24, 40, .05), 0 10px 24px -8px rgba(23, 64, 106, .12);
+    --depth-2: 0 1px 2px rgba(16, 24, 40, .05), 0 6px 14px rgba(16, 24, 40, .06), 0 22px 44px -12px rgba(23, 64, 106, .24);
+    --rim: linear-gradient(145deg, rgba(255, 255, 255, .95), rgba(255, 255, 255, .25) 30%, rgba(255, 255, 255, 0) 55%, rgba(23, 64, 106, .10));
+    --glare: rgba(255, 255, 255, .38);
+    --spot-on: color-mix(in srgb, var(--accent) 75%, #5aa0e6);
+    --inner-light: rgba(74, 132, 196, .10);
+    --ripple: rgba(255, 255, 255, .45);
+}
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        --depth-1: 0 1px 1px rgba(0, 0, 0, .3), 0 4px 10px rgba(0, 0, 0, .25), 0 14px 30px -10px rgba(0, 0, 0, .5);
+        --depth-2: 0 2px 4px rgba(0, 0, 0, .35), 0 10px 22px rgba(0, 0, 0, .3), 0 28px 56px -14px rgba(0, 0, 0, .65);
+        --rim: linear-gradient(145deg, rgba(255, 255, 255, .22), rgba(255, 255, 255, .05) 30%, rgba(255, 255, 255, 0) 55%, rgba(127, 176, 230, .14));
+        --glare: rgba(200, 225, 255, .13);
+        --spot-on: var(--accent);
+        --inner-light: rgba(127, 176, 230, .10);
+        --ripple: rgba(11, 20, 34, .25);
+    }
+}
+:root[data-theme="dark"] {
+    --depth-1: 0 1px 1px rgba(0, 0, 0, .3), 0 4px 10px rgba(0, 0, 0, .25), 0 14px 30px -10px rgba(0, 0, 0, .5);
+    --depth-2: 0 2px 4px rgba(0, 0, 0, .35), 0 10px 22px rgba(0, 0, 0, .3), 0 28px 56px -14px rgba(0, 0, 0, .65);
+    --rim: linear-gradient(145deg, rgba(255, 255, 255, .22), rgba(255, 255, 255, .05) 30%, rgba(255, 255, 255, 0) 55%, rgba(127, 176, 230, .14));
+    --glare: rgba(200, 225, 255, .13);
+    --spot-on: var(--accent);
+    --inner-light: rgba(127, 176, 230, .10);
+    --ripple: rgba(11, 20, 34, .25);
+}
+
+/* Elevation: cards and panels float a little higher off the backdrop. */
+.product-card, .panel, .custom-cta, .stat, .gallery-grid figure, .delivery-option {
+    position: relative; isolation: isolate;
+    box-shadow: inset 0 1px 0 var(--glass-edge), var(--depth-1);
+}
+.product-card:hover, .gallery-grid li:hover figure, a.stat:hover {
+    box-shadow: inset 0 1px 0 var(--glass-edge), var(--depth-2);
+}
+
+/* Glass rim: a 1px edge that is brighter at the top left, like light hitting
+   the edge of a pane. Where the pointer is, the edge also lights up in navy. */
+.product-card::before, .panel::before, .custom-cta::before, .stat::before,
+.gallery-grid figure::before, .delivery-option::before {
+    content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none;
+    border-radius: inherit; padding: 1px;
+    background: radial-gradient(260px circle at calc(var(--px, .5) * 100%) calc(var(--py, .5) * 100%), var(--spot), transparent 70%), var(--rim);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+    transition: --spot .35s var(--ease);
+}
+.is-pointer { --spot: var(--spot-on); }
+
+/* Soft light under the pointer on larger glass panels. */
+.panel::after, .custom-cta::after, .stat::after, .delivery-option::after {
+    content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; border-radius: inherit;
+    background: radial-gradient(360px circle at calc(var(--px, .5) * 100%) calc(var(--py, .5) * 100%), var(--inner-light), transparent 65%);
+    opacity: 0; transition: opacity .35s var(--ease);
+}
+.is-pointer::after { opacity: 1; }
+
+/* Product cards and gallery tiles: a glare that follows the pointer. */
+.product-card::after, .gallery-grid figure::after {
+    content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none; border-radius: inherit;
+    background: radial-gradient(70% 60% at calc(var(--px, .5) * 100%) calc(var(--py, .3) * 100%), var(--glare), transparent 70%);
+    opacity: 0; transition: opacity .3s var(--ease);
+}
+.product-card.is-pointer::after, .gallery-grid figure.is-pointer::after { opacity: 1; }
+/* On touch screens the glare shows briefly where the card is pressed. */
+.product-card:active::after, .gallery-grid li:active figure::after { opacity: 1; }
+
+/* The photo zooms inside its own frame, so it never slides over the name and price. */
+.card-media, .gallery-grid a { overflow: hidden; }
+
+/* Tilt toward the pointer. The photo shifts the other way for parallax. */
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+    .product-card.is-pointer, .gallery-grid figure.is-pointer {
+        transform: perspective(900px) translateY(-5px)
+            rotateX(calc((var(--py, .5) - .5) * -7deg)) rotateY(calc((var(--px, .5) - .5) * 9deg));
+        transition: transform .1s linear, box-shadow .22s var(--ease), border-color .22s var(--ease);
+    }
+    .product-card.is-pointer .product-image, .product-card.is-pointer .placeholder-image, .gallery-grid figure.is-pointer img {
+        transform: scale(1.07) translate(calc((var(--px, .5) - .5) * -10px), calc((var(--py, .5) - .5) * -10px));
+        transition: transform .12s linear;
+    }
+    .product-card.is-pointer:active { transform: perspective(900px) translateY(-2px) scale(.99); }
+}
+
+/* Buttons: a band of light sweeps across on hover, and a ripple spreads from where it is pressed. */
+.button, button.button { position: relative; overflow: hidden; isolation: isolate; }
+.button::before {
+    content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+    background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, .28) 50%, transparent 65%);
+    transform: translateX(-110%);
+}
+.button.secondary::before { background: linear-gradient(105deg, transparent 35%, color-mix(in srgb, var(--accent) 14%, transparent) 50%, transparent 65%); }
+.button:hover::before { transform: translateX(110%); transition: transform .7s var(--ease); }
+.button::after {
+    content: ""; position: absolute; z-index: -1; pointer-events: none;
+    left: var(--rx, 50%); top: var(--ry, 50%); width: 12px; height: 12px; margin: -6px 0 0 -6px;
+    border-radius: 50%; background: var(--ripple); opacity: 0;
+}
+.button.secondary::after { background: color-mix(in srgb, var(--accent) 25%, transparent); }
+.button.rippling::after { animation: ripple .55s var(--ease); }
+@keyframes ripple { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(28); } }
+
+/* The sticky header gains a deeper shadow and denser glass once the page scrolls under it. */
+.site-header { transition: box-shadow .3s var(--ease), background-color .3s var(--ease); }
+.is-scrolled .site-header { box-shadow: inset 0 -1px 0 var(--glass-edge), var(--depth-1); }
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .is-scrolled .site-header { background-color: color-mix(in srgb, var(--surface) 76%, transparent); -webkit-backdrop-filter: blur(20px) saturate(170%); backdrop-filter: blur(20px) saturate(170%); }
+}
+
+/* Category pills: the current one sits pressed in, the others float. */
+.category-tabs a[aria-current="page"] { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .2), 0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent); }
+
+/* Hero: a floating stack of glass layers, like a print being built up layer by layer.
+   It leans toward the pointer (set on <html> by depth.js) and breathes slowly. */
+.hero { position: relative; max-width: none; display: grid; grid-template-columns: minmax(0, 680px) 1fr; align-items: center; gap: 24px; }
+.hero-art { justify-self: center; width: 200px; height: 150px; margin-top: 36px; perspective: 900px; pointer-events: none; }
+.hero-stack {
+    position: relative; width: 100%; height: 100%; transform-style: preserve-3d;
+    transform: rotateX(calc(58deg + var(--gy, 0) * -6deg)) rotateZ(calc(-42deg + var(--gx, 0) * 8deg));
+    transition: transform .6s var(--ease);
+}
+.hero-stack span {
+    position: absolute; inset: 24px; border-radius: 22px;
+    background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 34%, transparent), color-mix(in srgb, var(--accent) 10%, transparent) 60%, color-mix(in srgb, var(--link) 18%, transparent));
+    border: 1px solid rgba(255, 255, 255, .45);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .6), 0 18px 30px -12px color-mix(in srgb, var(--accent) 45%, transparent);
+    transform: translateZ(calc(var(--i) * 16px));
+    animation: layer-float 6s ease-in-out infinite alternate;
+    animation-delay: calc(var(--i) * -.6s);
+}
+.hero-stack span:nth-child(1) { --i: 0; opacity: .55; }
+.hero-stack span:nth-child(2) { --i: 1; opacity: .65; }
+.hero-stack span:nth-child(3) { --i: 2; opacity: .75; }
+.hero-stack span:nth-child(4) { --i: 3; opacity: .85; }
+.hero-stack span:nth-child(5) { --i: 4; opacity: .95; inset: 52px; border-radius: 14px; }
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .hero-stack span { border-color: rgba(255, 255, 255, .14); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .18), 0 18px 34px -12px rgba(0, 0, 0, .7); }
+}
+:root[data-theme="dark"] .hero-stack span { border-color: rgba(255, 255, 255, .14); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .18), 0 18px 34px -12px rgba(0, 0, 0, .7); }
+@keyframes layer-float { from { transform: translateZ(calc(var(--i) * 16px)); } to { transform: translateZ(calc(var(--i) * 24px + 6px)); } }
+@media (max-width: 720px) { .hero { display: block; } .hero-art { display: none; } }
+
+/* Products and photos rise into place as they scroll into view. Pure CSS, so
+   browsers without scroll-driven animations simply show them straight away.
+   It animates translate/opacity, which leaves transform free for hover and tilt. */
+@supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+        .product-grid > *, .gallery-grid > li {
+            animation: reveal linear both;
+            animation-timeline: view();
+            animation-range: entry 0% entry 70%;
+        }
+    }
+}
+@keyframes reveal { from { opacity: 0; translate: 0 28px; scale: .97; } to { opacity: 1; translate: none; scale: none; } }
+
+/* Phones: no tilt, but a pressed card dips slightly so the tap feels physical. */
+@media (hover: none) {
+    .product-card:active, .gallery-grid li:active figure { transform: scale(.98); box-shadow: inset 0 1px 0 var(--glass-edge), var(--shadow); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .hero-stack span { animation: none; }
+    .hero-stack { transition: none; transform: rotateX(58deg) rotateZ(-42deg); }
+    .button:hover::before { transform: translateX(-110%); }
+    .button.rippling::after { animation: none; }
+    .product-card:active, .gallery-grid li:active figure { transform: none; }
+}
+@media (forced-colors: active) {
+    .product-card::before, .panel::before, .custom-cta::before, .stat::before, .gallery-grid figure::before, .delivery-option::before,
+    .panel::after, .custom-cta::after, .stat::after, .delivery-option::after, .button::before, .button::after,
+    .product-card::after, .gallery-grid figure::after, .hero-art { display: none; }
+}
