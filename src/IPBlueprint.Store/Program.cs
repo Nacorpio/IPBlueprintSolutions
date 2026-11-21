@@ -40,6 +40,14 @@ services.AddScoped<OrderService>();
 services.AddScoped<OrderNotifications>();
 services.AddScoped<StockAlerts>();
 services.AddScoped<Catalog>();
+services.AddScoped<DataRetention>();
+services.AddHostedService<DataRetentionJob>();
+
+// Emails go out in the background so pages never wait for the mail server. A normal shutdown (a deploy) waits up to a
+// minute for queued emails before stopping.
+services.AddSingleton<BackgroundWorkQueue>();
+services.AddHostedService<BackgroundWorker>();
+services.Configure<HostOptions>(o => o.ShutdownTimeout = TimeSpan.FromMinutes(1));
 
 services.AddHttpClient<ISumUpClient, SumUpClient>((sp, http) =>
 {
@@ -60,9 +68,12 @@ services.AddAuthentication(AdminPolicy.Scheme)
         o.Cookie.Name = "admin";
         o.Cookie.HttpOnly = true;
         o.Cookie.SameSite = SameSiteMode.Strict;
-        o.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+        // Plain http only on a developer's own machine (and in tests); a live shop sends the cookie over HTTPS only.
+        o.Cookie.SecurePolicy = builder.Environment.IsProduction() ? CookieSecurePolicy.Always : CookieSecurePolicy.SameAsRequest;
         o.ExpireTimeSpan = TimeSpan.FromDays(7);
         o.SlidingExpiration = true;
+        // Changing Admin:Password logs out every admin session, including one on a lost or stolen device.
+        o.Events.OnValidatePrincipal = AdminSession.ValidateAsync;
     });
 services.AddAuthorizationBuilder()
     .AddPolicy(AdminPolicy.Name, p => p.AddAuthenticationSchemes(AdminPolicy.Scheme).RequireAuthenticatedUser());
@@ -70,10 +81,7 @@ services.AddAuthorizationBuilder()
 services.AddRateLimiter(o =>
 {
     o.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-    o.AddPolicy(AdminPolicy.LoginRateLimit, ctx => RateLimitPartition.GetFixedWindowLimiter(
-        ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-        _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(5) }));
-    o.AddFormRateLimits();
+    o.AddStoreRateLimits();
 });
 
 // Swedish by default, English on request. See Localization/Languages.cs.
@@ -106,6 +114,15 @@ services.Configure<ForwardedHeadersOptions>(o =>
 
 var app = builder.Build();
 
+if (app.Environment.IsProduction())
+{
+    var shopOptions = app.Services.GetRequiredService<IOptions<ShopOptions>>().Value;
+    if (string.IsNullOrWhiteSpace(shopOptions.PublicBaseUrl))
+        app.Logger.LogWarning("Shop:PublicBaseUrl is not set, so links in emails and to SumUp are built from the request's host name. Set it to the shop's address.");
+    if (string.IsNullOrWhiteSpace(config[$"{SmtpOptions.Section}:Host"]))
+        app.Logger.LogWarning("Smtp:Host is not set, so no emails are sent.");
+}
+
 await using (var scope = app.Services.CreateAsyncScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<StoreDbContext>();
@@ -115,6 +132,7 @@ await using (var scope = app.Services.CreateAsyncScope())
 }
 
 app.UseForwardedHeaders();
+app.UseSecurityHeaders();
 
 if (!app.Environment.IsDevelopment())
 {
@@ -191,12 +209,13 @@ app.MapPost("/webhooks/sumup", async (SumUpWebhook? payload, OrderService orders
         log.LogInformation("SumUp webhook {Event} for checkout {CheckoutId}: {Result}", payload.EventType, payload.Id, result);
         return Results.Ok();
     }
-    catch (SumUpException ex)
+    catch (Exception ex) when (ex is SumUpException or HttpRequestException || (ex is TaskCanceledException && !ct.IsCancellationRequested))
     {
+        // SumUp didn't answer or answered with an error: ask it to send the webhook again later.
         log.LogWarning(ex, "Could not verify SumUp checkout {CheckoutId}; SumUp will retry", payload.Id);
         return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
     }
-});
+}).RequireRateLimiting(RateLimits.SumUpWebhook);
 
 app.Run();
 

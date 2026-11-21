@@ -1,5 +1,5 @@
-using System.Security.Claims;
 using IPBlueprint.Store.Admin;
+using IPBlueprint.Store.Shop;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -8,7 +8,7 @@ using Microsoft.Extensions.Options;
 
 namespace IPBlueprint.Store.Pages.Admin;
 
-[EnableRateLimiting(AdminPolicy.LoginRateLimit)]
+[EnableRateLimiting(RateLimits.AdminLogin)]
 public class LoginModel(IOptions<AdminOptions> options, ILogger<LoginModel> logger) : PageModel
 {
     public string? Error { get; private set; }
@@ -27,8 +27,7 @@ public class LoginModel(IOptions<AdminOptions> options, ILogger<LoginModel> logg
             return Page();
         }
 
-        var identity = new ClaimsIdentity([new Claim(ClaimTypes.Name, "admin")], AdminPolicy.Scheme);
-        await HttpContext.SignInAsync(AdminPolicy.Scheme, new ClaimsPrincipal(identity));
+        await HttpContext.SignInAsync(AdminPolicy.Scheme, AdminSession.CreatePrincipal(options.Value));
 
         return LocalRedirect(Url.IsLocalUrl(returnUrl) ? returnUrl : "/Admin");
     }

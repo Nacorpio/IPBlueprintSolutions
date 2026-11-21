@@ -11,7 +11,7 @@ using Microsoft.Extensions.Options;
 
 namespace IPBlueprint.Store.Pages;
 
-[EnableRateLimiting(FormRateLimits.Checkout)]
+[EnableRateLimiting(RateLimits.Checkout)]
 public class CheckoutModel(
     CartService cart,
     OrderService orders,
@@ -68,7 +68,7 @@ public class CheckoutModel(
         {
             var paymentUrl = await orders.StartPaymentAsync(order, SiteUrls.BaseUrl(Request, shopOptions.Value), ct);
             cart.Clear();
-            return Redirect(paymentUrl);
+            return paymentUrl is null ? RedirectToPage("/Order", new { id = order.Id }) : Redirect(paymentUrl);
         }
         catch (Exception ex) when (ex is SumUpException or HttpRequestException or TaskCanceledException)
         {

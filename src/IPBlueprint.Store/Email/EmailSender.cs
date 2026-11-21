@@ -45,12 +45,18 @@ public sealed class SmtpEmailSender(IOptions<SmtpOptions> options) : IEmailSende
     }
 }
 
-/// <summary>Used in development, or until SMTP is set up: logs the email instead of sending it.</summary>
-public sealed class LoggingEmailSender(ILogger<LoggingEmailSender> logger) : IEmailSender
+/// <summary>
+/// Used in development, or until SMTP is set up: logs the email instead of sending it. Outside development only the
+/// subject is logged, because the body holds personal data and private order links that don't belong in a log file.
+/// </summary>
+public sealed class LoggingEmailSender(IHostEnvironment environment, ILogger<LoggingEmailSender> logger) : IEmailSender
 {
     public Task SendAsync(string to, string subject, string htmlBody, string? replyTo = null, CancellationToken ct = default)
     {
-        logger.LogInformation("Email (not sent, SMTP not configured) to {To}: {Subject}\n{Body}", to, subject, htmlBody);
+        if (environment.IsDevelopment())
+            logger.LogInformation("Email (not sent, SMTP not configured) to {To}: {Subject}\n{Body}", to, subject, htmlBody);
+        else
+            logger.LogWarning("Email not sent because SMTP is not configured: {Subject}", subject);
         return Task.CompletedTask;
     }
 }

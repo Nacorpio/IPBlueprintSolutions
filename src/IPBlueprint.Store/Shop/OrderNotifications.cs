@@ -9,7 +9,8 @@ using Microsoft.Extensions.Options;
 namespace IPBlueprint.Store.Shop;
 
 /// <summary>
-/// Sends the shop's emails. A failure to send is logged but never fails the order or request itself.
+/// Writes the shop's emails and hands them to the background queue, so a slow or broken mail server never holds up the
+/// page that caused them. A failure to send is logged but never fails the order or request itself.
 /// Customers get their email in the language they used on the site (stored on the order or request), since these
 /// often go out from the SumUp webhook or the admin page rather than from the customer's own request.
 /// Emails to the shop owners are always in Swedish.
@@ -18,13 +19,15 @@ public sealed class OrderNotifications(
     IEmailSender email,
     IOptions<ShopOptions> shopOptions,
     IHttpContextAccessor http,
+    BackgroundWorkQueue queue,
     ILogger<OrderNotifications> logger)
 {
     private static readonly HtmlEncoder Html = HtmlEncoder.Default;
     private static readonly TimeSpan SendTimeout = TimeSpan.FromMinutes(1);
     private ShopOptions Shop => shopOptions.Value;
 
-    public async Task OrderPaidAsync(Order order, IReadOnlyList<StockShortage>? shortages = null)
+    /// <summary>The customer's order confirmation and the owners' new-order email.</summary>
+    public void QueueOrderPaid(Order order, IReadOnlyList<StockShortage>? shortages = null)
     {
         var en = IsEnglish(order.Language);
         var shortageHtml = shortages is { Count: > 0 }
@@ -42,7 +45,7 @@ public sealed class OrderNotifications(
                 ? "we'll print and pack your items as soon as we can. We'll email you again when the parcel is on its way."
                 : "vi printar och packar dina varor så snart vi kan. Vi mejlar dig igen när paketet är på väg.");
 
-        await TrySendAsync(order.Email,
+        Queue(order.Email,
             en ? $"Thank you for your order {order.Reference}" : $"Tack för din beställning {order.Reference}",
             en
                 ? $"""
@@ -67,7 +70,7 @@ public sealed class OrderNotifications(
 
         foreach (var owner in Shop.NotificationRecipients)
         {
-            await TrySendAsync(owner, $"Ny betald beställning {order.Reference} ({Money.Format(order.Total)}){(order.IsPickup ? ", hämtas" : "")}",
+            Queue(owner, $"Ny betald beställning {order.Reference} ({Money.Format(order.Total)}){(order.IsPickup ? ", hämtas" : "")}",
                 $"""
                 <p>Ny betald beställning från {Html.Encode(order.CustomerName)} ({Html.Encode(order.Email)}).{(en ? " Kunden handlade på engelska." : "")}</p>
                 {shortageHtml}
@@ -78,34 +81,49 @@ public sealed class OrderNotifications(
         }
     }
 
-    /// <summary>Tells the owners (in Swedish) that a customer paid a checkout the order didn't need, so it can be refunded.</summary>
-    public async Task ExtraPaymentAsync(Order order, SumUpCheckout checkout, bool cancelled)
+    /// <summary>Tells the owners (in Swedish) about a paid checkout that couldn't settle the order, and what to do about it.</summary>
+    public void QueuePaymentIssue(Order order, PaymentIssue issue)
     {
-        var why = cancelled
-            ? "Beställningen var avbruten, men kunden har ändå betalat den."
-            : "Beställningen var redan betald, men kunden har betalat en gång till via en annan betalning.";
+        var paid = issue.Amount is { } amount
+            ? $"{Html.Encode(amount.ToString(System.Globalization.CultureInfo.InvariantCulture))} {Html.Encode(issue.Currency ?? "")}"
+            : "okänt belopp";
+        var checkout = $"<code>{Html.Encode(issue.CheckoutId)}</code>";
+        var (subject, what, todo) = issue.Kind switch
+        {
+            PaymentIssueKind.WrongAmount => (
+                $"Kolla betalningen för {order.Reference}: fel belopp",
+                $"SumUp säger att kunden har betalat {paid}, men beställningen kostar {Money.Format(order.Total)}. Beställningen är därför inte markerad som betald.",
+                $"Kolla SumUp-betalningen {checkout} i SumUp och återbetala den eller kontakta kunden. Kunden kan inte betala igen från sin beställningssida förrän ni markerar problemet som löst i admin."),
+            PaymentIssueKind.PaidAfterCancel => (
+                $"Kolla betalningen för {order.Reference}: {paid} ska återbetalas",
+                "Beställningen var avbruten, men kunden har ändå betalat den.",
+                $"Återbetala SumUp-betalningen {checkout} ({paid}) i SumUp, eller återuppta beställningen. Markera sedan problemet som löst i admin."),
+            _ => (
+                $"Kolla betalningen för {order.Reference}: {paid} ska återbetalas",
+                "Beställningen var redan betald, men kunden har betalat en gång till via en annan betalning.",
+                $"Återbetala SumUp-betalningen {checkout} ({paid}) i SumUp, så att kunden bara betalar en gång. Markera sedan problemet som löst i admin."),
+        };
+
         foreach (var owner in Shop.NotificationRecipients)
         {
-            await TrySendAsync(owner, $"Kolla betalningen för {order.Reference}: {Money.Format(checkout.Amount)} ska återbetalas",
+            Queue(owner, subject,
                 $"""
-                <p><strong>{why}</strong></p>
-                <p>Återbetala SumUp-betalningen <code>{Html.Encode(checkout.Id)}</code> ({Money.Format(checkout.Amount)}) i SumUp,
-                {(cancelled ? "eller återuppta beställningen" : "så att kunden bara betalar en gång")}.
+                <p><strong>{what}</strong></p>
+                <p>{todo}
                 Kund: {Html.Encode(order.CustomerName)} ({Html.Encode(order.Email)}).</p>
                 {OrderSummaryHtml(order, english: false)}
                 """, replyTo: order.Email);
         }
     }
 
-    public Task<bool> OrderShippedAsync(Order order)
+    private (string Subject, string Body) ShippedEmail(Order order)
     {
         var en = IsEnglish(order.Language);
         var tracking = string.IsNullOrWhiteSpace(order.TrackingNumber)
             ? ""
             : $"<p>{(en ? "Tracking number" : "Spårningsnummer")}: <strong>{Html.Encode(order.TrackingNumber)}</strong></p>";
 
-        return TrySendAsync(order.Email,
-            en ? $"Your order {order.Reference} is on its way" : $"Din beställning {order.Reference} är på väg",
+        return (en ? $"Your order {order.Reference} is on its way" : $"Din beställning {order.Reference} är på väg",
             en
                 ? $"""
                   <p>Hi {Html.Encode(order.CustomerName)},</p>
@@ -124,14 +142,21 @@ public sealed class OrderNotifications(
                   <p>Om något inte stämmer när paketet kommer fram, svara på det här mejlet så löser vi det.</p>
                   {FollowUsHtml(en)}
                   <p>{Html.Encode(Shop.Name)}</p>
-                  """,
-            replyTo: Shop.ContactEmail);
+                  """);
     }
 
-    /// <summary>The customer's email for a status the admin just set. Shipped reuses <see cref="OrderShippedAsync"/>.</summary>
-    public Task<bool> StatusChangedAsync(Order order)
+    /// <summary>
+    /// Queues the customer's email for a status the admin just set, and returns false when that status has no email.
+    /// <paramref name="afterSend"/> runs in the background once the send has been tried, with whether it worked.
+    /// </summary>
+    public bool QueueStatusChanged(Order order, Func<IServiceProvider, bool, Task>? afterSend = null)
     {
-        if (order.Status == OrderStatus.Shipped) return OrderShippedAsync(order);
+        if (order.Status == OrderStatus.Shipped)
+        {
+            var shipped = ShippedEmail(order);
+            Queue(order.Email, shipped.Subject, shipped.Body, Shop.ContactEmail, afterSend);
+            return true;
+        }
 
         var en = IsEnglish(order.Language);
         var hi = en ? $"<p>Hi {Html.Encode(order.CustomerName)},</p>" : $"<p>Hej {Html.Encode(order.CustomerName)}!</p>";
@@ -172,9 +197,9 @@ public sealed class OrderNotifications(
             _ => default((string, string)?),
         };
 
-        if (content is not { } c) return Task.FromResult(false);
+        if (content is not { } c) return false;
 
-        return TrySendAsync(order.Email, c.Subject,
+        Queue(order.Email, c.Subject,
             $"""
             {hi}
             {c.Text}
@@ -182,17 +207,20 @@ public sealed class OrderNotifications(
             {(order.Status == OrderStatus.Refunded ? "" : FollowUsHtml(en))}
             <p>{Html.Encode(Shop.Name)}</p>
             """,
-            replyTo: Shop.ContactEmail);
+            Shop.ContactEmail, afterSend);
+        return true;
     }
 
-    public Task<bool> BackInStockAsync(Product product, StockAlert alert)
+    /// <summary>Sends a back-in-stock email straight away and reports whether it went. Only called from the background
+    /// queue, which works through a product's waiting list one address at a time.</summary>
+    public Task<bool> SendBackInStockAsync(Product product, StockAlert alert)
     {
         var en = IsEnglish(alert.Language);
         var name = en && !string.IsNullOrWhiteSpace(product.NameEn) ? product.NameEn : product.Name;
         var link = SiteLink($"products/{Uri.EscapeDataString(product.Slug)}", en);
         var button = link is null ? "" : $"<p><a href=\"{Html.Encode(link)}\">{(en ? "See it in the shop" : "Se den i butiken")}</a></p>";
 
-        return TrySendAsync(alert.Email,
+        return SendNowAsync(alert.Email,
             en ? $"{name} is back in stock" : $"{name} finns i lager igen",
             en
                 ? $"""
@@ -230,14 +258,15 @@ public sealed class OrderNotifications(
         return baseUrl is null ? null : Seo.PageUrl(baseUrl, path, english ? Languages.English : Languages.Swedish);
     }
 
-    public async Task CustomRequestReceivedAsync(CustomOrderRequest request)
+    /// <summary>The customer's receipt for a custom order request, and the owners' copy of the whole request.</summary>
+    public void QueueCustomRequestReceived(CustomOrderRequest request)
     {
         var en = IsEnglish(request.Language);
         var description = Html.Encode(request.Description).Replace("\n", "<br>");
 
         // The address was typed in by whoever filled in the form, so the customer's copy repeats none of their text
         // (not even the name): otherwise the form could be used to send anyone a message from the shop's account.
-        await TrySendAsync(request.Email,
+        Queue(request.Email,
             en ? "We received your custom order request" : "Vi har tagit emot din förfrågan",
             en
                 ? $"""
@@ -258,7 +287,7 @@ public sealed class OrderNotifications(
 
         foreach (var owner in Shop.NotificationRecipients)
         {
-            await TrySendAsync(owner, $"Ny förfrågan om specialbeställning från {request.Name}",
+            Queue(owner, $"Ny förfrågan om specialbeställning från {request.Name}",
                 $"""
                 <p><strong>{Html.Encode(request.Name)}</strong> ({Html.Encode(request.Email)}) har skickat en förfrågan om specialbeställning{(en ? " (på engelska, så svara gärna på engelska)" : "")}:</p>
                 <blockquote>{description}</blockquote>
@@ -325,11 +354,20 @@ public sealed class OrderNotifications(
         {(string.IsNullOrWhiteSpace(o.Phone) ? "" : "Telefon: " + Html.Encode(o.Phone))}</p>
         """;
 
+    /// <summary>Hands one email to the background queue. The email is written now (links use this request's address) and
+    /// sent later, so the visitor closing the tab or a slow mail server can't lose it or hold up the page.</summary>
+    private void Queue(string to, string subject, string body, string? replyTo, Func<IServiceProvider, bool, Task>? afterSend = null) =>
+        queue.Enqueue(async (services, _) =>
+        {
+            var sent = await services.GetRequiredService<OrderNotifications>().SendNowAsync(to, subject, body, replyTo);
+            if (afterSend is not null) await afterSend(services, sent);
+        });
+
     /// <summary>
-    /// Sends one email and reports whether it went. It deliberately ignores the caller's request token: these emails
-    /// go out after an order or request is already saved, and a visitor closing the tab must not lose them.
+    /// Sends one email and reports whether it went. It has its own timeout instead of a caller's token: by the time an
+    /// email is sent, the order or request it is about is already saved.
     /// </summary>
-    private async Task<bool> TrySendAsync(string to, string subject, string body, string? replyTo)
+    private async Task<bool> SendNowAsync(string to, string subject, string body, string? replyTo)
     {
         using var timeout = new CancellationTokenSource(SendTimeout);
         try

@@ -183,6 +183,38 @@ public partial class StockAndStatusTests : IClassFixture<StoreFactory>
     }
 
     [Fact]
+    public async Task Someone_whose_back_in_stock_email_fails_stays_on_the_list()
+    {
+        var product = await AddProductAsync("Svår figur", stock: 0);
+        await using (var scope = _factory.Services.CreateAsyncScope())
+        {
+            var alerts = scope.ServiceProvider.GetRequiredService<StockAlerts>();
+            await alerts.SubscribeAsync(product, "first@example.se", "sv");
+            await alerts.SubscribeAsync(product, "second@example.se", "sv");
+        }
+        await _factory.WithDbAsync(db => db.Products.Where(p => p.Id == product.Id).ExecuteUpdateAsync(s => s.SetProperty(p => p.Stock, 2)));
+
+        var sends = 0;
+        _factory.Emails.BeforeSend = () =>
+        {
+            if (Interlocked.Increment(ref sends) == 1) throw new IOException("Mail server said no");
+        };
+        try
+        {
+            await using var scope = _factory.Services.CreateAsyncScope();
+            Assert.Equal(1, await scope.ServiceProvider.GetRequiredService<StockAlerts>().NotifyIfAvailableAsync(product.Id));
+        }
+        finally
+        {
+            _factory.Emails.BeforeSend = null;
+        }
+
+        var emailed = _factory.Emails.Sent.Single(e => e.Subject.StartsWith("Svår figur")).To;
+        var waiting = await _factory.WithDbAsync(db => db.StockAlerts.Where(a => a.ProductId == product.Id).Select(a => a.Email).ToListAsync());
+        Assert.Equal([new[] { "first@example.se", "second@example.se" }.Single(e => e != emailed)], waiting);
+    }
+
+    [Fact]
     public async Task Visitors_can_sign_up_for_the_back_in_stock_email_on_the_product_page()
     {
         var product = await AddProductAsync("Väntelista", stock: 0);
@@ -329,6 +361,38 @@ public partial class StockAndStatusTests : IClassFixture<StoreFactory>
     }
 
     [Fact]
+    public async Task Back_in_stock_emails_a_restart_cut_short_go_out_on_the_next_sweep()
+    {
+        var product = await AddProductAsync("Avbruten lista", stock: 0);
+        await using (var scope = _factory.Services.CreateAsyncScope())
+            await scope.ServiceProvider.GetRequiredService<StockAlerts>().SubscribeAsync(product, "left-over@example.se", "sv");
+        // Restocked, but the app stopped before the email went out: the address is still waiting.
+        await _factory.WithDbAsync(db => db.Products.Where(p => p.Id == product.Id).ExecuteUpdateAsync(s => s.SetProperty(p => p.Stock, 3)));
+
+        await using (var scope = _factory.Services.CreateAsyncScope())
+            await scope.ServiceProvider.GetRequiredService<StockAlerts>().NotifyAllAvailableAsync();
+
+        Assert.Single(EmailsTo("left-over@example.se"));
+        Assert.Equal(0, await _factory.WithDbAsync(db => db.StockAlerts.CountAsync(a => a.ProductId == product.Id)));
+    }
+
+    [Fact]
+    public async Task Saving_a_restocked_product_queues_the_waiting_emails()
+    {
+        var product = await AddProductAsync("Köad lampa", stock: 0);
+        await using (var scope = _factory.Services.CreateAsyncScope())
+            await scope.ServiceProvider.GetRequiredService<StockAlerts>().SubscribeAsync(product, "queued@example.se", "en");
+        await _factory.WithDbAsync(db => db.Products.Where(p => p.Id == product.Id).ExecuteUpdateAsync(s => s.SetProperty(p => p.Stock, 1)));
+
+        int waiting;
+        await using (var scope = _factory.Services.CreateAsyncScope())
+            waiting = await scope.ServiceProvider.GetRequiredService<StockAlerts>().QueueNotifyIfAvailableAsync(product.Id);
+
+        Assert.Equal(1, waiting);
+        Assert.Single(EmailsTo("queued@example.se"));
+    }
+
+    [Fact]
     public async Task Admin_changes_status_from_the_order_page()
     {
         var order = await PlaceOrderAsync(await AddProductAsync("Adminorder"));
@@ -340,7 +404,7 @@ public partial class StockAndStatusTests : IClassFixture<StoreFactory>
         var response = await client.PostAsync($"/Admin/Orders/Details/{order.Id}?handler=Status",
             Form(Token(page), ("to", "InProduction"), ("emailCustomer", "true")));
 
-        Assert.Contains("Marked as in production. The customer has been emailed.", await response.Content.ReadAsStringAsync());
+        Assert.Contains("Marked as in production. The customer is being emailed.", await response.Content.ReadAsStringAsync());
         Assert.Contains(EmailsTo(order.Email), e => e.Subject.StartsWith("Nu printar vi din beställning"));
     }
 

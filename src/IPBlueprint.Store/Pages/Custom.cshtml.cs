@@ -10,7 +10,7 @@ using Microsoft.Extensions.Options;
 
 namespace IPBlueprint.Store.Pages;
 
-[EnableRateLimiting(FormRateLimits.CustomRequest)]
+[EnableRateLimiting(RateLimits.CustomRequest)]
 [RequestSizeLimit(FileStore.MaxAttachmentBytes + 1024 * 1024)]
 [RequestFormLimits(MultipartBodyLengthLimit = FileStore.MaxAttachmentBytes + 1024 * 1024)]
 public class CustomModel(
@@ -66,7 +66,7 @@ public class CustomModel(
         db.CustomOrderRequests.Add(request);
         await db.SaveChangesAsync(ct);
 
-        await notifications.CustomRequestReceivedAsync(request);
+        notifications.QueueCustomRequestReceived(request);
 
         TempData["Flash"] = localizer["Thanks! We've received your request and sent you a confirmation by email. We'll get back to you soon."].Value;
         return RedirectToPage("/Index");

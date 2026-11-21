@@ -83,7 +83,10 @@ public class OrderModel(
     {
         var order = await db.Orders.FirstOrDefaultAsync(o => o.Id == id, ct);
         if (order is null) return NotFound();
-        if (order.Status is not (OrderStatus.AwaitingPayment or OrderStatus.PaymentFailed)) return RedirectToPage(new { id });
+        if (!order.IsUnpaid) return RedirectToPage(new { id });
+        // A payment came in that the owners have to look at by hand (wrong amount): don't let the customer pay again.
+        // StartPaymentAsync checks this too, in case it happens while this request runs; this just saves a SumUp call.
+        if (await db.PaymentIssues.AnyAsync(i => i.OrderId == id && i.ResolvedAtUtc == null, ct)) return RedirectToPage(new { id });
 
         try
         {
@@ -95,7 +98,8 @@ public class OrderModel(
             }
 
             await db.Entry(order).ReloadAsync(ct);
-            return Redirect(await orders.StartPaymentAsync(order, SiteUrls.BaseUrl(Request, shopOptions.Value), ct));
+            var paymentUrl = await orders.StartPaymentAsync(order, SiteUrls.BaseUrl(Request, shopOptions.Value), ct);
+            return paymentUrl is null ? RedirectToPage(new { id }) : Redirect(paymentUrl);
         }
         catch (Exception ex) when (ex is SumUpException or HttpRequestException or TaskCanceledException)
         {
@@ -106,5 +110,5 @@ public class OrderModel(
     }
 
     private Task<Order?> Load(Guid id, CancellationToken ct) =>
-        db.Orders.AsNoTracking().Include(o => o.Lines).Include(o => o.History).AsSplitQuery().FirstOrDefaultAsync(o => o.Id == id, ct);
+        db.Orders.AsNoTracking().Include(o => o.Lines).Include(o => o.History).Include(o => o.PaymentIssues).AsSplitQuery().FirstOrDefaultAsync(o => o.Id == id, ct);
 }
