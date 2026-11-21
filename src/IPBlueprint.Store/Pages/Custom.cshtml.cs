@@ -10,7 +10,7 @@ using Microsoft.Extensions.Options;
 
 namespace IPBlueprint.Store.Pages;
 
-[EnableRateLimiting(FormRateLimits.CustomRequest)]
+[EnableRateLimiting(RateLimits.CustomRequest)]
 [RequestSizeLimit(FileStore.MaxAttachmentBytes + 1024 * 1024)]
 [RequestFormLimits(MultipartBodyLengthLimit = FileStore.MaxAttachmentBytes + 1024 * 1024)]
 public class CustomModel(

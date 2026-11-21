@@ -107,8 +107,8 @@ public partial class StockAlertRateLimitTests : IClassFixture<StoreFactory>
     [InlineData("203.0.113.5", "203.0.113.6", false)]
     public void Rate_limits_count_an_IPv6_slash_64_as_one_visitor(string a, string b, bool same)
     {
-        var keyA = IPBlueprint.Store.Shop.FormRateLimits.VisitorKey(System.Net.IPAddress.Parse(a));
-        var keyB = IPBlueprint.Store.Shop.FormRateLimits.VisitorKey(System.Net.IPAddress.Parse(b));
+        var keyA = IPBlueprint.Store.Shop.RateLimits.VisitorKey(System.Net.IPAddress.Parse(a));
+        var keyB = IPBlueprint.Store.Shop.RateLimits.VisitorKey(System.Net.IPAddress.Parse(b));
         Assert.Equal(same, keyA == keyB);
     }
 

@@ -30,6 +30,20 @@ public class DetailsModel(StoreDbContext db, FileStore files) : PageModel
         return RedirectToPage(new { id });
     }
 
+    /// <summary>Deletes the request and its file for good, for example when the customer asks to be forgotten.</summary>
+    public async Task<IActionResult> OnPostDeleteAsync(int id, CancellationToken ct)
+    {
+        var r = await db.CustomOrderRequests.FindAsync([id], ct);
+        if (r is null) return NotFound();
+
+        db.CustomOrderRequests.Remove(r);
+        await db.SaveChangesAsync(ct);
+        files.DeleteAttachment(r.AttachmentFileName);
+
+        TempData["Flash"] = $"Deleted the request from {r.Name}.";
+        return RedirectToPage("Index");
+    }
+
     public async Task<IActionResult> OnGetAttachmentAsync(int id, CancellationToken ct)
     {
         var r = await db.CustomOrderRequests.FindAsync([id], ct);

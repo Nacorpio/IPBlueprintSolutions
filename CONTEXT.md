@@ -35,7 +35,7 @@ A payment issue the owners have dealt with outside the shop (refunded, re-opened
 _Avoid_: Closed, handled
 
 **Abandoned order**:
-An order that was never paid, has no open payment issue, and had no payment attempt (or was not created) in the last 30 days.
+An order that was never paid, had no payment attempt (or was not created) in the last 30 days, and has no payment issue resolved less than 30 days ago or still open.
 _Avoid_: Stale order, expired order
 
 ### Stock
