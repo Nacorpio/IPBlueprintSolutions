@@ -971,6 +971,12 @@ a.stat:hover { transform: translateY(-2px); box-shadow: inset 0 1px 0 var(--glas
 .bp-far  { --tile-w: 1440; --tile: 480;  --bp-art: url("../img/blueprint/far.svg");  --bp-color: var(--bp-far);  --bp-o: var(--bp-far-o); }
 .bp-mid  { --tile-w: 1520; --tile: 760;  --bp-art: url("../img/blueprint/mid.svg");  --bp-color: var(--bp-mid);  --bp-o: var(--bp-mid-o); -webkit-mask-position: 220px 0; mask-position: 220px 0; }
 .bp-near { --tile-w: 2000; --tile: 1100; --bp-art: url("../img/blueprint/near.svg"); --bp-color: var(--bp-near); --bp-o: var(--bp-near-o); -webkit-mask-position: -60px 0; mask-position: -60px 0; }
+/* A very slight blur, strongest on the far layer, like a camera focused just in front of the page.
+   Left out on phones, where blurring large moving layers costs too much. */
+.bp-far  { filter: blur(1.1px); }
+.bp-mid  { filter: blur(.7px); }
+.bp-near { filter: blur(.4px); }
+@media (max-width: 600px) { .bp-layer { filter: none; } }
 /* Calm pages (forms and legal text): the near layer is left out and the rest is at half strength. */
 .blueprint.is-calm .bp-layer { opacity: calc(var(--bp-o) * .5); }
 
