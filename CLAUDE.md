@@ -54,3 +54,17 @@ and a build check when Claude stops). They are adapted from
 [Everything Claude Code](https://github.com/affaan-m/everything-claude-code) (MIT, see
 `.claude/LICENSE-everything-claude-code.txt`). The hooks are switched on by `.claude/settings.json`
 (shipped as `.claude/settings.suggested.json` until it is renamed), and do nothing when `dotnet` isn't installed.
+
+## Agent skills
+
+### Issue tracker
+
+Issues and specs live in this repo's GitHub Issues (`gh` CLI). See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five default labels: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one `CONTEXT.md` and `docs/adr/` at the repo root, created when needed. See `docs/agents/domain.md`.
