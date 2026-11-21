@@ -98,4 +98,41 @@ public class SiteTests : IClassFixture<StoreFactory>
         var response = await _factory.CreateClient().GetAsync("/products/no-such-thing");
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
+
+    [Theory]
+    [InlineData("/")]
+    [InlineData("/Gallery")]
+    [InlineData("/Custom")]
+    [InlineData("/Info/About")]
+    public async Task Customer_pages_show_the_full_blueprint_background(string url)
+    {
+        var html = await _factory.CreateClient().GetStringAsync(url);
+
+        Assert.Contains("<div class=\"blueprint\" aria-hidden=\"true\">", html);
+        Assert.Contains("bp-near", html);
+        Assert.Contains("bp-title", html);
+    }
+
+    [Theory]
+    [InlineData("/Cart")]
+    [InlineData("/Checkout")]
+    [InlineData("/Info/Terms")]
+    [InlineData("/Info/Returns")]
+    [InlineData("/Info/Privacy")]
+    public async Task Form_and_legal_pages_get_a_calmer_blueprint_without_near_layer_or_title_block(string url)
+    {
+        var html = await _factory.CreateClient().GetStringAsync(url);
+
+        Assert.Contains("<div class=\"blueprint is-calm\" aria-hidden=\"true\">", html);
+        Assert.DoesNotContain("bp-near", html);
+        Assert.DoesNotContain("bp-title", html);
+    }
+
+    [Fact]
+    public async Task Admin_pages_have_no_blueprint_background()
+    {
+        var html = await _factory.CreateClient().GetStringAsync("/Admin/Login");
+
+        Assert.DoesNotContain("class=\"blueprint", html);
+    }
 }
