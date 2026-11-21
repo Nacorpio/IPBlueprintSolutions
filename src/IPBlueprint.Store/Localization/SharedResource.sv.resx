@@ -13,6 +13,7 @@
   <data name="Cart" xml:space="preserve"><value>Varukorg</value></data>
   <data name="Switch between light and dark theme" xml:space="preserve"><value>Växla mellan ljust och mörkt tema</value></data>
   <data name="Light / dark theme" xml:space="preserve"><value>Ljust/mörkt tema</value></data>
+  <data name="Scale" xml:space="preserve"><value>Skala</value></data>
   <data name="3D printed in Sweden." xml:space="preserve"><value>3D-printat i Sverige.</value></data>
   <data name="Information" xml:space="preserve"><value>Information</value></data>
   <data name="Terms of purchase" xml:space="preserve"><value>Köpvillkor</value></data>

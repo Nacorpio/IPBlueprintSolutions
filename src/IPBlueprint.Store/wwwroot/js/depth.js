@@ -4,6 +4,8 @@
 // - The hero's layer stack leans toward the pointer.
 // - Buttons ripple from where they are pressed (mouse, pen or finger).
 // - <html> gets is-scrolled once the page has scrolled, for the header's deeper shadow and denser glass.
+// - The blueprint background's layers slide up at their own speeds (data-speed) as the page
+//   scrolls, and the drawing is a little stronger while a hero is in view (--bp-boost).
 // Without JavaScript the site looks the same, only stiller.
 (function () {
     "use strict";
@@ -12,18 +14,48 @@
     var reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
     var tracked = ".product-card, .gallery-grid figure, .panel, .custom-cta, .stat, .delivery-option";
 
-    // Header: one class flip, at most once per frame.
+    // Blueprint layers. Each pattern repeats every --tile pixels, so a layer only ever
+    // moves up by less than one tile and can't run out, however long the page is.
+    var blueprint = document.querySelector(".blueprint");
+    var hasHero = !!document.querySelector(".hero");
+    var layers = [];
+    function measureLayers() {
+        layers = [];
+        if (!blueprint) return;
+        blueprint.querySelectorAll(".bp-layer").forEach(function (el) {
+            var tile = parseFloat(getComputedStyle(el).getPropertyValue("--tile"));
+            var speed = parseFloat(el.dataset.speed);
+            if (tile > 0 && speed > 0 && el.offsetParent !== null) layers.push({ el: el, tile: tile, speed: speed });
+        });
+    }
+    function moveLayers(y) {
+        if (!blueprint) return;
+        if (hasHero) blueprint.style.setProperty("--bp-boost", Math.max(0, 1 - y / 500).toFixed(3));
+        for (var i = 0; i < layers.length; i++) {
+            var l = layers[i];
+            var shift = reducedMotion.matches ? 0 : (y * l.speed) % l.tile;
+            l.el.style.transform = "translate3d(0," + (-shift).toFixed(1) + "px,0)";
+        }
+    }
+
+    // Header and background: at most one update per frame.
     var scrollQueued = false;
     function onScroll() {
         if (scrollQueued) return;
         scrollQueued = true;
         requestAnimationFrame(function () {
             scrollQueued = false;
-            root.classList.toggle("is-scrolled", window.scrollY > 4);
+            var y = Math.max(0, window.scrollY);
+            root.classList.toggle("is-scrolled", y > 4);
+            moveLayers(y);
             leave();
         });
     }
+    function onResize() { measureLayers(); onScroll(); }
     addEventListener("scroll", onScroll, { passive: true });
+    addEventListener("resize", onResize, { passive: true });
+    if (reducedMotion.addEventListener) reducedMotion.addEventListener("change", onScroll);
+    measureLayers();
     onScroll();
 
     // Ripple from the press point. The animation restarts on every press.

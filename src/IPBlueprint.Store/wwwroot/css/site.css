@@ -924,3 +924,74 @@ a.stat:hover { transform: translateY(-2px); box-shadow: inset 0 1px 0 var(--glas
 @media (max-width: 520px) { .header-actions > .cart-menu { margin-right: 10px; } }
 /* More room between the logo and the page links when they share a row. */
 @media (min-width: 1001px) { .site-header > .header-row > .main-nav:not(.header-actions) { margin-left: 24px; } }
+
+/* ------------------------------------------------------------------------
+   Blueprint background (Pages/Shared/_Blueprint.cshtml).
+   A drafting grid and line-drawn parts in three layers behind every customer
+   page. Depth comes from colour and opacity: the far layer is small, thin,
+   faint and greyer; the near layer is larger, navy and stronger. The layers
+   are fixed to the window and depth.js slides each one up at its own fraction
+   of the scroll speed (10% / 25% / 45%), so near parts pass faster.
+   - The line art is an SVG mask filled with a theme colour, so one drawing
+     works in light and dark mode.
+   - Each pattern repeats, so long pages never run out.
+   - Stronger at the top of pages with a hero (depth.js sets --bp-boost).
+   - Without JavaScript, or with reduced motion, it simply stands still.
+   ------------------------------------------------------------------------ */
+:root {
+    --bp-tint: color-mix(in srgb, #4a84c4 5%, transparent);
+    --bp-far: #56718f;   --bp-far-o: .24;
+    --bp-mid: #2c5683;   --bp-mid-o: .17;
+    --bp-near: #17406a;  --bp-near-o: .16;
+}
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        --bp-tint: transparent;
+        --bp-far: #6d89a9;   --bp-far-o: .17;
+        --bp-mid: #7fb0e6;   --bp-mid-o: .11;
+        --bp-near: #7fb0e6;  --bp-near-o: .15;
+    }
+}
+:root[data-theme="dark"] {
+    --bp-tint: transparent;
+    --bp-far: #6d89a9;   --bp-far-o: .17;
+    --bp-mid: #7fb0e6;   --bp-mid-o: .11;
+    --bp-near: #7fb0e6;  --bp-near-o: .15;
+}
+.blueprint { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; background: var(--bp-tint); --bp-boost: 0; }
+.bp-layer {
+    position: absolute; top: 0; left: 0; right: 0;
+    height: calc(100% + var(--tile) * 1px);   /* one extra tile, so sliding up never shows a gap */
+    background-color: var(--bp-color);
+    opacity: calc(var(--bp-o) * (1 + var(--bp-boost) * .4));
+    -webkit-mask: var(--bp-art) 0 0 / calc(var(--tile-w) * 1px) calc(var(--tile) * 1px) repeat;
+    mask: var(--bp-art) 0 0 / calc(var(--tile-w) * 1px) calc(var(--tile) * 1px) repeat;
+    will-change: transform;
+}
+.bp-far  { --tile-w: 1440; --tile: 480;  --bp-art: url("../img/blueprint/far.svg");  --bp-color: var(--bp-far);  --bp-o: var(--bp-far-o); }
+.bp-mid  { --tile-w: 1520; --tile: 760;  --bp-art: url("../img/blueprint/mid.svg");  --bp-color: var(--bp-mid);  --bp-o: var(--bp-mid-o); -webkit-mask-position: 220px 0; mask-position: 220px 0; }
+.bp-near { --tile-w: 2000; --tile: 1100; --bp-art: url("../img/blueprint/near.svg"); --bp-color: var(--bp-near); --bp-o: var(--bp-near-o); -webkit-mask-position: -60px 0; mask-position: -60px 0; }
+/* Calm pages (forms and legal text): the near layer is left out and the rest is at half strength. */
+.blueprint.is-calm .bp-layer { opacity: calc(var(--bp-o) * .5); }
+
+/* The drawing's title block, pinned to the bottom right corner where there is room beside the content. */
+.bp-title {
+    display: none; position: absolute; right: 14px; bottom: 14px; width: 150px;
+    border: 1px solid var(--bp-near); color: var(--bp-near); opacity: .42;
+    font: 600 9px/1.3 ui-monospace, Consolas, monospace; letter-spacing: .08em; text-transform: uppercase;
+}
+.bp-title span { display: block; padding: 4px 7px; }
+.bp-title span + span { border-top: 1px solid var(--bp-near); }
+.bp-title-name { font-weight: 800; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .bp-title { opacity: .3; } }
+:root[data-theme="dark"] .bp-title { opacity: .3; }
+@media (min-width: 1440px) { .bp-title { display: block; } }
+
+/* Phones: smaller drawings and only two layers, to keep scrolling smooth. */
+@media (max-width: 600px) {
+    .bp-mid { display: none; }
+    .bp-far { --tile-w: 1080; --tile: 360; }
+    .bp-near { --tile-w: 1300; --tile: 715; }
+}
+@media (forced-colors: active) { .blueprint { display: none; } }
+@media print { .blueprint { display: none; } }

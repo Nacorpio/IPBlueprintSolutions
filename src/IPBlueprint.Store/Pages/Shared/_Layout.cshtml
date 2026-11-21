@@ -89,6 +89,10 @@
     <script src="~/js/depth.js" asp-append-version="true" defer></script>
 </head>
 <body>
+    @if (!Context.Request.Path.StartsWithSegments("/Admin"))
+    {
+        <partial name="_Blueprint" />
+    }
     @if (shop.OffersPickup && !isAdmin)
     {
         <div class="perk-bar">

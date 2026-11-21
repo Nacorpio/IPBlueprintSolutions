@@ -1,0 +1,27 @@
+@inject IOptions<ShopOptions> ShopOptions
+@*  The blueprint drawing behind customer pages: a grid and line-drawn parts in three layers, far to near.
+    The layers are fixed to the window and depth.js slides them at different speeds as the page scrolls.
+    Pages with forms (cart, checkout, order, legal) get a calmer version: no near layer and no title block.
+    Purely decorative, so it is hidden from screen readers. Styles: "Blueprint background" in site.css. *@
+@{
+    var path = Context.Request.Path;
+    var calm = path.StartsWithSegments("/Cart") || path.StartsWithSegments("/Checkout") || path.StartsWithSegments("/Order")
+        || path.StartsWithSegments("/Info/Terms") || path.StartsWithSegments("/Info/Returns") || path.StartsWithSegments("/Info/Privacy");
+    var town = ShopOptions.Value.Town;
+}
+<div class="blueprint@(calm ? " is-calm" : "")" aria-hidden="true">
+    <div class="bp-layer bp-far" data-speed="0.10"></div>
+    <div class="bp-layer bp-mid" data-speed="0.25"></div>
+    @if (!calm)
+    {
+        <div class="bp-layer bp-near" data-speed="0.45"></div>
+        <div class="bp-title">
+            <span class="bp-title-name">@ShopOptions.Value.Name</span>
+            <span>@L["Scale"] 1:1</span>
+            @if (!string.IsNullOrWhiteSpace(town))
+            {
+                <span>@town</span>
+            }
+        </div>
+    }
+</div>
