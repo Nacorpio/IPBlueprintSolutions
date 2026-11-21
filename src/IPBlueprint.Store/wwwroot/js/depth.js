@@ -3,7 +3,7 @@
 //   and the is-pointer class on the element under it.
 // - The hero's layer stack leans toward the pointer.
 // - Buttons ripple from where they are pressed (mouse, pen or finger).
-// - <html> gets is-scrolled once the page has scrolled, for the header shadow.
+// - <html> gets is-scrolled once the page has scrolled, for the header's deeper shadow and denser glass.
 // Without JavaScript the site looks the same, only stiller.
 (function () {
     "use strict";
@@ -20,8 +20,8 @@
         requestAnimationFrame(function () {
             scrollQueued = false;
             root.classList.toggle("is-scrolled", window.scrollY > 4);
+            leave();
         });
-        leave();
     }
     addEventListener("scroll", onScroll, { passive: true });
     onScroll();

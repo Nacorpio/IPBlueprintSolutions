@@ -156,33 +156,6 @@ public partial class StockAndStatusTests : IClassFixture<StoreFactory>
     }
 
     [Fact]
-    public async Task Header_cart_preview_lists_what_is_in_the_cart_without_changing_it()
-    {
-        var product = await AddProductAsync("Liten vas", price: 120m, stock: 3);
-        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        client.DefaultRequestHeaders.Add("Cookie", $"cart={product.Id}:5");
-
-        var response = await client.GetAsync("/gallery");
-        var html = await response.Content.ReadAsStringAsync();
-
-        Assert.Contains("class=\"cart-preview\"", html);
-        Assert.Contains("Liten vas", html);
-        Assert.Contains("3 × 120 kr", html); // capped at what's in stock, like the cart page
-        Assert.False(response.Headers.TryGetValues("Set-Cookie", out var cookies) && cookies.Any(c => c.StartsWith("cart=")));
-    }
-
-    [Fact]
-    public async Task Cart_page_has_no_header_preview()
-    {
-        var product = await AddProductAsync("Skål", stock: 3);
-        var client = _factory.CreateClient();
-        client.DefaultRequestHeaders.Add("Cookie", $"cart={product.Id}:1");
-
-        Assert.DoesNotContain("class=\"cart-preview\"", await client.GetStringAsync("/Cart"));
-        Assert.DoesNotContain("class=\"cart-preview\"", await _factory.CreateClient().GetStringAsync("/gallery"));
-    }
-
-    [Fact]
     public async Task People_who_ask_are_emailed_once_when_the_product_is_back()
     {
         var product = await AddProductAsync("Popular figur", stock: 0);

@@ -668,18 +668,11 @@ a.stat:hover { transform: translateY(-2px); box-shadow: inset 0 1px 0 var(--glas
 .button.rippling::after { animation: ripple .55s var(--ease); }
 @keyframes ripple { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(28); } }
 
-/* The sticky header gains a deeper shadow and denser glass once the page scrolls under it. */
-.site-header { transition: box-shadow .3s var(--ease), background-color .3s var(--ease); }
-.is-scrolled .site-header { box-shadow: inset 0 -1px 0 var(--glass-edge), var(--depth-1); }
-@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-    .is-scrolled .site-header { background-color: color-mix(in srgb, var(--surface) 76%, transparent); -webkit-backdrop-filter: blur(20px) saturate(170%); backdrop-filter: blur(20px) saturate(170%); }
-}
-
 /* Category pills: the current one sits pressed in, the others float. */
 .category-tabs a[aria-current="page"] { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .2), 0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent); }
 
 /* Hero: a floating stack of glass layers, like a print being built up layer by layer.
-   It leans toward the pointer (set on <html> by depth.js) and breathes slowly. */
+   It leans toward the pointer (depth.js sets --gx / --gy on .hero-stack) and breathes slowly. */
 .hero { position: relative; max-width: none; display: grid; grid-template-columns: minmax(0, 680px) 1fr; align-items: center; gap: 24px; }
 .hero-art { justify-self: center; width: 200px; height: 150px; margin-top: 36px; perspective: 900px; pointer-events: none; }
 .hero-stack {
@@ -740,20 +733,16 @@ a.stat:hover { transform: translateY(-2px); box-shadow: inset 0 1px 0 var(--glas
     .product-card::after, .gallery-grid figure::after, .hero-art { display: none; }
 }
 
-/* Cart link: a bag icon with the number of items in a small badge.
-   On phones the word is hidden visually (screen readers still hear it). */
+/* Cart link: a bag icon with the number of items inside the bag itself, so it reads as part of the icon and takes the
+   link's colour (and glow). On phones the word is hidden visually (screen readers still hear it). */
 .visually-hidden { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; border: 0; }
-.main-nav a.cart-link { display: inline-flex; align-items: center; gap: 12px; }
-.cart-icon { position: relative; display: inline-grid; place-items: center; width: 24px; height: 24px; }
-.cart-icon svg { width: 22px; height: 22px; transition: transform .25s var(--ease); }
-.cart-link:hover .cart-icon svg { transform: translateY(-1px) rotate(-6deg); }
+.main-nav a.cart-link { display: inline-flex; align-items: center; gap: 8px; }
+.cart-icon { position: relative; display: inline-grid; place-items: center; width: 26px; height: 26px; }
+.cart-icon svg { width: 26px; height: 26px; }
 .cart-count {
-    position: absolute; top: -7px; right: -9px; min-width: 18px; height: 18px; padding: 0 5px;
-    border-radius: 999px; display: grid; place-items: center;
-    font-size: .7rem; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums;
-    color: var(--on-accent); background: var(--accent);
-    background-image: linear-gradient(180deg, rgba(255, 255, 255, .22), rgba(255, 255, 255, 0) 60%);
-    box-shadow: 0 0 0 2px var(--surface), 0 3px 8px color-mix(in srgb, var(--accent) 40%, transparent);
+    position: absolute; top: 9px; right: 0; bottom: 1px; left: 0; display: grid; place-items: center;
+    font-size: 10px; font-weight: 800; letter-spacing: -.02em; line-height: 1; font-variant-numeric: tabular-nums;
+    color: currentColor;
     animation: badge-pop .4s var(--ease) both;
 }
 @keyframes badge-pop { from { transform: scale(.4); opacity: 0; } 60% { transform: scale(1.15); } to { transform: none; opacity: 1; } }
@@ -763,10 +752,9 @@ a.stat:hover { transform: translateY(-2px); box-shadow: inset 0 1px 0 var(--glas
     .cart-label { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
     .main-nav a.cart-link { padding: 9px 4px; }
     .main-nav a.cart-link::after { bottom: 4px; }
-    .cart-icon, .cart-icon svg { width: 24px; height: 24px; }
+    .cart-icon, .cart-icon svg { width: 28px; height: 28px; }
+    .cart-count { top: 10px; font-size: 11px; }
 }
-@media (prefers-reduced-motion: reduce) { .cart-link:hover .cart-icon svg { transform: none; } }
-@media (forced-colors: active) { .cart-count { border: 1px solid CanvasText; } }
 
 /* Navigation as a full-width glass panel anchored to the top: it spans the whole
    window edge to edge, with frosted glass, a lit top edge, a navy-tinted sheen and
@@ -781,9 +769,14 @@ a.stat:hover { transform: translateY(-2px); box-shadow: inset 0 1px 0 var(--glas
     transition: box-shadow .3s var(--ease), background-color .3s var(--ease);
 }
 @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-    .site-header, .is-scrolled .site-header {
+    .site-header {
         background-color: var(--glass-strong); border-color: var(--glass-border);
         -webkit-backdrop-filter: blur(18px) saturate(170%); backdrop-filter: blur(18px) saturate(170%);
+    }
+    /* Once the page scrolls under it, the glass gets denser so the text behind doesn't fight the links. */
+    .is-scrolled .site-header {
+        background-color: color-mix(in srgb, var(--surface) 92%, transparent);
+        -webkit-backdrop-filter: blur(24px) saturate(180%); backdrop-filter: blur(24px) saturate(180%);
     }
 }
 .is-scrolled .site-header { box-shadow: inset 0 1px 0 var(--glass-edge), var(--depth-2); }
@@ -875,19 +868,6 @@ a.stat:hover { transform: translateY(-2px); box-shadow: inset 0 1px 0 var(--glas
 .delivery-option .hint { grid-column: 1; }
 .delivery-option .option-price { grid-column: 2; grid-row: 1 / span 2; align-self: start; }
 
-/* Cart count sits inside the bag itself instead of in a bubble on top of it,
-   so it reads as part of the icon and inherits the link's colour (and glow). */
-.cart-icon { width: 26px; height: 26px; }
-.cart-icon svg { width: 26px; height: 26px; }
-.cart-count {
-    top: 9px; right: 0; left: 0; bottom: 1px; min-width: 0; height: auto; padding: 0;
-    background: none; background-image: none; box-shadow: none; border-radius: 0;
-    color: currentColor; font-size: 10px; font-weight: 800; letter-spacing: -.02em;
-}
-.cart-link:hover .cart-icon svg { transform: none; }
-@media (max-width: 520px) { .cart-icon, .cart-icon svg { width: 28px; height: 28px; } .cart-count { top: 10px; font-size: 11px; } }
-@media (forced-colors: active) { .cart-count { border: 0; } }
-.main-nav a.cart-link { gap: 8px; }
 
 /* Cart preview: hovering (or tabbing to) the cart link opens a small glass panel
    with what's in the cart, the subtotal and links on to the cart and checkout.
@@ -937,6 +917,8 @@ a.stat:hover { transform: translateY(-2px); box-shadow: inset 0 1px 0 var(--glas
 .main-nav .cart-preview a::after { display: none; }
 .main-nav .cart-preview a { text-shadow: none; padding: 6px 12px; }
 @media (prefers-reduced-motion: reduce) { .cart-preview { transform: none; } }
+/* Windows high contrast drops the glass, so give the panel a plain edge and background. */
+@media (forced-colors: active) { .cart-preview { border: 1px solid CanvasText; background: Canvas; box-shadow: none; } }
 /* Give the cart some room from the language and theme buttons. */
 .header-actions > .cart-menu { margin-right: 22px; }
 @media (max-width: 520px) { .header-actions > .cart-menu { margin-right: 10px; } }

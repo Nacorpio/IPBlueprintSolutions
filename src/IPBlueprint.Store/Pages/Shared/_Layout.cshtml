@@ -5,7 +5,7 @@
     var cartCount = Cart.CountItems();
     // The header's quick look at the cart; not needed on the cart and checkout pages themselves.
     var onCartPages = Context.Request.Path.StartsWithSegments("/Cart") || Context.Request.Path.StartsWithSegments("/Checkout");
-    var cartPreview = cartCount > 0 && !onCartPages ? await Cart.PeekAsync(Context.RequestAborted) : [];
+    var cartPreviewLines = cartCount > 0 && !onCartPages ? await Cart.PeekAsync(Context.RequestAborted) : [];
     var isAdmin = Context.Request.Path.StartsWithSegments("/Admin") && User.Identity?.IsAuthenticated == true;
 
     // Search engines and link previews. Pages fill in Title, Description, and optionally FullTitle, Image (a site path),
@@ -131,9 +131,9 @@
                         @* On phones only the icon shows; screen readers always hear "Cart (2)". *@
                         <span class="cart-label">@L["Cart"]</span>@if (cartCount > 0) {<span class="visually-hidden"> (@cartCount)</span>}
                     </a>
-                    @if (cartPreview.Count > 0)
+                    @if (cartPreviewLines.Count > 0)
                     {
-                        <partial name="_CartPreview" model="cartPreview" />
+                        <partial name="_CartPreview" model="cartPreviewLines" />
                     }
                 </div>
                 @if (Languages.IsEnglish)

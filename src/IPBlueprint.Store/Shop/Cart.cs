@@ -97,7 +97,33 @@ public sealed class CartService(IHttpContextAccessor http, StoreDbContext db, IO
     /// </summary>
     public async Task<IReadOnlyList<CartLine>> PeekAsync(CancellationToken ct = default)
     {
+        var stocked = await LoadAsync(ReadRaw(), ct);
+        return stocked.Where(s => s.Available > 0).Select(s => new CartLine(s.Product, Math.Min(s.Requested, s.Available))).ToList();
+    }
+
+    public async Task<CartSummary> GetSummaryAsync(CancellationToken ct = default)
+    {
         var raw = ReadRaw();
+        if (raw.Count == 0) return new CartSummary([], 0, 0);
+        var stocked = await LoadAsync(raw, ct);
+
+        // Stock may have run out since the customer put something in the cart: shrink or drop those lines, and say so.
+        var lines = stocked.Where(s => s.Available > 0).Select(s => new CartLine(s.Product, Math.Min(s.Requested, s.Available))).ToList();
+        var adjustments = stocked.Where(s => s.Requested > s.Available).Select(s => new CartAdjustment(s.Product, s.Requested, s.Available)).ToList();
+
+        if (adjustments.Count > 0 || lines.Count != raw.Count)
+            Write(lines.ToDictionary(l => l.Product.Id, l => l.Quantity));
+
+        var subtotal = lines.Sum(l => l.LineTotal);
+        return new CartSummary(lines, subtotal, Pricing.ShippingFor(subtotal, options.Value)) { Adjustments = adjustments };
+    }
+
+    /// <summary>One product in the cart cookie: how many the customer wants, and how many they can buy right now.</summary>
+    private sealed record StockedItem(Product Product, int Requested, int Available);
+
+    /// <summary>The cart's products that are still for sale, in shop order, with what's left of each.</summary>
+    private async Task<List<StockedItem>> LoadAsync(Dictionary<int, int> raw, CancellationToken ct)
+    {
         if (raw.Count == 0) return [];
 
         var ids = raw.Keys.ToList();
@@ -107,37 +133,8 @@ public sealed class CartService(IHttpContextAccessor http, StoreDbContext db, IO
 
         return products
             .OrderBy(p => p.SortOrder).ThenBy(p => p.Name)
-            .Select(p => new CartLine(p, Math.Min(raw[p.Id], p.AvailableToBuy(options.Value.MaxQuantityPerItem))))
-            .Where(l => l.Quantity > 0)
+            .Select(p => new StockedItem(p, raw[p.Id], p.AvailableToBuy(options.Value.MaxQuantityPerItem)))
             .ToList();
-    }
-
-    public async Task<CartSummary> GetSummaryAsync(CancellationToken ct = default)
-    {
-        var raw = ReadRaw();
-        if (raw.Count == 0) return new CartSummary([], 0, 0);
-
-        var ids = raw.Keys.ToList();
-        var products = await db.Products.AsNoTracking()
-            .Where(p => ids.Contains(p.Id) && p.IsActive)
-            .ToListAsync(ct);
-
-        // Stock may have run out since the customer put something in the cart: shrink or drop those lines, and say so.
-        var lines = new List<CartLine>();
-        var adjustments = new List<CartAdjustment>();
-        foreach (var p in products.OrderBy(p => p.SortOrder).ThenBy(p => p.Name))
-        {
-            var requested = raw[p.Id];
-            var available = p.AvailableToBuy(options.Value.MaxQuantityPerItem);
-            if (requested > available) adjustments.Add(new CartAdjustment(p, requested, available));
-            if (available > 0) lines.Add(new CartLine(p, Math.Min(requested, available)));
-        }
-
-        if (adjustments.Count > 0 || lines.Count != raw.Count)
-            Write(lines.ToDictionary(l => l.Product.Id, l => l.Quantity));
-
-        var subtotal = lines.Sum(l => l.LineTotal);
-        return new CartSummary(lines, subtotal, Pricing.ShippingFor(subtotal, options.Value)) { Adjustments = adjustments };
     }
 
     private void Write(Dictionary<int, int> cart)
