@@ -200,12 +200,12 @@ namespace IPBlueprint.Store.Data.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("ExtraPaymentCheckoutId")
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("Language")
                         .IsRequired()
                         .HasMaxLength(5)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("LastPaymentAttemptAtUtc")
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("PaidAtUtc")
@@ -321,6 +321,52 @@ namespace IPBlueprint.Store.Data.Migrations
                     b.HasIndex("OrderId");
 
                     b.ToTable("OrderStatusChanges");
+                });
+
+            modelBuilder.Entity("IPBlueprint.Store.Data.PaymentIssue", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal?>("Amount")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CheckoutId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Currency")
+                        .HasMaxLength(3)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("FoundAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ResolutionNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("ResolvedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CheckoutId")
+                        .IsUnique();
+
+                    b.HasIndex("OrderId");
+
+                    b.ToTable("PaymentIssues");
                 });
 
             modelBuilder.Entity("IPBlueprint.Store.Data.Product", b =>
@@ -453,6 +499,15 @@ namespace IPBlueprint.Store.Data.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("IPBlueprint.Store.Data.PaymentIssue", b =>
+                {
+                    b.HasOne("IPBlueprint.Store.Data.Order", null)
+                        .WithMany("PaymentIssues")
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("IPBlueprint.Store.Data.StockAlert", b =>
                 {
                     b.HasOne("IPBlueprint.Store.Data.Product", null)
@@ -482,6 +537,8 @@ namespace IPBlueprint.Store.Data.Migrations
                     b.Navigation("History");
 
                     b.Navigation("Lines");
+
+                    b.Navigation("PaymentIssues");
                 });
 #pragma warning restore 612, 618
         }

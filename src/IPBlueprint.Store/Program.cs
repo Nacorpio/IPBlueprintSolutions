@@ -41,6 +41,12 @@ services.AddScoped<OrderNotifications>();
 services.AddScoped<StockAlerts>();
 services.AddScoped<Catalog>();
 
+// Emails go out in the background so pages never wait for the mail server. A normal shutdown (a deploy) waits up to a
+// minute for queued emails before stopping.
+services.AddSingleton<BackgroundWorkQueue>();
+services.AddHostedService<BackgroundWorker>();
+services.Configure<HostOptions>(o => o.ShutdownTimeout = TimeSpan.FromMinutes(1));
+
 services.AddHttpClient<ISumUpClient, SumUpClient>((sp, http) =>
 {
     http.BaseAddress = new Uri(sp.GetRequiredService<IOptions<SumUpOptions>>().Value.BaseUrl);

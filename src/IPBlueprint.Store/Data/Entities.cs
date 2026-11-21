@@ -136,6 +136,43 @@ public enum DeliveryMethod
     Pickup = 1,
 }
 
+/// <summary>What went wrong with a paid SumUp checkout that couldn't settle its order. Stored as text.</summary>
+public enum PaymentIssueKind
+{
+    /// <summary>The order was already paid through another checkout, so the customer paid twice.</summary>
+    DoubleCharge = 0,
+
+    /// <summary>SumUp says paid, but not with the order's amount or currency, so the order wasn't marked paid.</summary>
+    WrongAmount = 1,
+
+    /// <summary>The checkout was paid after the owners cancelled the order.</summary>
+    PaidAfterCancel = 2,
+}
+
+/// <summary>
+/// A paid SumUp checkout that couldn't simply settle its order (see <see cref="PaymentIssueKind"/>). The customer has
+/// been charged, so it stays on the admin order page until an owner marks it resolved.
+/// </summary>
+public class PaymentIssue
+{
+    public int Id { get; set; }
+    public Guid OrderId { get; set; }
+    public required string CheckoutId { get; set; }
+    public PaymentIssueKind Kind { get; set; }
+
+    /// <summary>What SumUp says was paid. Unknown (null) for issues recorded before this was kept.</summary>
+    public decimal? Amount { get; set; }
+
+    public string? Currency { get; set; }
+    public DateTime FoundAtUtc { get; set; } = DateTime.UtcNow;
+    public DateTime? ResolvedAtUtc { get; set; }
+
+    /// <summary>What the owners did about it, for example "Refunded in SumUp on 22 Nov".</summary>
+    public string? ResolutionNote { get; set; }
+
+    public bool IsResolved => ResolvedAtUtc is not null;
+}
+
 /// <summary>One step in an order's history, shown on the customer's order page and in the admin.</summary>
 public class OrderStatusChange
 {
@@ -196,16 +233,21 @@ public class Order
     /// <summary>True once a refund put the items back in stock, so it can't happen twice.</summary>
     public bool StockRestored { get; set; }
 
-    /// <summary>
-    /// A SumUp checkout that was paid although the order didn't need paying (already paid through another checkout,
-    /// or cancelled). The customer has been charged for it and the owners were emailed once to refund it.
-    /// </summary>
-    public string? ExtraPaymentCheckoutId { get; set; }
+    /// <summary>When the customer last started paying (pressed Pay now or finished checkout). An unpaid order is only
+    /// counted as abandoned some time after this, so an open SumUp checkout is never deleted from under them.</summary>
+    public DateTime? LastPaymentAttemptAtUtc { get; set; }
 
-    /// <summary>Not paid as far as the shop is concerned, but SumUp took a payment for it (with the wrong amount), so the
-    /// owners have to sort it out by hand and the customer must not be asked to pay again.</summary>
-    public bool PaymentNeedsChecking =>
-        ExtraPaymentCheckoutId is not null && Status is OrderStatus.AwaitingPayment or OrderStatus.PaymentFailed;
+    /// <summary>The statuses where the order still waits for its payment.</summary>
+    public static readonly OrderStatus[] UnpaidStatuses = [OrderStatus.AwaitingPayment, OrderStatus.PaymentFailed];
+
+    public bool IsUnpaid => UnpaidStatuses.Contains(Status);
+
+    /// <summary>Paid checkouts that couldn't simply settle this order. Only loaded where a page needs them.</summary>
+    public List<PaymentIssue> PaymentIssues { get; set; } = [];
+
+    /// <summary>Not paid as far as the shop is concerned, but SumUp took a payment for it that the owners haven't sorted
+    /// out yet, so the customer must not be asked to pay again. Needs <see cref="PaymentIssues"/> loaded.</summary>
+    public bool PaymentNeedsChecking => IsUnpaid && PaymentIssues.Any(i => !i.IsResolved);
 
     public List<OrderLine> Lines { get; set; } = [];
 

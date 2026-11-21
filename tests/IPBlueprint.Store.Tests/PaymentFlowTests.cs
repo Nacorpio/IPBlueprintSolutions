@@ -40,6 +40,21 @@ public class PaymentFlowTests : IClassFixture<StoreFactory>
     private Task<Order> ReloadAsync(Guid id) =>
         _factory.WithDbAsync(db => db.Orders.AsNoTracking().SingleAsync(o => o.Id == id));
 
+    private Task<List<PaymentIssue>> IssuesAsync(Guid orderId) =>
+        _factory.WithDbAsync(db => db.PaymentIssues.AsNoTracking().Where(i => i.OrderId == orderId).ToListAsync());
+
+    private static string Token(string html) => System.Text.RegularExpressions.Regex.Match(html,
+        "name=\"__RequestVerificationToken\" type=\"hidden\" value=\"([^\"]+)\"").Groups[1].Value;
+
+    private async Task<HttpClient> AdminClientAsync()
+    {
+        var client = _factory.CreateClient();
+        var token = Token(await client.GetStringAsync("/Admin/Login"));
+        (await client.PostAsync("/Admin/Login", new FormUrlEncodedContent(
+            [new("__RequestVerificationToken", token), new("password", "correct horse battery staple")]))).EnsureSuccessStatusCode();
+        return client;
+    }
+
     private int EmailsAbout(string reference) => _factory.Emails.Sent.Count(e => e.Subject.Contains(reference));
 
     [Fact]
@@ -176,7 +191,8 @@ public class PaymentFlowTests : IClassFixture<StoreFactory>
         var saved = await ReloadAsync(order.Id);
         Assert.Equal(OrderStatus.Paid, saved.Status);
         Assert.Equal(secondCheckout, saved.SumUpCheckoutId);
-        Assert.Equal(firstCheckout, saved.ExtraPaymentCheckoutId);
+        var issue = Assert.Single(await IssuesAsync(order.Id));
+        Assert.Equal((firstCheckout, PaymentIssueKind.DoubleCharge), (issue.CheckoutId, issue.Kind));
         var alert = Assert.Single(_factory.Emails.Sent, e => e.Subject.StartsWith($"Kolla betalningen för {order.Reference}"));
         Assert.Equal("owner@shop.test", alert.To);
         Assert.Contains(firstCheckout, alert.Body);
@@ -191,7 +207,7 @@ public class PaymentFlowTests : IClassFixture<StoreFactory>
         await PostWebhookAsync(checkoutId);
         await PostWebhookAsync(checkoutId);
 
-        Assert.Null((await ReloadAsync(order.Id)).ExtraPaymentCheckoutId);
+        Assert.Empty(await IssuesAsync(order.Id));
         Assert.DoesNotContain(_factory.Emails.Sent, e => e.Subject.StartsWith($"Kolla betalningen för {order.Reference}"));
     }
 
@@ -227,7 +243,7 @@ public class PaymentFlowTests : IClassFixture<StoreFactory>
         var secondCheckout = _factory.SumUp.Checkouts.Values.Single(c => c.CheckoutReference == order.Reference + "-2").Id;
         _factory.SumUp.SetStatus(secondCheckout, "PAID");
         await PostWebhookAsync(secondCheckout);
-        Assert.Equal(secondCheckout, (await ReloadAsync(order.Id)).ExtraPaymentCheckoutId);
+        Assert.Equal(secondCheckout, Assert.Single(await IssuesAsync(order.Id)).CheckoutId);
     }
 
     [Fact]
@@ -258,5 +274,120 @@ public class PaymentFlowTests : IClassFixture<StoreFactory>
         Assert.Equal($"/order/{order.Id}", retry.Headers.Location?.OriginalString);
         Assert.Equal(created, _factory.SumUp.Created.Count(c => c.CheckoutReference.StartsWith(order.Reference)));
         Assert.Equal(OrderStatus.AwaitingPayment, (await ReloadAsync(order.Id)).Status);
+    }
+
+    [Fact]
+    public async Task Resolving_a_wrong_amount_payment_lets_the_customer_pay_again()
+    {
+        var (order, checkoutId) = await PlaceOrderAsync(price: 300m);
+        _factory.SumUp.SetStatus(checkoutId, "PAID", amount: 3m);
+        await PostWebhookAsync(checkoutId);
+        var issue = Assert.Single(await IssuesAsync(order.Id));
+        Assert.Equal(PaymentIssueKind.WrongAmount, issue.Kind);
+        Assert.Equal(3m, issue.Amount);
+
+        var admin = await AdminClientAsync();
+        var adminPage = await admin.GetStringAsync($"/Admin/Orders/Details/{order.Id}");
+        Assert.Contains("Mark resolved", adminPage);
+        var resolved = await admin.PostAsync($"/Admin/Orders/Details/{order.Id}?handler=ResolveIssue", new FormUrlEncodedContent(
+            [new("__RequestVerificationToken", Token(adminPage)), new("issueId", issue.Id.ToString()), new("note", "Refunded in SumUp")]));
+        Assert.Contains("Marked the payment issue as resolved.", await resolved.Content.ReadAsStringAsync());
+
+        var saved = Assert.Single(await IssuesAsync(order.Id));
+        Assert.NotNull(saved.ResolvedAtUtc);
+        Assert.Equal("Refunded in SumUp", saved.ResolutionNote);
+        Assert.Equal(OrderStatus.AwaitingPayment, (await ReloadAsync(order.Id)).Status); // resolving leaves the status alone
+
+        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var html = await client.GetStringAsync($"/order/{order.Id}");
+        Assert.DoesNotContain("Vi kontrollerar din betalning", html);
+        Assert.Contains("handler=Retry", html);
+        var retry = await client.PostAsync($"/order/{order.Id}?handler=Retry",
+            new FormUrlEncodedContent([new("__RequestVerificationToken", Token(html))]));
+        Assert.StartsWith("https://checkout.sumup.test/pay/", retry.Headers.Location?.OriginalString);
+    }
+
+    [Fact]
+    public async Task Pay_now_creates_no_checkout_while_a_wrong_amount_payment_is_open()
+    {
+        var (order, checkoutId) = await PlaceOrderAsync(price: 300m);
+        _factory.SumUp.SetStatus(checkoutId, "PAID", amount: 3m);
+        await PostWebhookAsync(checkoutId);
+
+        // Straight to the service, as if the mismatch was recorded while this "Pay now" was already past the page's check.
+        await using var scope = _factory.Services.CreateAsyncScope();
+        var tracked = await scope.ServiceProvider.GetRequiredService<StoreDbContext>().Orders.SingleAsync(o => o.Id == order.Id);
+        var created = _factory.SumUp.Created.Count;
+
+        Assert.Null(await scope.ServiceProvider.GetRequiredService<OrderService>().StartPaymentAsync(tracked, new Uri("https://shop.test/")));
+        Assert.Equal(created, _factory.SumUp.Created.Count);
+    }
+
+    [Fact]
+    public async Task A_second_stray_payment_is_kept_next_to_the_first()
+    {
+        var (order, firstCheckout) = await PlaceOrderAsync();
+        _factory.SumUp.SetStatus(firstCheckout, "PAID");
+        await PostWebhookAsync(firstCheckout);
+
+        // Two more checkouts for the same order get paid (say, two old "Pay now" tabs).
+        var strays = new List<string>();
+        for (var i = 0; i < 2; i++)
+        {
+            var stray = await _factory.SumUp.CreateCheckoutAsync(new Payments.CreateCheckoutRequest(
+                $"{order.Reference}-{i + 5}", order.Total, "SEK", "", new Uri("https://shop.test/"), new Uri("https://shop.test/")));
+            _factory.SumUp.SetStatus(stray.Id, "PAID");
+            await PostWebhookAsync(stray.Id);
+            strays.Add(stray.Id);
+        }
+
+        var issues = await IssuesAsync(order.Id);
+        Assert.Equal(strays.Order(), issues.Select(i => i.CheckoutId).Order());
+        Assert.All(issues, i => Assert.Equal(PaymentIssueKind.DoubleCharge, i.Kind));
+    }
+
+    [Fact]
+    public async Task A_payment_that_lands_as_the_admin_cancels_is_recorded_for_the_owners()
+    {
+        var (order, checkoutId) = await PlaceOrderAsync();
+        _factory.SumUp.SetStatus(checkoutId, "PAID");
+        var cancelFirst = new CancelBeforeMarkingPaid(order.Id);
+        await using var app = _factory.WithWebHostBuilder(b => b.ConfigureServices(services =>
+            services.ConfigureDbContext<StoreDbContext>(o => o.AddInterceptors(cancelFirst))));
+
+        var response = await app.CreateClient().PostAsJsonAsync("/webhooks/sumup", new { event_type = "CHECKOUT_STATUS_CHANGED", id = checkoutId });
+
+        response.EnsureSuccessStatusCode();
+        Assert.True(SpinWait.SpinUntil(() => app.Services.GetRequiredService<BackgroundWorkQueue>().IsIdle, TimeSpan.FromSeconds(10)));
+        Assert.True(cancelFirst.Fired);
+        Assert.Equal(OrderStatus.Cancelled, (await ReloadAsync(order.Id)).Status);
+        var issue = Assert.Single(await IssuesAsync(order.Id));
+        Assert.Equal((checkoutId, PaymentIssueKind.PaidAfterCancel), (issue.CheckoutId, issue.Kind));
+        Assert.Contains(_factory.Emails.Sent, e => e.Subject.StartsWith($"Kolla betalningen för {order.Reference}"));
+    }
+
+    /// <summary>Cancels the order (as an admin would, in its own committed change) after the payment has read the order
+    /// but before it starts the transaction that marks it paid.</summary>
+    private sealed class CancelBeforeMarkingPaid(Guid orderId) : Microsoft.EntityFrameworkCore.Diagnostics.DbTransactionInterceptor
+    {
+        public bool Fired { get; private set; }
+
+        public override async ValueTask<Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<System.Data.Common.DbTransaction>> TransactionStartingAsync(
+            System.Data.Common.DbConnection connection, Microsoft.EntityFrameworkCore.Diagnostics.TransactionStartingEventData eventData,
+            Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<System.Data.Common.DbTransaction> result, CancellationToken cancellationToken = default)
+        {
+            if (!Fired)
+            {
+                Fired = true;
+                await using var cancel = connection.CreateCommand();
+                cancel.CommandText = "UPDATE \"Orders\" SET \"Status\" = 'Cancelled' WHERE \"Id\" = $id";
+                var id = cancel.CreateParameter();
+                id.ParameterName = "$id";
+                id.Value = orderId.ToString().ToUpperInvariant();
+                cancel.Parameters.Add(id);
+                await cancel.ExecuteNonQueryAsync(cancellationToken);
+            }
+            return result;
+        }
     }
 }

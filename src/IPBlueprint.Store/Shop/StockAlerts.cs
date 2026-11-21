@@ -18,9 +18,15 @@ public enum StockAlertResult
 
 /// <summary>
 /// "Email me when it's back": visitors leave their email on a sold-out product, and get one email when it's in stock
-/// again (or switched to made to order). The address is deleted as soon as that email has gone out.
+/// again (or switched to made to order). The emails go out from the background queue, and each address is deleted as
+/// soon as its email has gone out, so nobody is lost if sending fails or the app restarts half way.
 /// </summary>
-public sealed class StockAlerts(StoreDbContext db, OrderNotifications notifications, TimeProvider clock, ILogger<StockAlerts> logger)
+public sealed class StockAlerts(
+    StoreDbContext db,
+    OrderNotifications notifications,
+    BackgroundWorkQueue queue,
+    TimeProvider clock,
+    ILogger<StockAlerts> logger)
 {
     public const int MaxPerProduct = 500;
 
@@ -48,7 +54,7 @@ public sealed class StockAlerts(StoreDbContext db, OrderNotifications notificati
         {
             await db.SaveChangesAsync(ct);
         }
-        catch (DbUpdateException)
+        catch (DbUpdateException ex) when (DbErrors.IsUniqueViolation(ex))
         {
             // Two clicks at once: the unique index caught the second one.
             return StockAlertResult.AlreadyAdded;
@@ -56,8 +62,29 @@ public sealed class StockAlerts(StoreDbContext db, OrderNotifications notificati
         return StockAlertResult.Added;
     }
 
+    /// <summary>
+    /// After a product was saved or restocked: if it can be bought again and people are waiting, queues their emails and
+    /// returns how many people will be emailed. The page that called this doesn't wait for the sending.
+    /// </summary>
+    public async Task<int> QueueNotifyIfAvailableAsync(int productId, CancellationToken ct = default)
+    {
+        var available = await db.Products.AnyAsync(p => p.Id == productId && p.IsActive && (p.Stock == null || p.Stock > 0), ct);
+        if (!available) return 0;
+        var waiting = await CountWaitingAsync(productId, ct);
+        if (waiting > 0) queue.Enqueue((services, workCt) => services.GetRequiredService<StockAlerts>().NotifyIfAvailableAsync(productId, workCt));
+        return waiting;
+    }
+
+    /// <summary>Emails everyone waiting for any product that can be bought again. Run at startup, to finish what a previous
+    /// run (stopped half way through a list) didn't get to.</summary>
+    public async Task NotifyAllAvailableAsync(CancellationToken ct = default)
+    {
+        var productIds = await db.StockAlerts.Select(a => a.ProductId).Distinct().ToListAsync(ct);
+        foreach (var productId in productIds) await NotifyIfAvailableAsync(productId, ct);
+    }
+
     /// <summary>Emails everyone waiting for the product if it can be bought again, and forgets each address once its email
-    /// has gone out. Returns how many were emailed.</summary>
+    /// has gone out. Returns how many were emailed. Runs in the background queue: see <see cref="QueueNotifyIfAvailableAsync"/>.</summary>
     public async Task<int> NotifyIfAvailableAsync(int productId, CancellationToken ct = default)
     {
         var product = await db.Products.AsNoTracking().FirstOrDefaultAsync(p => p.Id == productId, ct);
@@ -74,7 +101,7 @@ public sealed class StockAlerts(StoreDbContext db, OrderNotifications notificati
             var claimed = await db.StockAlerts.Where(a => a.Id == alert.Id).ExecuteDeleteAsync(CancellationToken.None);
             if (claimed == 0) continue;
 
-            if (await notifications.BackInStockAsync(product, alert))
+            if (await notifications.SendBackInStockAsync(product, alert))
             {
                 sent++;
                 continue;
@@ -103,7 +130,8 @@ public sealed class StockAlerts(StoreDbContext db, OrderNotifications notificati
         }
         catch (DbUpdateException ex)
         {
-            // They signed up again in the meantime (already on the list), or the product was just deleted.
+            // They signed up again in the meantime (already on the list), or the product was just deleted. Either way
+            // there is nothing to put back, but anything else is worth seeing in the log.
             db.ChangeTracker.Clear();
             logger.LogWarning(ex, "Could not put a back-in-stock request for product {ProductId} back on the list", alert.ProductId);
         }

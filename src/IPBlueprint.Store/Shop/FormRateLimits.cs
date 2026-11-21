@@ -22,8 +22,10 @@ public static class FormRateLimits
     {
         options.AddPolicy(CustomRequest, ctx => PostsPerVisitor(ctx, CustomRequest, permits: 5, TimeSpan.FromHours(1)));
         options.AddPolicy(Checkout, ctx => PostsPerVisitor(ctx, Checkout, permits: 10, TimeSpan.FromMinutes(10)));
+        // Razor Pages runs the handler named by the first "handler" value, so look at each value rather than the joined
+        // string: "?handler=Notify&handler=x" reads as "Notify,x" but still runs OnPostNotify.
         options.AddPolicy(StockAlert, ctx =>
-            string.Equals(ctx.Request.Query["handler"], "notify", StringComparison.OrdinalIgnoreCase)
+            ctx.Request.Query["handler"].Any(h => string.Equals(h, "notify", StringComparison.OrdinalIgnoreCase))
                 ? PostsPerVisitor(ctx, StockAlert, permits: 5, TimeSpan.FromHours(1))
                 : RateLimitPartition.GetNoLimiter(StockAlert + ":other"));
     }
