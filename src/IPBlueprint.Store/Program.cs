@@ -43,6 +43,12 @@ services.AddScoped<Catalog>();
 services.AddScoped<DataRetention>();
 services.AddHostedService<DataRetentionJob>();
 
+// Emails go out in the background so pages never wait for the mail server. A normal shutdown (a deploy) waits up to a
+// minute for queued emails before stopping.
+services.AddSingleton<BackgroundWorkQueue>();
+services.AddHostedService<BackgroundWorker>();
+services.Configure<HostOptions>(o => o.ShutdownTimeout = TimeSpan.FromMinutes(1));
+
 services.AddHttpClient<ISumUpClient, SumUpClient>((sp, http) =>
 {
     http.BaseAddress = new Uri(sp.GetRequiredService<IOptions<SumUpOptions>>().Value.BaseUrl);
@@ -75,14 +81,7 @@ services.AddAuthorizationBuilder()
 services.AddRateLimiter(o =>
 {
     o.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-    o.AddPolicy(AdminPolicy.LoginRateLimit, ctx => RateLimitPartition.GetFixedWindowLimiter(
-        FormRateLimits.VisitorKey(ctx),
-        _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(5) }));
-    o.AddFormRateLimits();
-    // Each webhook call makes the shop ask SumUp's API, so a flood of made-up calls could use up SumUp's limit.
-    o.AddPolicy(SumUpWebhookRateLimit, ctx => RateLimitPartition.GetFixedWindowLimiter(
-        FormRateLimits.VisitorKey(ctx),
-        _ => new FixedWindowRateLimiterOptions { PermitLimit = 60, Window = TimeSpan.FromMinutes(1) }));
+    o.AddStoreRateLimits();
 });
 
 // Swedish by default, English on request. See Localization/Languages.cs.
@@ -216,14 +215,9 @@ app.MapPost("/webhooks/sumup", async (SumUpWebhook? payload, OrderService orders
         log.LogWarning(ex, "Could not verify SumUp checkout {CheckoutId}; SumUp will retry", payload.Id);
         return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
     }
-}).RequireRateLimiting(SumUpWebhookRateLimit);
+}).RequireRateLimiting(RateLimits.SumUpWebhook);
 
 app.Run();
-
-public partial class Program
-{
-    private const string SumUpWebhookRateLimit = "sumup-webhook";
-}
 
 internal sealed record SumUpWebhook(
     [property: System.Text.Json.Serialization.JsonPropertyName("event_type")] string? EventType,

@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using IPBlueprint.Store.Data;
 using IPBlueprint.Store.Email;
 using IPBlueprint.Store.Payments;
+using IPBlueprint.Store.Shop;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,7 +16,13 @@ public sealed class StoreFactory : WebApplicationFactory<Program>
     private readonly string _dataPath = Path.Combine(Path.GetTempPath(), "ipb-tests-" + Guid.NewGuid().ToString("N"));
 
     public FakeSumUp SumUp { get; } = new();
-    public CapturingEmailSender Emails { get; } = new();
+    public CapturingEmailSender Emails { get; }
+
+    public StoreFactory()
+    {
+        // Emails go out from the background queue: wait for it before a test looks at what was sent.
+        Emails = new CapturingEmailSender(() => Services.GetRequiredService<BackgroundWorkQueue>().IsIdle);
+    }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -102,9 +109,20 @@ public sealed class FakeSumUp : ISumUpClient
         };
 }
 
-public sealed class CapturingEmailSender : IEmailSender
+public sealed class CapturingEmailSender(Func<bool> queueIsIdle) : IEmailSender
 {
-    public ConcurrentQueue<(string To, string Subject, string Body)> Sent { get; } = new();
+    private static readonly TimeSpan QueueWait = TimeSpan.FromSeconds(10);
+    private readonly ConcurrentQueue<(string To, string Subject, string Body)> _sent = new();
+
+    /// <summary>Everything sent so far, once the background queue has nothing left to send.</summary>
+    public ConcurrentQueue<(string To, string Subject, string Body)> Sent
+    {
+        get
+        {
+            if (!SpinWait.SpinUntil(queueIsIdle, QueueWait)) throw new TimeoutException("The background queue didn't empty.");
+            return _sent;
+        }
+    }
 
     /// <summary>Runs before each send, for example to cancel a token mid-way. The send then honours its token, as SMTP would.</summary>
     public Action? BeforeSend { get; set; }
@@ -113,7 +131,7 @@ public sealed class CapturingEmailSender : IEmailSender
     {
         BeforeSend?.Invoke();
         ct.ThrowIfCancellationRequested();
-        Sent.Enqueue((to, subject, htmlBody));
+        _sent.Enqueue((to, subject, htmlBody));
         return Task.CompletedTask;
     }
 }

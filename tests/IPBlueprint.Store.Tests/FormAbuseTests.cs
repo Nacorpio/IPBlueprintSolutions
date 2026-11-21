@@ -107,9 +107,46 @@ public partial class StockAlertRateLimitTests : IClassFixture<StoreFactory>
     [InlineData("203.0.113.5", "203.0.113.6", false)]
     public void Rate_limits_count_an_IPv6_slash_64_as_one_visitor(string a, string b, bool same)
     {
-        var keyA = IPBlueprint.Store.Shop.FormRateLimits.VisitorKey(System.Net.IPAddress.Parse(a));
-        var keyB = IPBlueprint.Store.Shop.FormRateLimits.VisitorKey(System.Net.IPAddress.Parse(b));
+        var keyA = IPBlueprint.Store.Shop.RateLimits.VisitorKey(System.Net.IPAddress.Parse(a));
+        var keyB = IPBlueprint.Store.Shop.RateLimits.VisitorKey(System.Net.IPAddress.Parse(b));
         Assert.Equal(same, keyA == keyB);
+    }
+
+    [GeneratedRegex("name=\"__RequestVerificationToken\" type=\"hidden\" value=\"([^\"]+)\"")]
+    private static partial Regex AntiforgeryToken();
+}
+
+/// <summary>Its own app instance, because the rate limits count every post the test server sees.</summary>
+public partial class StockAlertHandlerTrickTests : IClassFixture<StoreFactory>
+{
+    private readonly StoreFactory _factory;
+
+    public StockAlertHandlerTrickTests(StoreFactory factory) => _factory = factory;
+
+    [Fact]
+    public async Task A_second_handler_value_does_not_get_round_the_back_in_stock_limit()
+    {
+        var product = await _factory.WithDbAsync(async db =>
+        {
+            var p = new IPBlueprint.Store.Data.Product { Name = "Slut", Slug = "slut-" + Guid.NewGuid().ToString("N")[..6], Price = 50m, Stock = 0 };
+            db.Products.Add(p);
+            await db.SaveChangesAsync();
+            return p;
+        });
+        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var token = AntiforgeryToken().Match(await client.GetStringAsync($"/products/{product.Slug}")).Groups[1].Value;
+
+        var statuses = new List<HttpStatusCode>();
+        for (var i = 0; i < 6; i++)
+        {
+            // Razor Pages runs the first handler value, but the whole query value reads "Notify,x".
+            var response = await client.PostAsync($"/products/{product.Slug}?handler=Notify&handler=x", new FormUrlEncodedContent(
+                [new("__RequestVerificationToken", token), new("email", $"stranger{i}@example.se")]));
+            statuses.Add(response.StatusCode);
+        }
+
+        Assert.Equal(HttpStatusCode.TooManyRequests, statuses[^1]);
+        Assert.Equal(5, await _factory.WithDbAsync(db => db.StockAlerts.CountAsync(a => a.ProductId == product.Id)));
     }
 
     [GeneratedRegex("name=\"__RequestVerificationToken\" type=\"hidden\" value=\"([^\"]+)\"")]

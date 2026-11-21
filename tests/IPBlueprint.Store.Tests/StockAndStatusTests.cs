@@ -360,6 +360,38 @@ public partial class StockAndStatusTests : IClassFixture<StoreFactory>
     }
 
     [Fact]
+    public async Task Back_in_stock_emails_a_restart_cut_short_go_out_on_the_next_sweep()
+    {
+        var product = await AddProductAsync("Avbruten lista", stock: 0);
+        await using (var scope = _factory.Services.CreateAsyncScope())
+            await scope.ServiceProvider.GetRequiredService<StockAlerts>().SubscribeAsync(product, "left-over@example.se", "sv");
+        // Restocked, but the app stopped before the email went out: the address is still waiting.
+        await _factory.WithDbAsync(db => db.Products.Where(p => p.Id == product.Id).ExecuteUpdateAsync(s => s.SetProperty(p => p.Stock, 3)));
+
+        await using (var scope = _factory.Services.CreateAsyncScope())
+            await scope.ServiceProvider.GetRequiredService<StockAlerts>().NotifyAllAvailableAsync();
+
+        Assert.Single(EmailsTo("left-over@example.se"));
+        Assert.Equal(0, await _factory.WithDbAsync(db => db.StockAlerts.CountAsync(a => a.ProductId == product.Id)));
+    }
+
+    [Fact]
+    public async Task Saving_a_restocked_product_queues_the_waiting_emails()
+    {
+        var product = await AddProductAsync("Köad lampa", stock: 0);
+        await using (var scope = _factory.Services.CreateAsyncScope())
+            await scope.ServiceProvider.GetRequiredService<StockAlerts>().SubscribeAsync(product, "queued@example.se", "en");
+        await _factory.WithDbAsync(db => db.Products.Where(p => p.Id == product.Id).ExecuteUpdateAsync(s => s.SetProperty(p => p.Stock, 1)));
+
+        int waiting;
+        await using (var scope = _factory.Services.CreateAsyncScope())
+            waiting = await scope.ServiceProvider.GetRequiredService<StockAlerts>().QueueNotifyIfAvailableAsync(product.Id);
+
+        Assert.Equal(1, waiting);
+        Assert.Single(EmailsTo("queued@example.se"));
+    }
+
+    [Fact]
     public async Task Admin_changes_status_from_the_order_page()
     {
         var order = await PlaceOrderAsync(await AddProductAsync("Adminorder"));
@@ -371,7 +403,7 @@ public partial class StockAndStatusTests : IClassFixture<StoreFactory>
         var response = await client.PostAsync($"/Admin/Orders/Details/{order.Id}?handler=Status",
             Form(Token(page), ("to", "InProduction"), ("emailCustomer", "true")));
 
-        Assert.Contains("Marked as in production. The customer has been emailed.", await response.Content.ReadAsStringAsync());
+        Assert.Contains("Marked as in production. The customer is being emailed.", await response.Content.ReadAsStringAsync());
         Assert.Contains(EmailsTo(order.Email), e => e.Subject.StartsWith("Nu printar vi din beställning"));
     }
 

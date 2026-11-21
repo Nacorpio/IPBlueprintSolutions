@@ -10,7 +10,7 @@ using Microsoft.Extensions.Options;
 
 namespace IPBlueprint.Store.Pages;
 
-[EnableRateLimiting(FormRateLimits.StockAlert)]
+[EnableRateLimiting(RateLimits.StockAlert)]
 public class ProductModel(
     StoreDbContext db,
     CartService cart,

@@ -6,24 +6,32 @@ using Microsoft.AspNetCore.RateLimiting;
 namespace IPBlueprint.Store.Shop;
 
 /// <summary>
-/// Limits on the public forms that send email or start a payment, per visitor. Only posts count, so viewing the
-/// form is never limited. Without these, a script could use the custom order form to send email from the shop's
-/// account to anyone, over and over.
+/// Every rate limit in the shop, per visitor: the admin login, the public forms that send email or start a payment,
+/// and the SumUp webhook. Only posts count on the forms, so viewing a page is never limited. Without these, a script
+/// could guess the admin password, or use the forms to send email from the shop's account to anyone, over and over.
 /// </summary>
-public static class FormRateLimits
+public static class RateLimits
 {
+    public const string AdminLogin = "admin-login";
     public const string CustomRequest = "custom-request";
     public const string Checkout = "checkout";
 
     /// <summary>"Email me when it's back" on a product page. Adding to the cart on the same page is not limited.</summary>
     public const string StockAlert = "stock-alert";
 
-    public static void AddFormRateLimits(this RateLimiterOptions options)
+    /// <summary>Each webhook call makes the shop ask SumUp's API, so a flood of made-up calls could use up SumUp's limit.</summary>
+    public const string SumUpWebhook = "sumup-webhook";
+
+    public static void AddStoreRateLimits(this RateLimiterOptions options)
     {
+        options.AddPolicy(AdminLogin, ctx => PerVisitor(ctx, AdminLogin, permits: 10, TimeSpan.FromMinutes(5)));
+        options.AddPolicy(SumUpWebhook, ctx => PerVisitor(ctx, SumUpWebhook, permits: 60, TimeSpan.FromMinutes(1)));
         options.AddPolicy(CustomRequest, ctx => PostsPerVisitor(ctx, CustomRequest, permits: 5, TimeSpan.FromHours(1)));
         options.AddPolicy(Checkout, ctx => PostsPerVisitor(ctx, Checkout, permits: 10, TimeSpan.FromMinutes(10)));
+        // Razor Pages runs the handler named by the first "handler" value, so look at each value rather than the joined
+        // string: "?handler=Notify&handler=x" reads as "Notify,x" but still runs OnPostNotify.
         options.AddPolicy(StockAlert, ctx =>
-            string.Equals(ctx.Request.Query["handler"], "notify", StringComparison.OrdinalIgnoreCase)
+            ctx.Request.Query["handler"].Any(h => string.Equals(h, "notify", StringComparison.OrdinalIgnoreCase))
                 ? PostsPerVisitor(ctx, StockAlert, permits: 5, TimeSpan.FromHours(1))
                 : RateLimitPartition.GetNoLimiter(StockAlert + ":other"));
     }
@@ -48,8 +56,11 @@ public static class FormRateLimits
 
     private static RateLimitPartition<string> PostsPerVisitor(HttpContext ctx, string policy, int permits, TimeSpan window) =>
         HttpMethods.IsPost(ctx.Request.Method)
-            ? RateLimitPartition.GetFixedWindowLimiter(
-                $"{policy}:{VisitorKey(ctx)}",
-                _ => new FixedWindowRateLimiterOptions { PermitLimit = permits, Window = window })
+            ? PerVisitor(ctx, policy, permits, window)
             : RateLimitPartition.GetNoLimiter(policy + ":read");
+
+    private static RateLimitPartition<string> PerVisitor(HttpContext ctx, string policy, int permits, TimeSpan window) =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            $"{policy}:{VisitorKey(ctx)}",
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = permits, Window = window });
 }

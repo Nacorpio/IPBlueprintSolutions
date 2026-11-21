@@ -1,4 +1,5 @@
 using IPBlueprint.Store.Admin;
+using IPBlueprint.Store.Shop;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -7,7 +8,7 @@ using Microsoft.Extensions.Options;
 
 namespace IPBlueprint.Store.Pages.Admin;
 
-[EnableRateLimiting(AdminPolicy.LoginRateLimit)]
+[EnableRateLimiting(RateLimits.AdminLogin)]
 public class LoginModel(IOptions<AdminOptions> options, ILogger<LoginModel> logger) : PageModel
 {
     public string? Error { get; private set; }

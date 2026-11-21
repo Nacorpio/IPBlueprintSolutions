@@ -11,7 +11,7 @@ using Microsoft.Extensions.Options;
 
 namespace IPBlueprint.Store.Pages;
 
-[EnableRateLimiting(FormRateLimits.Checkout)]
+[EnableRateLimiting(RateLimits.Checkout)]
 public class CheckoutModel(
     CartService cart,
     OrderService orders,

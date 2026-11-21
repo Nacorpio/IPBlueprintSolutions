@@ -12,6 +12,7 @@ public class StoreDbContext(DbContextOptions<StoreDbContext> options) : DbContex
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<StockAlert> StockAlerts => Set<StockAlert>();
     public DbSet<OrderStatusChange> OrderStatusChanges => Set<OrderStatusChange>();
+    public DbSet<PaymentIssue> PaymentIssues => Set<PaymentIssue>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -61,11 +62,25 @@ public class StoreDbContext(DbContextOptions<StoreDbContext> options) : DbContex
             e.Property(o => o.Language).HasMaxLength(5);
             e.Property(o => o.Delivery).HasConversion<string>().HasMaxLength(10);
             e.Ignore(o => o.IsPickup);
+            e.Ignore(o => o.IsUnpaid);
+            e.Ignore(o => o.PaymentNeedsChecking);
+            e.HasMany(o => o.PaymentIssues).WithOne().HasForeignKey(i => i.OrderId).OnDelete(DeleteBehavior.Cascade);
             e.HasMany(o => o.Lines).WithOne().HasForeignKey(l => l.OrderId).OnDelete(DeleteBehavior.Cascade);
             e.HasMany(o => o.History).WithOne().HasForeignKey(h => h.OrderId).OnDelete(DeleteBehavior.Cascade);
         });
 
         b.Entity<OrderLine>().Ignore(l => l.LineTotal);
+
+        b.Entity<PaymentIssue>(e =>
+        {
+            // One issue per paid checkout: SumUp and the return page may report the same payment many times.
+            e.HasIndex(i => i.CheckoutId).IsUnique();
+            e.Property(i => i.CheckoutId).HasMaxLength(64);
+            e.Property(i => i.Kind).HasConversion<string>().HasMaxLength(20);
+            e.Property(i => i.Currency).HasMaxLength(3);
+            e.Property(i => i.ResolutionNote).HasMaxLength(500);
+            e.Ignore(i => i.IsResolved);
+        });
 
         b.Entity<CustomOrderRequest>(e =>
         {

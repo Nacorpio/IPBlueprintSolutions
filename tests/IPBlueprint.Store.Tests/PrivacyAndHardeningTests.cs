@@ -32,22 +32,29 @@ public partial class PrivacyAndHardeningTests : IClassFixture<StoreFactory>
     }
 
     [Fact]
-    public async Task Old_unpaid_orders_and_old_unanswered_requests_are_deleted_but_paid_orders_are_kept()
+    public async Task Abandoned_orders_and_old_unanswered_requests_are_deleted_but_paid_and_recently_tried_orders_are_kept()
     {
         var old = DateTime.UtcNow.AddDays(-31);
         var ids = await _factory.WithDbAsync(async db =>
         {
-            Order NewOrder(OrderStatus status, DateTime created, string? extra = null) => new()
+            Order NewOrder(OrderStatus status, DateTime created, DateTime? lastAttempt = null, DateTime? issueResolved = null, bool openIssue = false) => new()
             {
                 Reference = "IPB-TEST-" + Guid.NewGuid().ToString("N")[..8],
                 CustomerName = "Anna", Email = "anna@example.se", Status = status, CreatedAtUtc = created,
-                ExtraPaymentCheckoutId = extra,
+                LastPaymentAttemptAtUtc = lastAttempt,
+                PaymentIssues = openIssue || issueResolved is not null
+                    ? [new PaymentIssue { CheckoutId = "chk-" + Guid.NewGuid().ToString("N"), Kind = PaymentIssueKind.WrongAmount, ResolvedAtUtc = issueResolved }]
+                    : [],
             };
             var oldUnpaid = NewOrder(OrderStatus.AwaitingPayment, old);
             var oldCancelled = NewOrder(OrderStatus.Cancelled, old);
             var oldPaid = NewOrder(OrderStatus.Delivered, old);
             var newUnpaid = NewOrder(OrderStatus.PaymentFailed, DateTime.UtcNow.AddDays(-2));
-            var oldWithStrayPayment = NewOrder(OrderStatus.AwaitingPayment, old, extra: "chk-wrong-amount");
+            var oldWithStrayPayment = NewOrder(OrderStatus.AwaitingPayment, old, openIssue: true);
+            var oldButPaidAtYesterday = NewOrder(OrderStatus.AwaitingPayment, old, lastAttempt: DateTime.UtcNow.AddDays(-1));
+            var oldAttemptLongAgo = NewOrder(OrderStatus.PaymentFailed, old.AddDays(-10), lastAttempt: old);
+            var issueResolvedLongAgo = NewOrder(OrderStatus.Cancelled, old.AddDays(-30), issueResolved: old);
+            var issueResolvedRecently = NewOrder(OrderStatus.Cancelled, old.AddDays(-30), issueResolved: DateTime.UtcNow.AddDays(-3));
             CustomOrderRequest NewRequest(CustomRequestStatus status, DateTime created) => new()
             {
                 Name = "Kim", Email = "kim@example.se", Description = "A dragon", Status = status, CreatedAtUtc = created,
@@ -55,12 +62,13 @@ public partial class PrivacyAndHardeningTests : IClassFixture<StoreFactory>
             var oldOpenRequest = NewRequest(CustomRequestStatus.Quoted, DateTime.UtcNow.AddDays(-400));
             var oldAcceptedRequest = NewRequest(CustomRequestStatus.Accepted, DateTime.UtcNow.AddDays(-400));
             var newRequest = NewRequest(CustomRequestStatus.New, DateTime.UtcNow.AddDays(-30));
-            db.AddRange(oldUnpaid, oldCancelled, oldPaid, newUnpaid, oldWithStrayPayment, oldOpenRequest, oldAcceptedRequest, newRequest);
+            db.AddRange(oldUnpaid, oldCancelled, oldPaid, newUnpaid, oldWithStrayPayment, oldButPaidAtYesterday, oldAttemptLongAgo,
+                issueResolvedLongAgo, issueResolvedRecently, oldOpenRequest, oldAcceptedRequest, newRequest);
             await db.SaveChangesAsync();
             return new
             {
-                Deleted = new[] { oldUnpaid.Id, oldCancelled.Id },
-                Kept = new[] { oldPaid.Id, newUnpaid.Id, oldWithStrayPayment.Id },
+                Deleted = new[] { oldUnpaid.Id, oldCancelled.Id, oldAttemptLongAgo.Id, issueResolvedLongAgo.Id },
+                Kept = new[] { oldPaid.Id, newUnpaid.Id, oldWithStrayPayment.Id, oldButPaidAtYesterday.Id, issueResolvedRecently.Id },
                 DeletedRequest = oldOpenRequest.Id,
                 KeptRequests = new[] { oldAcceptedRequest.Id, newRequest.Id },
             };

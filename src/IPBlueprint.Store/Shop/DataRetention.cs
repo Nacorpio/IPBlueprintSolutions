@@ -4,9 +4,9 @@ using Microsoft.EntityFrameworkCore;
 namespace IPBlueprint.Store.Shop;
 
 /// <summary>
-/// Deletes personal data the shop has no reason to keep, as the privacy page promises: orders that were never paid
-/// (after 30 days) and custom requests that didn't lead to an order (after 12 months), with their attached files.
-/// Paid orders are kept, because bookkeeping law needs them.
+/// Deletes personal data the shop has no reason to keep, as the privacy page promises: abandoned orders (never paid,
+/// 30 days after the last attempt to pay) and custom requests that didn't lead to an order (after 12 months), with
+/// their attached files. Paid orders are kept, because bookkeeping law needs them.
 /// </summary>
 public sealed class DataRetention(StoreDbContext db, FileStore files, TimeProvider clock, ILogger<DataRetention> logger)
 {
@@ -20,10 +20,13 @@ public sealed class DataRetention(StoreDbContext db, FileStore files, TimeProvid
     {
         var now = clock.GetUtcNow().UtcDateTime;
 
-        // An order with a stray payment on it (wrong amount, or paid after it was cancelled) stays until it's sorted out.
+        // The clock starts at the last attempt to pay, so an order whose customer pressed "Pay now" yesterday keeps its
+        // open SumUp checkout. An order with a payment issue stays until the owners resolve it, and 30 days after that.
         var orderCutoff = now - UnpaidOrderAge;
         var orders = await db.Orders
-            .Where(o => NeverPaid.Contains(o.Status) && o.CreatedAtUtc < orderCutoff && o.ExtraPaymentCheckoutId == null)
+            .Where(o => NeverPaid.Contains(o.Status)
+                        && (o.LastPaymentAttemptAtUtc ?? o.CreatedAtUtc) < orderCutoff
+                        && o.PaymentIssues.All(i => i.ResolvedAtUtc != null && i.ResolvedAtUtc < orderCutoff))
             .ExecuteDeleteAsync(ct);
 
         var requestCutoff = now - OpenRequestAge;
@@ -36,26 +39,5 @@ public sealed class DataRetention(StoreDbContext db, FileStore files, TimeProvid
 
         if (orders > 0 || oldRequests.Count > 0)
             logger.LogInformation("Deleted {Orders} unpaid orders and {Requests} old custom requests", orders, oldRequests.Count);
-    }
-}
-
-/// <summary>Runs <see cref="DataRetention"/> at startup and then once a day.</summary>
-public sealed class DataRetentionJob(IServiceScopeFactory scopes, ILogger<DataRetentionJob> logger) : BackgroundService
-{
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        using var timer = new PeriodicTimer(TimeSpan.FromDays(1));
-        do
-        {
-            try
-            {
-                await using var scope = scopes.CreateAsyncScope();
-                await scope.ServiceProvider.GetRequiredService<DataRetention>().CleanUpAsync(stoppingToken);
-            }
-            catch (Exception ex) when (ex is not OperationCanceledException)
-            {
-                logger.LogError(ex, "Could not delete old personal data; will try again tomorrow");
-            }
-        } while (await timer.WaitForNextTickAsync(stoppingToken));
     }
 }

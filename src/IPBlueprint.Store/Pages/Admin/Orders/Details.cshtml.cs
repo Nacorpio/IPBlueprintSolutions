@@ -22,7 +22,7 @@ public class DetailsModel(StoreDbContext db, OrderService orders, OrderNotificat
     public async Task<IActionResult> OnGetAsync(Guid id, CancellationToken ct)
     {
         var order = await db.Orders.AsNoTracking()
-            .Include(o => o.Lines).Include(o => o.History.OrderBy(h => h.AtUtc))
+            .Include(o => o.Lines).Include(o => o.History.OrderBy(h => h.AtUtc)).Include(o => o.PaymentIssues)
             .AsSplitQuery()
             .FirstOrDefaultAsync(o => o.Id == id, ct);
         if (order is null) return NotFound();
@@ -42,8 +42,18 @@ public class DetailsModel(StoreDbContext db, OrderService orders, OrderNotificat
         var delivery = await db.Orders.Where(o => o.Id == id).Select(o => o.Delivery).FirstOrDefaultAsync(ct);
         var label = OrderStatusFlow.AdminLabel(to, delivery).ToLowerInvariant();
         TempData["Flash"] = result == StatusChangeResult.Changed
-            ? $"Marked as {label}." + (emailCustomer && OrderStatusFlow.EmailsCustomer(to) ? " The customer has been emailed." : "")
+            ? $"Marked as {label}." + (emailCustomer && OrderStatusFlow.EmailsCustomer(to) ? " The customer is being emailed." : "")
             : "That change isn't possible from the order's current status. Someone may have just changed it; here is how it looks now.";
+        return RedirectToPage(new { id });
+    }
+
+    public async Task<IActionResult> OnPostResolveIssueAsync(Guid id, int issueId, string? note, CancellationToken ct)
+    {
+        var result = await orders.ResolvePaymentIssueAsync(id, issueId, note, ct);
+        if (result == ResolveIssueResult.NotFound) return NotFound();
+        TempData["Flash"] = result == ResolveIssueResult.Resolved
+            ? "Marked the payment issue as resolved."
+            : "Someone had already marked that payment issue as resolved.";
         return RedirectToPage(new { id });
     }
 }

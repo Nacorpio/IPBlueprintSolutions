@@ -16,16 +16,41 @@
     </span>
 </div>
 
-@if (o.ExtraPaymentCheckoutId is { } extra)
+@foreach (var issue in o.PaymentIssues.OrderBy(i => i.FoundAtUtc))
 {
-    @if (o.PaymentNeedsChecking)
-    {
-        <div class="notice">The customer paid SumUp checkout <code>@extra</code>, but not with this order's amount, so the order wasn't marked paid. Check it in SumUp, then refund it or contact the customer.</div>
-    }
-    else
-    {
-        <div class="notice">The customer also paid SumUp checkout <code>@extra</code>, which this order didn't need. Refund it in SumUp.</div>
-    }
+    var issuePaid = issue.Amount is { } amount ? $"{amount:0.00} {issue.Currency}" : "an unknown amount";
+    <div class="notice">
+        <p>
+            @switch (issue.Kind)
+            {
+                case PaymentIssueKind.WrongAmount:
+                    <text>The customer paid SumUp checkout <code>@issue.CheckoutId</code> (@issuePaid), but not with this order's amount, so the order wasn't marked paid. Check it in SumUp, then refund it or contact the customer. They can't pay again until this is resolved.</text>
+                    break;
+                case PaymentIssueKind.PaidAfterCancel:
+                    <text>SumUp checkout <code>@issue.CheckoutId</code> (@issuePaid) was paid after this order was cancelled. Refund it in SumUp, or reinstate the order.</text>
+                    break;
+                default:
+                    <text>The customer also paid SumUp checkout <code>@issue.CheckoutId</code> (@issuePaid), which this order didn't need. Refund it in SumUp.</text>
+                    break;
+            }
+            <span class="muted small">Found @ShopTime.ToSwedish(issue.FoundAtUtc).ToString("yyyy-MM-dd HH:mm").</span>
+        </p>
+        @if (issue.ResolvedAtUtc is { } resolvedAt)
+        {
+            <p class="small"><strong>Resolved</strong> @ShopTime.ToSwedish(resolvedAt).ToString("yyyy-MM-dd HH:mm")@(issue.ResolutionNote is { } note ? $": {note}" : ".")</p>
+        }
+        else
+        {
+            <form method="post" asp-page-handler="ResolveIssue" class="status-action">
+                <input type="hidden" name="issueId" value="@issue.Id" />
+                <div class="field">
+                    <label for="note-@issue.Id">What did you do? (optional)</label>
+                    <input id="note-@issue.Id" name="note" type="text" maxlength="500" placeholder="Refunded in SumUp on 22 Nov" />
+                </div>
+                <button class="button secondary" type="submit">Mark resolved</button>
+            </form>
+        }
+    </div>
 }
 
 <div class="layout-two">
