@@ -1,0 +1,38 @@
+@model IReadOnlyList<CartLine>
+@*
+    Quick look at the cart, opened by hovering or tabbing to the cart link in the header (CSS only).
+    Touch screens skip it and go straight to the cart page.
+*@
+@{
+    const int MaxShown = 4;
+    var subtotal = Model.Sum(l => l.LineTotal);
+}
+<div class="cart-preview" id="cart-preview">
+    <p class="cart-preview-title">@L["Your cart"]</p>
+    <ul>
+        @foreach (var line in Model.Take(MaxShown))
+        {
+            <li>
+                @if (line.Product.ImageFileName is { } file)
+                {
+                    <img src="/images/products/@file" alt="" width="44" height="44" loading="lazy" />
+                }
+                else
+                {
+                    <span class="cart-preview-thumb" aria-hidden="true"></span>
+                }
+                <span class="cart-preview-name">@line.Product.DisplayName</span>
+                <span class="cart-preview-qty">@line.Quantity × @Money.Format(line.Product.Price)</span>
+            </li>
+        }
+    </ul>
+    @if (Model.Count > MaxShown)
+    {
+        <p class="cart-preview-more muted small">@L["and {0} more", Model.Count - MaxShown]</p>
+    }
+    <p class="cart-preview-subtotal"><span>@L["Subtotal"]</span><strong>@Money.Format(subtotal)</strong></p>
+    <div class="cart-preview-actions">
+        <a class="button secondary small-button" asp-page="/Cart">@L["Edit cart"]</a>
+        <a class="button small-button" asp-page="/Checkout">@L["Go to checkout"]</a>
+    </div>
+</div>

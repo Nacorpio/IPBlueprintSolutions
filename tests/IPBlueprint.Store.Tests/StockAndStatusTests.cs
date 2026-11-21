@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using IPBlueprint.Store.Data;
 using IPBlueprint.Store.Localization;
 using IPBlueprint.Store.Shop;
+using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
