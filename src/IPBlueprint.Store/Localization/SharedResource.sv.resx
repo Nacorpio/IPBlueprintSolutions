@@ -222,4 +222,6 @@
   <data name="You can pick it up from us in {0}. Reply to our email with the days and times that suit you, and we'll send you the address." xml:space="preserve"><value>Du kan hämta den hos oss i {0}. Svara på vårt mejl med vilka dagar och tider som passar dig, så skickar vi adressen.</value></data>
   <data name="Your details" xml:space="preserve"><value>Dina uppgifter</value></data>
   <data name="Your order is ready to pick up" xml:space="preserve"><value>Din beställning är redo att hämtas</value></data>
+  <data name="We're checking your payment" xml:space="preserve"><value>Vi kontrollerar din betalning</value></data>
+  <data name="A payment for this order came in that we need to look at by hand. Please don't pay again: we'll email you as soon as we've sorted it out." xml:space="preserve"><value>Vi har fått en betalning för den här beställningen som vi behöver titta på manuellt. Betala inte igen: vi mejlar dig så snart vi har rett ut det.</value></data>
 </root>

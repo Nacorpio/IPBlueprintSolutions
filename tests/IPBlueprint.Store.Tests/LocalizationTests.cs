@@ -142,7 +142,7 @@ public partial class LocalizationTests : IClassFixture<StoreFactory>
         };
         await using var scope = _factory.Services.CreateAsyncScope();
 
-        await scope.ServiceProvider.GetRequiredService<OrderNotifications>().OrderPaidAsync(order);
+        scope.ServiceProvider.GetRequiredService<OrderNotifications>().QueueOrderPaid(order);
 
         var sent = _factory.Emails.Sent.Where(e => e.Subject.Contains(order.Reference)).ToList();
         Assert.Contains(sent, e => e.To == "anna@example.se" && e.Subject.StartsWith(expectedSubject));

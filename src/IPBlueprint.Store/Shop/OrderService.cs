@@ -87,6 +87,13 @@ public enum PaymentSyncResult
     AmountMismatch,
 }
 
+public enum ResolveIssueResult
+{
+    Resolved,
+    NotFound,
+    AlreadyResolved,
+}
+
 public sealed class OrderService(
     StoreDbContext db,
     ISumUpClient sumUp,
@@ -96,7 +103,7 @@ public sealed class OrderService(
     TimeProvider clock,
     ILogger<OrderService> logger)
 {
-    private static readonly OrderStatus[] Payable = [OrderStatus.AwaitingPayment, OrderStatus.PaymentFailed];
+    private static readonly OrderStatus[] Payable = Order.UnpaidStatuses;
 
     public async Task<Order> CreateOrderAsync(CartSummary cart, CustomerDetails customer, CancellationToken ct = default)
     {
@@ -136,16 +143,33 @@ public sealed class OrderService(
         return order;
     }
 
-    /// <summary>Creates a SumUp hosted checkout for the order and returns the URL to send the customer to.</summary>
-    public async Task<string> StartPaymentAsync(Order order, Uri siteBaseUrl, CancellationToken ct = default)
+    /// <summary>
+    /// Creates a SumUp hosted checkout for the order and returns the URL to send the customer to, or null when there is
+    /// nothing to pay now: the order was paid or cancelled in the meantime (for example in another tab), or a payment
+    /// for it is waiting for the owners to look at (<see cref="Order.PaymentNeedsChecking"/>).
+    /// </summary>
+    public async Task<string?> StartPaymentAsync(Order order, Uri siteBaseUrl, CancellationToken ct = default)
     {
         if (!Payable.Contains(order.Status))
             throw new InvalidOperationException($"Order {order.Reference} cannot be paid in status {order.Status}.");
 
-        order.PaymentAttempts++;
+        // Count the attempt before calling SumUp, so a call that timed out after SumUp created the checkout doesn't
+        // make every later attempt reuse the same checkout reference (which SumUp refuses).
+        int attempt;
+        var now = clock.GetUtcNow().UtcDateTime;
+        await using (var tx = await db.Database.BeginTransactionAsync(ct))
+        {
+            var counted = await PayableNow(order.Id)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(o => o.PaymentAttempts, o => o.PaymentAttempts + 1)
+                    .SetProperty(o => o.LastPaymentAttemptAtUtc, now), ct);
+            if (counted == 0) return null;
+            attempt = await db.Orders.Where(o => o.Id == order.Id).Select(o => o.PaymentAttempts).SingleAsync(ct);
+            await tx.CommitAsync(ct);
+        }
 
         // SumUp needs a unique reference per checkout, so retries get a suffix: IPB-261031-7KQ2, IPB-261031-7KQ2-2, ...
-        var checkoutReference = order.PaymentAttempts == 1 ? order.Reference : $"{order.Reference}-{order.PaymentAttempts}";
+        var checkoutReference = attempt == 1 ? order.Reference : $"{order.Reference}-{attempt}";
 
         var checkout = await sumUp.CreateCheckoutAsync(new CreateCheckoutRequest(
             CheckoutReference: checkoutReference,
@@ -155,12 +179,33 @@ public sealed class OrderService(
             RedirectUrl: new Uri(siteBaseUrl, $"order/{order.Id}"),
             WebhookUrl: new Uri(siteBaseUrl, "webhooks/sumup")), ct);
 
+        // Only while the order is still unpaid: if the customer paid an earlier checkout while this one was being
+        // created, pointing the order at the new checkout would hide a second payment of it.
+        var saved = await PayableNow(order.Id)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(o => o.SumUpCheckoutId, checkout.Id)
+                .SetProperty(o => o.Status, OrderStatus.AwaitingPayment), ct);
+        if (saved == 0)
+        {
+            logger.LogInformation("Order {Reference} was paid or cancelled while checkout {CheckoutId} was created; not using it",
+                order.Reference, checkout.Id);
+            return null;
+        }
+
+        // Saved above; bring the caller's copy up to date without marking it as changed.
+        var entry = db.Entry(order);
+        order.PaymentAttempts = attempt;
+        order.LastPaymentAttemptAtUtc = now;
         order.SumUpCheckoutId = checkout.Id;
         order.Status = OrderStatus.AwaitingPayment;
-        await db.SaveChangesAsync(ct);
+        if (entry.State != EntityState.Detached) entry.State = EntityState.Unchanged;
 
         return checkout.HostedCheckoutUrl!;
     }
+
+    /// <summary>The order, if the customer may pay it now: still unpaid, and no payment for it waiting on the owners.</summary>
+    private IQueryable<Order> PayableNow(Guid orderId) =>
+        db.Orders.Where(o => o.Id == orderId && Payable.Contains(o.Status) && !o.PaymentIssues.Any(i => i.ResolvedAtUtc == null));
 
     /// <summary>
     /// Asks SumUp for the real state of a checkout and updates the matching order.
@@ -182,24 +227,16 @@ public sealed class OrderService(
 
         if (checkout.IsPaid)
         {
-            if (order.Status == OrderStatus.Cancelled)
+            if (!order.IsUnpaid)
             {
-                await ReportExtraPaymentAsync(order, checkout, cancelled: true, ct);
-                return PaymentSyncResult.AlreadyPaid;
-            }
-
-            if (!Payable.Contains(order.Status))
-            {
-                // A second checkout for the same order (the "Pay now" retry) was paid too: the customer paid twice.
-                if (checkout.Id != order.SumUpCheckoutId) await ReportExtraPaymentAsync(order, checkout, cancelled: false, ct);
+                await ReportIfStrayAsync(order, order.Status, order.SumUpCheckoutId, checkout, ct);
                 return PaymentSyncResult.AlreadyPaid;
             }
 
             if (checkout.Amount != order.Total ||
                 !string.Equals(checkout.Currency, sumUpOptions.Value.Currency, StringComparison.OrdinalIgnoreCase))
             {
-                logger.LogError("Order {Reference}: SumUp reports {Amount} {Currency} paid, but the order total is {Total}. Not marking as paid.",
-                    order.Reference, checkout.Amount, checkout.Currency, order.Total);
+                await ReportPaymentIssueAsync(order, checkout, PaymentIssueKind.WrongAmount, ct);
                 return PaymentSyncResult.AmountMismatch;
             }
 
@@ -221,6 +258,11 @@ public sealed class OrderService(
             if (updated == 0)
             {
                 await tx.RollbackAsync(ct);
+                // Something changed the order since it was read: paid through another checkout, or cancelled by an admin
+                // at this very moment. Either way this payment may now be one the order didn't need.
+                var now = await db.Orders.AsNoTracking().Where(o => o.Id == order.Id)
+                    .Select(o => new { o.Status, o.SumUpCheckoutId }).SingleAsync(ct);
+                await ReportIfStrayAsync(order, now.Status, now.SumUpCheckoutId, checkout, ct);
                 return PaymentSyncResult.AlreadyPaid;
             }
 
@@ -241,7 +283,7 @@ public sealed class OrderService(
                 logger.LogWarning("Order {Reference} took {Ordered} × {Product}, but only {InStock} were in stock", order.Reference, s.Ordered, s.ProductName, s.InStock);
 
             // The payment is committed: from here on the visitor leaving must not stop the emails.
-            await notifications.OrderPaidAsync(order, shortages);
+            notifications.QueueOrderPaid(order, shortages);
             return PaymentSyncResult.MarkedPaid;
         }
 
@@ -295,7 +337,8 @@ public sealed class OrderService(
             await db.Orders.Where(o => o.Id == orderId).ExecuteUpdateAsync(s => s.SetProperty(o => o.StockRestored, true), ct);
         }
 
-        var historyEntry = new OrderStatusChange { OrderId = orderId, Status = request.To, AtUtc = now, CustomerEmailed = emailCustomer };
+        // CustomerEmailed is only set once the email has actually gone out, from the background queue.
+        var historyEntry = new OrderStatusChange { OrderId = orderId, Status = request.To, AtUtc = now };
         db.OrderStatusChanges.Add(historyEntry);
         await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
@@ -310,32 +353,81 @@ public sealed class OrderService(
 
         logger.LogInformation("Order {Reference}: {From} -> {To}", order.Reference, from, request.To);
         // The change is committed: from here on the admin leaving the page must not stop the emails.
-        if (emailCustomer && !await notifications.StatusChangedAsync(order))
+        if (emailCustomer)
         {
-            await db.OrderStatusChanges.Where(c => c.Id == historyEntry.Id)
-                .ExecuteUpdateAsync(s => s.SetProperty(c => c.CustomerEmailed, false), CancellationToken.None);
+            var historyId = historyEntry.Id;
+            notifications.QueueStatusChanged(order, async (services, sent) =>
+            {
+                if (!sent) return;
+                await services.GetRequiredService<StoreDbContext>().OrderStatusChanges.Where(c => c.Id == historyId)
+                    .ExecuteUpdateAsync(s => s.SetProperty(c => c.CustomerEmailed, true));
+            });
         }
-        foreach (var productId in backInStock) await stockAlerts.NotifyIfAvailableAsync(productId, CancellationToken.None);
+        foreach (var productId in backInStock) await stockAlerts.QueueNotifyIfAvailableAsync(productId, CancellationToken.None);
 
         return StatusChangeResult.Changed;
     }
 
     /// <summary>
-    /// The customer paid a checkout the order didn't need. Logs an error and emails the owners, once per checkout even
-    /// though SumUp and the return page may report it many times.
+    /// The owners have dealt with a payment issue outside the shop (refunded it, re-opened the order, or accepted it).
+    /// It leaves the order's status alone: the owners set that themselves. Once no issue is left open on an unpaid
+    /// order, the customer can pay it again.
     /// </summary>
-    private async Task ReportExtraPaymentAsync(Order order, SumUpCheckout checkout, bool cancelled, CancellationToken ct)
+    public async Task<ResolveIssueResult> ResolvePaymentIssueAsync(Guid orderId, int issueId, string? note, CancellationToken ct = default)
     {
-        var first = await db.Orders
-            .Where(o => o.Id == order.Id && (o.ExtraPaymentCheckoutId == null || o.ExtraPaymentCheckoutId != checkout.Id))
-            .ExecuteUpdateAsync(s => s.SetProperty(o => o.ExtraPaymentCheckoutId, checkout.Id), ct);
-        if (first == 0) return;
+        var exists = await db.PaymentIssues.AnyAsync(i => i.Id == issueId && i.OrderId == orderId, ct);
+        if (!exists) return ResolveIssueResult.NotFound;
 
-        logger.LogError(cancelled
-                ? "Order {Reference} was cancelled but SumUp checkout {CheckoutId} has been paid. Refund it or reinstate the order."
-                : "Order {Reference} was already paid, but SumUp checkout {CheckoutId} was paid as well. Refund that checkout.",
-            order.Reference, checkout.Id);
-        await notifications.ExtraPaymentAsync(order, checkout, cancelled);
+        var trimmed = string.IsNullOrWhiteSpace(note) ? null : note.Trim();
+        if (trimmed is { Length: > 500 }) trimmed = trimmed[..500];
+        var resolvedAt = clock.GetUtcNow().UtcDateTime;
+        var updated = await db.PaymentIssues.Where(i => i.Id == issueId && i.ResolvedAtUtc == null)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(i => i.ResolvedAtUtc, resolvedAt)
+                .SetProperty(i => i.ResolutionNote, trimmed), ct);
+        return updated == 0 ? ResolveIssueResult.AlreadyResolved : ResolveIssueResult.Resolved;
+    }
+
+    /// <summary>A paid checkout reached an order that is no longer waiting for payment. Unless it is the checkout that
+    /// paid the order, the customer was charged for nothing: record it for the owners.</summary>
+    private Task ReportIfStrayAsync(Order order, OrderStatus status, string? orderCheckoutId, SumUpCheckout checkout, CancellationToken ct)
+    {
+        if (status == OrderStatus.Cancelled) return ReportPaymentIssueAsync(order, checkout, PaymentIssueKind.PaidAfterCancel, ct);
+        // A second checkout for the same order (the "Pay now" retry) was paid too: the customer paid twice.
+        if (checkout.Id != orderCheckoutId) return ReportPaymentIssueAsync(order, checkout, PaymentIssueKind.DoubleCharge, ct);
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Records a paid checkout that couldn't settle the order, logs an error and emails the owners, once per checkout
+    /// even though SumUp and the return page may report it many times. An open issue also stops the customer paying
+    /// the order again until the owners resolve it.
+    /// </summary>
+    private async Task ReportPaymentIssueAsync(Order order, SumUpCheckout checkout, PaymentIssueKind kind, CancellationToken ct)
+    {
+        var issue = new PaymentIssue
+        {
+            OrderId = order.Id,
+            CheckoutId = checkout.Id,
+            Kind = kind,
+            Amount = checkout.Amount,
+            Currency = checkout.Currency,
+            FoundAtUtc = clock.GetUtcNow().UtcDateTime,
+        };
+        db.PaymentIssues.Add(issue);
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException ex) when (DbErrors.IsUniqueViolation(ex))
+        {
+            db.Entry(issue).State = EntityState.Detached;
+            return; // already recorded (and the owners emailed) by an earlier report of the same checkout
+        }
+
+        logger.LogError("Order {Reference}: SumUp checkout {CheckoutId} was paid ({Amount} {Currency}) but couldn't settle the order: {Kind}. The owners have been emailed.",
+            order.Reference, checkout.Id, checkout.Amount, checkout.Currency, kind);
+        notifications.QueuePaymentIssue(order, issue);
     }
 
     /// <summary>Takes a paid order's items out of stock. Made-to-order products have no stock and are skipped.

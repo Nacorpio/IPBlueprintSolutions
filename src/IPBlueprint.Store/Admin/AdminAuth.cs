@@ -27,5 +27,4 @@ public static class AdminPolicy
 {
     public const string Name = "Admin";
     public const string Scheme = "AdminCookie";
-    public const string LoginRateLimit = "admin-login";
 }

@@ -120,9 +120,9 @@ public partial class EditModel(StoreDbContext db, FileStore files, StockAlerts s
         await db.SaveChangesAsync(ct);
         if (newImage is not null) files.DeleteProductImage(oldImage);
 
-        var notified = await stockAlerts.NotifyIfAvailableAsync(product.Id, ct);
+        var notifying = await stockAlerts.QueueNotifyIfAvailableAsync(product.Id, ct);
 
-        TempData["Flash"] = $"Saved {product.Name}." + (notified > 0 ? $" Emailed {notified} {(notified == 1 ? "person" : "people")} who asked to hear when it was back." : "");
+        TempData["Flash"] = $"Saved {product.Name}." + (notifying > 0 ? $" Emailing {notifying} {(notifying == 1 ? "person" : "people")} who asked to hear when it was back." : "");
         return RedirectToPage("Index");
     }
 

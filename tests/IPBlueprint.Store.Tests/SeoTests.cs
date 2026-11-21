@@ -187,7 +187,7 @@ public partial class SeoTests : IClassFixture<StoreFactory>
         };
         await using var scope = _factory.Services.CreateAsyncScope();
 
-        await scope.ServiceProvider.GetRequiredService<OrderNotifications>().OrderPaidAsync(order);
+        scope.ServiceProvider.GetRequiredService<OrderNotifications>().QueueOrderPaid(order);
 
         var email = Assert.Single(_factory.Emails.Sent, e => e.To == "follow@example.se");
         Assert.Contains("Följ oss på <a href=\"https://www.instagram.com/ip.blueprint.solutions/\">Instagram</a> och <a", email.Body);
@@ -198,12 +198,12 @@ public partial class SeoTests : IClassFixture<StoreFactory>
     {
         var order = new Order
         {
-            Reference = "IPB-SHIPPED", CustomerName = "Sam", Email = "shipped@example.se", Language = "en",
+            Reference = "IPB-SHIPPED", CustomerName = "Sam", Email = "shipped@example.se", Language = "en", Status = OrderStatus.Shipped,
             AddressLine1 = "Storgatan 1", PostalCode = "123 45", City = "Stockholm", Total = 100m,
         };
         await using var scope = _factory.Services.CreateAsyncScope();
 
-        await scope.ServiceProvider.GetRequiredService<OrderNotifications>().OrderShippedAsync(order);
+        Assert.True(scope.ServiceProvider.GetRequiredService<OrderNotifications>().QueueStatusChanged(order));
 
         var email = Assert.Single(_factory.Emails.Sent, e => e.To == "shipped@example.se");
         Assert.Contains("Follow us on <a href=\"https://www.instagram.com/ip.blueprint.solutions/\">Instagram</a> and <a", email.Body);
